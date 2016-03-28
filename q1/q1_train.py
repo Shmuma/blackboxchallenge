@@ -114,7 +114,9 @@ if __name__ == "__main__":
         global_step = 1
 
         while True:
+            infra.prepare_bbox()
             print "%d: Learning round" % global_step
+            sys.stdout.flush()
 
             # Learning step
             infra.bbox_loop(our_state, random_action, learn_q, verbose=False)
@@ -122,6 +124,7 @@ if __name__ == "__main__":
 
             # Test run
             print "%d: Training round done, perform test run" % global_step
+            sys.stdout.flush()
             infra.prepare_bbox()
             infra.bbox_loop(our_state, smart_action, None, verbose=False)
             infra.bbox.finish(verbose=1)
