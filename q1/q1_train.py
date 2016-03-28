@@ -109,12 +109,22 @@ if __name__ == "__main__":
         init = tf.initialize_all_variables()
         session.run(init)
 
-        # Learning step
-        infra.bbox_loop(our_state, random_action, learn_q, verbose=10000)
-        infra.bbox.finish(verbose=1)
+        saver = tf.train.Saver()
+        global_step = 1
 
-        # Test run
-        print "Training round done, perform test run"
-        infra.prepare_bbox()
-        infra.bbox_loop(our_state, smart_action, None, verbose=10000)
-        infra.bbox.finish(verbose=1)
+        while True:
+            print "%d: Learning round" % global_step
+
+            # Learning step
+            infra.bbox_loop(our_state, random_action, learn_q, verbose=False)
+            infra.bbox.finish(verbose=1)
+
+            # Test run
+            print "%d: Training round done, perform test run" % global_step
+            infra.prepare_bbox()
+            infra.bbox_loop(our_state, smart_action, None, verbose=False)
+            infra.bbox.finish(verbose=1)
+
+            print "%d: save the model"
+            saver.save(session, "models/model-v1", global_step=global_step)
+            global_step += 1
