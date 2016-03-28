@@ -7,6 +7,8 @@ import tensorflow as tf
 
 L1_SIZE = 1024
 
+GAMMA = 0.9
+LR = 0.01
 
 def random_action(our_state):
     return np.random.randint(0, infra.n_actions, 1)
@@ -18,17 +20,27 @@ def learn_q(our_state, prev_state, action, reward, new_state):
     # - best Q-value from new state
     session = our_state['session']
     state_t = our_state['state_place']
+    q_vals_t = our_state['q_vals_place']
     forward_t = our_state['forward_net']
+    loss_t = our_state['loss']
+    opt_t = our_state['optimiser']
 
     # determine estimation of Q for new state
-    val, = session.run([forward_t], feed_dict={state_t: new_state})
-    best_action = np.argmax(val)
-    best_q = val[best_action]
+    states = [prev_state, new_state]
+    val, = session.run([forward_t], feed_dict={state_t: states})
+    prev_vals, new_vals = val
+    best_action = np.argmax(new_vals)
+    best_q = new_vals[best_action]
 
-    if our_state['init']:
-        print best_action, best_q, val
+    # desired output for action=action from prev_state
+    q_star = reward + GAMMA * best_q
 
-#    our_state['init'] = False
+    # run optimiser
+    desired_q_vals = np.array(prev_vals)
+    desired_q_vals[action] = q_star
+    loss, _ = session.run([loss_t, opt_t], feed_dict={state_t: [prev_state], q_vals_t: [desired_q_vals]})
+
+    print("loss={loss}".format(loss=loss))
 
 
 def make_forward_net(state_t):
@@ -37,12 +49,12 @@ def make_forward_net(state_t):
     :param state_t:
     :return:
     """
-    state_mat = tf.expand_dims(state_t, -1)
+#    state_mat = tf.expand_dims(state_t, -1)
 
     with tf.name_scope("L0"):
         w = tf.Variable(tf.random_normal((infra.n_features, L1_SIZE), mean=0.0, stddev=0.1))
         b = tf.Variable(tf.zeros((L1_SIZE,)))
-        l0_out = tf.nn.relu(tf.matmul(state_mat, w, transpose_a=True) + b)
+        l0_out = tf.nn.relu(tf.matmul(state_t, w) + b)
 
     with tf.name_scope("L1"):
         w = tf.Variable(tf.random_normal((L1_SIZE, infra.n_actions), mean=0.0, stddev=0.1))
@@ -53,19 +65,34 @@ def make_forward_net(state_t):
     return output
 
 
+def make_loss_and_optimiser(state_t, q_vals_t, forward_t):
+    with tf.name_scope("Opt"):
+        loss_t = tf.nn.l2_loss(forward_t - q_vals_t)
+        optimiser = tf.train.AdamOptimizer(learning_rate=LR)
+        opt_t = optimiser.minimize(loss_t)
+
+    return loss_t, opt_t
+
+
+
 if __name__ == "__main__":
     np.random.seed(42)
     infra.prepare_bbox()
 
-    state_t = tf.placeholder(tf.float32, (infra.n_features,), name="State")
+    state_t = tf.placeholder(tf.float32, (None, infra.n_features), name="State")
     forward_t = make_forward_net(state_t)
+
+    q_vals_t = tf.placeholder(tf.float32, (None, infra.n_actions), name="QVals")
+    loss_t, opt_t = make_loss_and_optimiser(state_t, q_vals_t, forward_t)
 
     with tf.Session() as session:
         our_state = {
             'session': session,
             'state_place': state_t,
+            'q_vals_place': q_vals_t,
             'forward_net': forward_t,
-            'init': True,
+            'loss': loss_t,
+            'optimiser': opt_t,
         }
 
         init = tf.initialize_all_variables()
