@@ -1,0 +1,4 @@
+No learning, test score:
+Loop done in 0:03:58.810581
+Level score= -9192.578125
+

@@ -1,5 +1,7 @@
 import interface as bbox
 import numpy as np
+from time import time
+from datetime import timedelta
 
 n_features = n_actions = None
 
@@ -17,14 +19,15 @@ def prepare_bbox():
     return n_features, n_actions
 
 
-def bbox_loop(our_state, get_action_func, learn_func):
+def bbox_loop(our_state, get_action_func, learn_func, verbose=0):
     prev_score = bbox.get_score()
 
+    started = time()
     has_next = True
     prev_state = np.array(bbox.get_state())
 
     while has_next:
-        action = get_action_func(our_state)
+        action = get_action_func(our_state, prev_state)
         has_next = bbox.do_action(action)
         score = bbox.get_score()
         reward = score - prev_score
@@ -32,11 +35,16 @@ def bbox_loop(our_state, get_action_func, learn_func):
 
         state = np.array(bbox.get_state())
 
-        print "%d: Action %d -> %f" % (bbox.get_time(), action, reward)
+        if verbose:
+            if bbox.get_time() % verbose == 0:
+                print "%d: Action %d -> %f, duration %s" % (bbox.get_time(), action,
+                                                            reward, timedelta(seconds=time() - started))
 
         # do q-learning stuff
-        if prev_state is not None:
+        if learn_func is not None:
             learn_func(our_state, prev_state, action, reward, state)
 
         # update our states
         prev_state = state
+
+    print("Loop done in {duration}".format(duration=timedelta(seconds=time() - started)))

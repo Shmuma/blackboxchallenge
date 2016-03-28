@@ -10,8 +10,19 @@ L1_SIZE = 1024
 GAMMA = 0.9
 LR = 0.01
 
-def random_action(our_state):
+def random_action(our_state, bbox_state):
     return np.random.randint(0, infra.n_actions, 1)
+
+
+def smart_action(our_state, bbox_state):
+    # calculate best action from current state
+    session = our_state['session']
+    state_t = our_state['state_place']
+    forward_t = our_state['forward_net']
+
+    q_vals, = session.run([forward_t], feed_dict={state_t: [bbox_state]})
+    best_action = np.argmax(q_vals)
+    return best_action
 
 
 def learn_q(our_state, prev_state, action, reward, new_state):
@@ -40,7 +51,7 @@ def learn_q(our_state, prev_state, action, reward, new_state):
     desired_q_vals[action] = q_star
     loss, _ = session.run([loss_t, opt_t], feed_dict={state_t: [prev_state], q_vals_t: [desired_q_vals]})
 
-    print("loss={loss}".format(loss=loss))
+#    print("loss={loss}".format(loss=loss))
 
 
 def make_forward_net(state_t):
@@ -98,6 +109,12 @@ if __name__ == "__main__":
         init = tf.initialize_all_variables()
         session.run(init)
 
-        infra.bbox_loop(our_state, random_action, learn_q)
+        # Learning step
+        infra.bbox_loop(our_state, random_action, learn_q, verbose=10000)
+        infra.bbox.finish(verbose=1)
 
-    infra.bbox.finish(verbose=1)
+        # Test run
+        print "Training round done, perform test run"
+        infra.prepare_bbox()
+        infra.bbox_loop(our_state, smart_action, None, verbose=10000)
+        infra.bbox.finish(verbose=1)
