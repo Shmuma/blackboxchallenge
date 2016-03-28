@@ -49,6 +49,7 @@ def learn_q(our_state, prev_state, action, reward, new_state):
     # run optimiser
     desired_q_vals = np.array(prev_vals)
     desired_q_vals[action] = q_star
+    # TODO: try to stop passing loss_t and check for speedup
     loss, _ = session.run([loss_t, opt_t], feed_dict={state_t: [prev_state], q_vals_t: [desired_q_vals]})
 
 #    print("loss={loss}".format(loss=loss))
@@ -125,6 +126,8 @@ if __name__ == "__main__":
             infra.bbox_loop(our_state, smart_action, None, verbose=False)
             infra.bbox.finish(verbose=1)
 
-            print "%d: save the model"
+            print "%d: save the model" % global_step
             saver.save(session, "models/model-v1", global_step=global_step)
             global_step += 1
+
+            sys.stdout.flush()
