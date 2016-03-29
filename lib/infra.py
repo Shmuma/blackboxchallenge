@@ -19,7 +19,7 @@ def prepare_bbox():
     return n_features, n_actions
 
 
-def bbox_loop(our_state, get_action_func, learn_func, verbose=0):
+def bbox_loop(our_state, get_action_func, learn_func, verbose=0, max_time=0):
     prev_score = bbox.get_score()
 
     started = time()
@@ -29,6 +29,10 @@ def bbox_loop(our_state, get_action_func, learn_func, verbose=0):
     while has_next:
         action = get_action_func(our_state, prev_state)
         has_next = bbox.do_action(action)
+
+        if bbox.get_time() > max_time > 0:
+            continue
+
         score = bbox.get_score()
         reward = score - prev_score
         prev_score = score

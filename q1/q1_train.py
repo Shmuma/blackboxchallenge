@@ -119,14 +119,14 @@ if __name__ == "__main__":
             sys.stdout.flush()
 
             # Learning step
-            infra.bbox_loop(our_state, random_action, learn_q, verbose=False)
+            infra.bbox_loop(our_state, random_action, learn_q, verbose=False, max_time=1000)
             infra.bbox.finish(verbose=1)
 
             # Test run
             print "%d: Training round done, perform test run" % global_step
             sys.stdout.flush()
             infra.prepare_bbox()
-            infra.bbox_loop(our_state, smart_action, None, verbose=False)
+            infra.bbox_loop(our_state, smart_action, None, verbose=False, max_time=1000)
             infra.bbox.finish(verbose=1)
 
             print "%d: save the model" % global_step
