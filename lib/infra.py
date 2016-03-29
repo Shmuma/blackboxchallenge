@@ -19,41 +19,30 @@ def prepare_bbox():
     return n_features, n_actions
 
 
-def bbox_loop(our_state, get_action_func, learn_func, verbose=0, max_time=0):
+# Arguments:
+# - our_state:      passed to all funcs
+# - action_func:    calculate action for state
+# - reward_func:    reward got from last action
+def bbox_loop(our_state, action_func, reward_func, verbose=0, max_time=0):
     prev_score = bbox.get_score()
 
     started = time()
     has_next = True
-    prev_state = np.array(bbox.get_state())
 
     while has_next:
-        stop_using_brains = bbox.get_time() > max_time > 0
-
-        if stop_using_brains:
-            action = 0
-        else:
-            action = get_action_func(our_state, prev_state)
+        state = np.array(bbox.get_state())
+        action = action_func(our_state, state)
         has_next = bbox.do_action(action)
-
-        if stop_using_brains:
-            continue
 
         score = bbox.get_score()
         reward = score - prev_score
         prev_score = score
 
-        state = np.array(bbox.get_state())
+        reward_func(our_state, reward)
 
         if verbose:
             if bbox.get_time() % verbose == 0:
                 print "%d: Action %d -> %f, duration %s" % (bbox.get_time(), action,
                                                             reward, timedelta(seconds=time() - started))
-
-        # do q-learning stuff
-        if learn_func is not None:
-            learn_func(our_state, prev_state, action, reward, state)
-
-        # update our states
-        prev_state = state
 
     print("Loop done in {duration}".format(duration=timedelta(seconds=time() - started)))

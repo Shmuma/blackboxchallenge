@@ -6,26 +6,51 @@ import numpy as np
 import tensorflow as tf
 
 L1_SIZE = 1024
+BATCH_SIZE = 10
 
+# discount factor
 GAMMA = 0.9
+# exploration/exploitation factor
+ALPHA = 0.5
+# Learning rate
 LR = 0.1
 
-def random_action(our_state, bbox_state):
-    return np.random.randint(0, infra.n_actions, 1)
 
-
-def smart_action(our_state, bbox_state):
-    if np.random.random() < our_state['gamma']:
-        return random_action(our_state, bbox_state)
-
-    # calculate best action from current state
+def get_q_vals(our_state, bbox_state):
     session = our_state['session']
     state_t = our_state['state_place']
     forward_t = our_state['forward_net']
 
     q_vals, = session.run([forward_t], feed_dict={state_t: [bbox_state]})
-    best_action = np.argmax(q_vals)
-    return best_action
+    return q_vals
+
+
+def random_action(our_state, bbox_state):
+    return np.random.randint(0, infra.n_actions, 1)
+
+
+def action_hook(our_state, bbox_state):
+    q_vals = get_q_vals(our_state, bbox_state)
+
+    # according to current gamma, chose random action
+    if np.random.random() < our_state['alpha']:
+        action = random_action(our_state, bbox_state)
+    else:
+        action = np.argmax(q_vals)
+
+    our_state['batch'].append((bbox_state, action, q_vals))
+    return action
+
+
+def reward_hook(our_state, reward):
+    our_state['reward'].append(reward)
+
+    # do q-learning stuff
+
+
+def dumb_reward_hook(our_state, reward):
+    # prevent state history to eat all memory
+    our_state['batch'].pop()
 
 
 def learn_q(our_state, prev_state, action, reward, new_state):
@@ -89,7 +114,6 @@ def make_loss_and_optimiser(state_t, q_vals_t, forward_t):
     return loss_t, opt_t
 
 
-
 if __name__ == "__main__":
     np.random.seed(42)
     infra.prepare_bbox()
@@ -102,6 +126,8 @@ if __name__ == "__main__":
 
     with tf.Session() as session:
         our_state = {
+            'batch': [],            # list of (state, action, q_values) for every state we've visited
+            'rewards': [],          # list of obtained rewards corresponding to 'batch' entry
             'session': session,
             'state_place': state_t,
             'q_vals_place': q_vals_t,
@@ -122,16 +148,16 @@ if __name__ == "__main__":
             sys.stdout.flush()
 
             # Learning step
-            our_state['gamma'] = 0.5
-            infra.bbox_loop(our_state, smart_action, learn_q, verbose=False, max_time=1000)
+            our_state['alpha'] = ALPHA
+            infra.bbox_loop(our_state, action_hook, reward_hook, verbose=False)
             infra.bbox.finish(verbose=0)
 
             # Test run
             print "%d: Training round done, perform test run" % global_step
             sys.stdout.flush()
             infra.prepare_bbox()
-            our_state['gamma'] = 0.0
-            infra.bbox_loop(our_state, smart_action, None, verbose=False, max_time=1000)
+            our_state['alpha'] = 0.0
+            infra.bbox_loop(our_state, action_hook, dumb_reward_hook, verbose=False)
             infra.bbox.finish(verbose=1)
 
 #            print "%d: save the model" % global_step
