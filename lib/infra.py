@@ -27,10 +27,15 @@ def bbox_loop(our_state, get_action_func, learn_func, verbose=0, max_time=0):
     prev_state = np.array(bbox.get_state())
 
     while has_next:
-        action = get_action_func(our_state, prev_state)
+        stop_using_brains = bbox.get_time() > max_time > 0
+
+        if stop_using_brains:
+            action = 0
+        else:
+            action = get_action_func(our_state, prev_state)
         has_next = bbox.do_action(action)
 
-        if bbox.get_time() > max_time > 0:
+        if stop_using_brains:
             continue
 
         score = bbox.get_score()

@@ -8,7 +8,7 @@ import tensorflow as tf
 L1_SIZE = 1024
 
 GAMMA = 0.9
-LR = 0.01
+LR = 0.1
 
 def random_action(our_state, bbox_state):
     return np.random.randint(0, infra.n_actions, 1)
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 
             # Learning step
             infra.bbox_loop(our_state, random_action, learn_q, verbose=False, max_time=1000)
-            infra.bbox.finish(verbose=1)
+            infra.bbox.finish(verbose=0)
 
             # Test run
             print "%d: Training round done, perform test run" % global_step
@@ -129,8 +129,8 @@ if __name__ == "__main__":
             infra.bbox_loop(our_state, smart_action, None, verbose=False, max_time=1000)
             infra.bbox.finish(verbose=1)
 
-            print "%d: save the model" % global_step
-            saver.save(session, "models/model-v1", global_step=global_step)
+#            print "%d: save the model" % global_step
+#            saver.save(session, "models/model-v1", global_step=global_step)
             global_step += 1
 
             sys.stdout.flush()
