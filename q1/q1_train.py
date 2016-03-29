@@ -15,6 +15,9 @@ def random_action(our_state, bbox_state):
 
 
 def smart_action(our_state, bbox_state):
+    if np.random.random() < our_state['gamma']:
+        return random_action(our_state, bbox_state)
+
     # calculate best action from current state
     session = our_state['session']
     state_t = our_state['state_place']
@@ -119,13 +122,15 @@ if __name__ == "__main__":
             sys.stdout.flush()
 
             # Learning step
-            infra.bbox_loop(our_state, random_action, learn_q, verbose=False, max_time=1000)
+            our_state['gamma'] = 0.5
+            infra.bbox_loop(our_state, smart_action, learn_q, verbose=False, max_time=1000)
             infra.bbox.finish(verbose=0)
 
             # Test run
             print "%d: Training round done, perform test run" % global_step
             sys.stdout.flush()
             infra.prepare_bbox()
+            our_state['gamma'] = 0.0
             infra.bbox_loop(our_state, smart_action, None, verbose=False, max_time=1000)
             infra.bbox.finish(verbose=1)
 
