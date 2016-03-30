@@ -1,6 +1,7 @@
 import sys
 sys.path.append("..")
 
+import math
 from lib import infra
 import numpy as np
 import tensorflow as tf
@@ -82,7 +83,7 @@ def reward_hook(our_state, reward, last_round):
     if (step-1) % 1000 == 0:
         summs = our_state['summaries']
         feed_dict = {
-            summs['loss']: loss,
+            summs['loss']: math.log(max(min(loss, 10000), 0.001)),
             summs['score']: infra.bbox.get_score(),
         }
         summary_res, = session.run([summs['summary_t']], feed_dict=feed_dict)
