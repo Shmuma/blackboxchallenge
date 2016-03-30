@@ -83,7 +83,7 @@ def reward_hook(our_state, reward, last_round):
     if (step-1) % 1000 == 0:
         summs = our_state['summaries']
         feed_dict = {
-            summs['loss']: min(loss, 1000),
+            summs['loss']: math.log10(max(loss, 0.000001)),
             summs['score']: infra.bbox.get_score(),
         }
         summary_res, = session.run([summs['summary_t']], feed_dict=feed_dict)
