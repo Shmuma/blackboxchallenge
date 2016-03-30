@@ -188,7 +188,7 @@ if __name__ == "__main__":
             our_state['reward'] = []
 
             infra.prepare_bbox()
-            our_state['alpha'] = ALPHA * (0.99 ** global_step)
+            our_state['alpha'] = ALPHA * (0.99 ** (global_step-1))
             our_state['gamma'] = min(GAMMA, GAMMA * float(global_step-1) / 10)
 
             log.info("%d: Learning round, gamma=%f, alpha=%f", global_step, our_state['gamma'], our_state['alpha'])
