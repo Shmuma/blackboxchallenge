@@ -11,7 +11,8 @@ L3_SIZE = 512
 BATCH_SIZE = 100
 
 # discount factor
-GAMMA = 0.9
+#GAMMA = 0.9
+GAMMA = 0
 # exploration/exploitation factor
 ALPHA = 0.5
 # Learning rate
@@ -187,7 +188,7 @@ if __name__ == "__main__":
 
             # Learning step
             our_state['alpha'] = ALPHA
-            infra.bbox_loop(our_state, action_hook, reward_hook, verbose=1000)
+            infra.bbox_loop(our_state, action_hook, reward_hook, verbose=False)
             infra.bbox.finish(verbose=0)
 
             # Test run
@@ -199,7 +200,8 @@ if __name__ == "__main__":
             infra.bbox.finish(verbose=1)
 
             print "%d: save the model" % global_step
-            saver.save(session, "models/model-v1", global_step=global_step)
+            saver.save(session, "models/model-v2", global_step=global_step)
             global_step += 1
 
             sys.stdout.flush()
+
