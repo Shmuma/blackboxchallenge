@@ -2,8 +2,18 @@ import interface as bbox
 import numpy as np
 from time import time
 from datetime import timedelta
+import logging as log
 
 n_features = n_actions = None
+
+
+def setup_logging(logfile=None, level=log.INFO):
+    fmt = "%(asctime)s %(levelname)s %(message)s"
+    if logfile is not None:
+        log.basicConfig(filename=logfile, level=level, format=fmt)
+    else:
+        log.basicConfig(level=level, format=fmt)
+    return log
 
 
 def prepare_bbox():
@@ -42,7 +52,7 @@ def bbox_loop(our_state, action_func, reward_func, verbose=0, max_time=0):
 
         if verbose:
             if bbox.get_time() % verbose == 0:
-                print "%d: Action %d -> %f, duration %s, score %f" % (
+                log.info("%d: Action %d -> %f, duration %s, score %f",
                     bbox.get_time(), action, reward,
                     timedelta(seconds=time() - started), score)
 
@@ -50,4 +60,4 @@ def bbox_loop(our_state, action_func, reward_func, verbose=0, max_time=0):
     action_func(our_state, np.array(bbox.get_state()))
     reward_func(our_state, 0.0, last_round=True)
 
-    print("Loop done in {duration}".format(duration=timedelta(seconds=time() - started)))
+    log.info("Loop done in {duration}".format(duration=timedelta(seconds=time() - started)))

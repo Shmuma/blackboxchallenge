@@ -10,9 +10,11 @@ L2_SIZE = 512
 L3_SIZE = 512
 BATCH_SIZE = 100
 
+DO_TEST = False
+
 # discount factor
-#GAMMA = 0.9
-GAMMA = 0
+GAMMA = 0.9
+
 # exploration/exploitation factor
 ALPHA = 0.5
 # Learning rate
@@ -63,7 +65,7 @@ def reward_hook(our_state, reward, last_round):
 
         best_next_q = max(batch_states[idx+1][2])
         # Bellman's equation
-        q_vals[action] = reward + GAMMA * best_next_q
+        q_vals[action] = reward + our_state['gamma'] * best_next_q
         output_arr.append(q_vals)
 
     # learn step
@@ -151,6 +153,7 @@ def make_summaries():
 
 
 if __name__ == "__main__":
+    log = infra.setup_logging()
     np.random.seed(42)
     infra.prepare_bbox()
 
@@ -183,23 +186,25 @@ if __name__ == "__main__":
             our_state['summary_writer'] = tf.train.SummaryWriter("logs/step=%03d" % global_step)
 
             infra.prepare_bbox()
-            print "%d: Learning round" % global_step
-            sys.stdout.flush()
+            our_state['alpha'] = ALPHA
+            our_state['gamma'] = min(GAMMA, GAMMA * float(global_step-1) / 10)
+
+            log.info("%d: Learning round, gamma=%f", global_step, our_state['gamma'])
 
             # Learning step
-            our_state['alpha'] = ALPHA
             infra.bbox_loop(our_state, action_hook, reward_hook, verbose=False)
             infra.bbox.finish(verbose=0)
 
             # Test run
-            print "%d: Training round done, perform test run" % global_step
-            sys.stdout.flush()
-            infra.prepare_bbox()
-            our_state['alpha'] = 0.0
-            infra.bbox_loop(our_state, action_hook, dumb_reward_hook, verbose=100000)
-            infra.bbox.finish(verbose=1)
+            if DO_TEST:
+                log.info("%d: Training round done, perform test run", global_step)
+                sys.stdout.flush()
+                infra.prepare_bbox()
+                our_state['alpha'] = 0.0
+                infra.bbox_loop(our_state, action_hook, dumb_reward_hook, verbose=100000)
+                infra.bbox.finish(verbose=1)
 
-            print "%d: save the model" % global_step
+            log.info("%d: save the model", global_step)
             saver.save(session, "models/model-v2", global_step=global_step)
             global_step += 1
 
