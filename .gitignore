@@ -3,3 +3,4 @@ levels
 *.pyc
 .idea/*.iml
 *.so
+replays

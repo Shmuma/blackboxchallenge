@@ -1,11 +1,13 @@
 """
 Replay generator
 """
+from time import time
+from datetime import timedelta
 import numpy as np
 import argparse
 import cPickle as pickle
 
-from lib import infra
+from lib import infra, replays
 
 
 def action_hook(our_state, bbox_state):
@@ -17,11 +19,6 @@ def action_hook(our_state, bbox_state):
 
 def reward_hook(our_state, reward, last_round):
     our_state['rewards'].append(reward)
-
-
-def save_replay(our_state, output_file):
-    with open(output_file, "wb") as fd:
-        pickle.dump(zip(our_state['states'], our_state['actions'], our_state['rewards']), fd)
 
 
 if __name__ == "__main__":
@@ -39,5 +36,8 @@ if __name__ == "__main__":
         'actions': [],
         'rewards': [],
     }
+    t = time()
     infra.bbox_loop(state, action_hook, reward_hook, verbose=False)
-    save_replay(state, args.output)
+    replays.save_replay(zip(state['states'], state['actions'], state['rewards']), args.output)
+    print("Replay of length {len} generated in {duration}".format(
+            len=len(state['states']), duration=timedelta(seconds=time()-t)))
