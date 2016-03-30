@@ -166,8 +166,6 @@ if __name__ == "__main__":
 
     with tf.Session() as session:
         our_state = {
-            'batch': [],            # list of (state, action, q_values) for every state we've visited
-            'reward': [],           # list of obtained rewards corresponding to 'batch' entry
             'session': session,
             'state_place': state_t,
             'q_vals_place': q_vals_t,
@@ -185,6 +183,8 @@ if __name__ == "__main__":
 
         while True:
             our_state['summary_writer'] = tf.train.SummaryWriter("logs/step=%03d" % global_step)
+            our_state['batch'] = []
+            our_state['reward'] = []
 
             infra.prepare_bbox()
             our_state['alpha'] = ALPHA
@@ -198,6 +198,8 @@ if __name__ == "__main__":
 
             # Test run
             if DO_TEST:
+                our_state['batch'] = []
+                our_state['reward'] = []
                 log.info("%d: Training round done, perform test run", global_step)
                 sys.stdout.flush()
                 infra.prepare_bbox()
