@@ -4,3 +4,4 @@ levels
 .idea/*.iml
 *.so
 replays
+logs

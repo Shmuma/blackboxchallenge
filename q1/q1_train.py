@@ -70,8 +70,21 @@ def reward_hook(our_state, reward, last_round):
     state_t = our_state['state_place']
     q_vals_t = our_state['q_vals_place']
     opt_t = our_state['optimiser']
+    loss_t = our_state['loss']
 
-    session.run([opt_t], feed_dict={state_t: input_arr, q_vals_t: output_arr})
+    loss, _ = session.run([loss_t, opt_t], feed_dict={state_t: input_arr, q_vals_t: output_arr})
+
+    # periodically save summary
+    step = infra.bbox.get_time()
+    if (step-1) % 1000 == 0:
+        summs = our_state['summaries']
+        feed_dict = {
+            summs['loss']: loss,
+            summs['score']: infra.bbox.get_score(),
+        }
+        summary_res, = session.run([summs['summary_t']], feed_dict=feed_dict)
+        our_state['summary_writer'].add_summary(summary_res, step)
+        our_state['summary_writer'].flush()
 
     # cleanup batch
     our_state['batch'] = our_state['batch'][-1:]
@@ -123,6 +136,19 @@ def make_loss_and_optimiser(state_t, q_vals_t, forward_t):
     return loss_t, opt_t
 
 
+def make_summaries():
+    res = {
+        'loss': tf.Variable(0.0, trainable=False, name="loss"),
+        'score': tf.Variable(0.0, trainable=False, name="score"),
+    }
+
+    for name, var in res.iteritems():
+        tf.scalar_summary(name, var)
+
+    res['summary_t'] = tf.merge_all_summaries()
+    return res
+
+
 if __name__ == "__main__":
     np.random.seed(42)
     infra.prepare_bbox()
@@ -143,6 +169,7 @@ if __name__ == "__main__":
             'forward_net': forward_t,
             'loss': loss_t,
             'optimiser': opt_t,
+            'summaries': make_summaries(),
         }
 
         init = tf.initialize_all_variables()
@@ -152,13 +179,15 @@ if __name__ == "__main__":
         global_step = 1
 
         while True:
+            our_state['summary_writer'] = tf.train.SummaryWriter("logs/step=%03d" % global_step)
+
             infra.prepare_bbox()
             print "%d: Learning round" % global_step
             sys.stdout.flush()
 
             # Learning step
             our_state['alpha'] = ALPHA
-            infra.bbox_loop(our_state, action_hook, reward_hook, verbose=False)
+            infra.bbox_loop(our_state, action_hook, reward_hook, verbose=1000)
             infra.bbox.finish(verbose=0)
 
             # Test run
