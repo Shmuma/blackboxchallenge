@@ -2,3 +2,4 @@ levels
 .idea
 *.pyc
 .idea/*.iml
+*.so
