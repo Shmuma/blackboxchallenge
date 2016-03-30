@@ -2,3 +2,18 @@ No learning, test score:
 Loop done in 0:03:58.810581
 Level score= -9192.578125
 
+Batch benchmarks:
+CPU, batch=10:
+- learning round: 0:07:50.083621
+- test round: 0:04:00.531928
+
+GPU, batch=10:
+- learning round: 0:09:30.482072
+- test round:
+
+CPU, batch=100:
+- learning round: 0:04:33.437849
+- test round: 0:04:04.981326
+
+GPU, batch=100:
+- learning round: 

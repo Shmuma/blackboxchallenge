@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 L1_SIZE = 1024
-BATCH_SIZE = 10
+BATCH_SIZE = 100
 
 # discount factor
 GAMMA = 0.9
@@ -26,7 +26,7 @@ def get_q_vals(our_state, bbox_state):
 
 
 def random_action(our_state, bbox_state):
-    return np.random.randint(0, infra.n_actions, 1)
+    return np.random.randint(0, infra.n_actions, 1)[0]
 
 
 def action_hook(our_state, bbox_state):
@@ -42,45 +42,43 @@ def action_hook(our_state, bbox_state):
     return action
 
 
-def reward_hook(our_state, reward):
+def reward_hook(our_state, reward, last_round):
     our_state['reward'].append(reward)
 
-    # do q-learning stuff
+    if not last_round and len(our_state['batch']) <= BATCH_SIZE:
+        return
 
+    batch_states = our_state['batch']
+    batch_reward = our_state['reward'][:-1]     # stripping last entry as it doesn't have next state yet
 
-def dumb_reward_hook(our_state, reward):
-    # prevent state history to eat all memory
-    our_state['batch'].pop()
+    # do q-learning stuff. In 'batch' entry we have triples with (state, action, q_vals).
+    # zip reward to them and create input and desired output for network for learning
+    input_arr = []
+    output_arr = []
+    for idx, ((bbox_state, action, q_vals), reward) in enumerate(zip(batch_states, batch_reward)):
+        input_arr.append(bbox_state)
 
+        best_next_q = max(batch_states[idx+1][2])
+        # Bellman's equation
+        q_vals[action] = reward + GAMMA * best_next_q
+        output_arr.append(q_vals)
 
-def learn_q(our_state, prev_state, action, reward, new_state):
-    # calculate Q* from:
-    # - reward we've got
-    # - best Q-value from new state
+    # learn step
     session = our_state['session']
     state_t = our_state['state_place']
     q_vals_t = our_state['q_vals_place']
-    forward_t = our_state['forward_net']
-    loss_t = our_state['loss']
     opt_t = our_state['optimiser']
 
-    # determine estimation of Q for new state
-    states = [prev_state, new_state]
-    val, = session.run([forward_t], feed_dict={state_t: states})
-    prev_vals, new_vals = val
-    best_action = np.argmax(new_vals)
-    best_q = new_vals[best_action]
+    session.run([opt_t], feed_dict={state_t: input_arr, q_vals_t: output_arr})
 
-    # desired output for action=action from prev_state
-    q_star = reward + GAMMA * best_q
+    # cleanup batch
+    our_state['batch'] = our_state['batch'][-1:]
+    our_state['reward'] = our_state['reward'][-1:]
 
-    # run optimiser
-    desired_q_vals = np.array(prev_vals)
-    desired_q_vals[action] = q_star
-    # TODO: try to stop passing loss_t and check for speedup
-    loss, _ = session.run([loss_t, opt_t], feed_dict={state_t: [prev_state], q_vals_t: [desired_q_vals]})
 
-#    print("loss={loss}".format(loss=loss))
+def dumb_reward_hook(our_state, reward, last_round):
+    # prevent state history to eat all memory
+    our_state['batch'].pop()
 
 
 def make_forward_net(state_t):
@@ -127,7 +125,7 @@ if __name__ == "__main__":
     with tf.Session() as session:
         our_state = {
             'batch': [],            # list of (state, action, q_values) for every state we've visited
-            'rewards': [],          # list of obtained rewards corresponding to 'batch' entry
+            'reward': [],           # list of obtained rewards corresponding to 'batch' entry
             'session': session,
             'state_place': state_t,
             'q_vals_place': q_vals_t,
@@ -149,7 +147,7 @@ if __name__ == "__main__":
 
             # Learning step
             our_state['alpha'] = ALPHA
-            infra.bbox_loop(our_state, action_hook, reward_hook, verbose=False)
+            infra.bbox_loop(our_state, action_hook, reward_hook, verbose=10000)
             infra.bbox.finish(verbose=0)
 
             # Test run
@@ -157,7 +155,7 @@ if __name__ == "__main__":
             sys.stdout.flush()
             infra.prepare_bbox()
             our_state['alpha'] = 0.0
-            infra.bbox_loop(our_state, action_hook, dumb_reward_hook, verbose=False)
+            infra.bbox_loop(our_state, action_hook, dumb_reward_hook, verbose=10000)
             infra.bbox.finish(verbose=1)
 
 #            print "%d: save the model" % global_step

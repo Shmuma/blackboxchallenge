@@ -38,11 +38,16 @@ def bbox_loop(our_state, action_func, reward_func, verbose=0, max_time=0):
         reward = score - prev_score
         prev_score = score
 
-        reward_func(our_state, reward)
+        reward_func(our_state, reward, last_round=False)
 
         if verbose:
             if bbox.get_time() % verbose == 0:
-                print "%d: Action %d -> %f, duration %s" % (bbox.get_time(), action,
-                                                            reward, timedelta(seconds=time() - started))
+                print "%d: Action %d -> %f, duration %s, score %f" % (
+                    bbox.get_time(), action, reward,
+                    timedelta(seconds=time() - started), score)
+
+    # last round, flush potential batch
+    action_func(our_state, np.array(bbox.get_state()))
+    reward_func(our_state, 0.0, last_round=True)
 
     print("Loop done in {duration}".format(duration=timedelta(seconds=time() - started)))
