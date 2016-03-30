@@ -182,6 +182,7 @@ if __name__ == "__main__":
         global_step = 1
 
         while True:
+            np.random.seed(42)
             our_state['summary_writer'] = tf.train.SummaryWriter("logs/step=%03d" % global_step)
             our_state['batch'] = []
             our_state['reward'] = []
