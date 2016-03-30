@@ -17,7 +17,7 @@ DO_TEST = False
 GAMMA = 0.9
 
 # exploration/exploitation factor
-ALPHA = 0.5
+ALPHA = 0.1
 # Learning rate
 LR = 0.1
 
@@ -187,10 +187,10 @@ if __name__ == "__main__":
             our_state['reward'] = []
 
             infra.prepare_bbox()
-            our_state['alpha'] = ALPHA
+            our_state['alpha'] = ALPHA * (0.99 ** global_step)
             our_state['gamma'] = min(GAMMA, GAMMA * float(global_step-1) / 10)
 
-            log.info("%d: Learning round, gamma=%f", global_step, our_state['gamma'])
+            log.info("%d: Learning round, gamma=%f, alpha=%f", global_step, our_state['gamma'], our_state['alpha'])
 
             # Learning step
             infra.bbox_loop(our_state, action_hook, reward_hook, verbose=False)
