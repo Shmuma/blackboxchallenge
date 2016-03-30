@@ -16,4 +16,4 @@ CPU, batch=100:
 - test round: 0:04:04.981326
 
 GPU, batch=100:
-- learning round: 
+- learning round: 0:07:46.558017

@@ -5,7 +5,9 @@ from lib import infra
 import numpy as np
 import tensorflow as tf
 
-L1_SIZE = 1024
+L1_SIZE = 512
+L2_SIZE = 512
+L3_SIZE = 512
 BATCH_SIZE = 100
 
 # discount factor
@@ -87,7 +89,6 @@ def make_forward_net(state_t):
     :param state_t:
     :return:
     """
-#    state_mat = tf.expand_dims(state_t, -1)
 
     with tf.name_scope("L0"):
         w = tf.Variable(tf.random_normal((infra.n_features, L1_SIZE), mean=0.0, stddev=0.1))
@@ -95,9 +96,19 @@ def make_forward_net(state_t):
         l0_out = tf.nn.relu(tf.matmul(state_t, w) + b)
 
     with tf.name_scope("L1"):
-        w = tf.Variable(tf.random_normal((L1_SIZE, infra.n_actions), mean=0.0, stddev=0.1))
+        w = tf.Variable(tf.random_normal((L1_SIZE, L2_SIZE), mean=0.0, stddev=0.1))
+        b = tf.Variable(tf.zeros((L2_SIZE,)))
+        l1_out = tf.nn.relu(tf.matmul(l0_out, w) + b)
+
+    with tf.name_scope("L2"):
+        w = tf.Variable(tf.random_normal((L2_SIZE, L3_SIZE), mean=0.0, stddev=0.1))
+        b = tf.Variable(tf.zeros((L3_SIZE,)))
+        l2_out = tf.nn.relu(tf.matmul(l1_out, w) + b)
+
+    with tf.name_scope("L3"):
+        w = tf.Variable(tf.random_normal((L3_SIZE, infra.n_actions), mean=0.0, stddev=0.1))
         b = tf.Variable(tf.zeros((infra.n_actions,)))
-        output = tf.matmul(l0_out, w) + b
+        output = tf.matmul(l2_out, w) + b
         output = tf.squeeze(output)
 
     return output
@@ -147,7 +158,7 @@ if __name__ == "__main__":
 
             # Learning step
             our_state['alpha'] = ALPHA
-            infra.bbox_loop(our_state, action_hook, reward_hook, verbose=10000)
+            infra.bbox_loop(our_state, action_hook, reward_hook, verbose=False)
             infra.bbox.finish(verbose=0)
 
             # Test run
@@ -155,11 +166,11 @@ if __name__ == "__main__":
             sys.stdout.flush()
             infra.prepare_bbox()
             our_state['alpha'] = 0.0
-            infra.bbox_loop(our_state, action_hook, dumb_reward_hook, verbose=10000)
+            infra.bbox_loop(our_state, action_hook, dumb_reward_hook, verbose=100000)
             infra.bbox.finish(verbose=1)
 
-#            print "%d: save the model" % global_step
-#            saver.save(session, "models/model-v1", global_step=global_step)
+            print "%d: save the model" % global_step
+            saver.save(session, "models/model-v1", global_step=global_step)
             global_step += 1
 
             sys.stdout.flush()
