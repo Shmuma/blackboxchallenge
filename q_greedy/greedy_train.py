@@ -73,9 +73,9 @@ if __name__ == "__main__":
                 iter += 1
 
                 if iter % REPORT_ITERS == 0:
-                    speed = REPORT_ITERS / (time() - last_t)
+                    speed = (BATCH_SIZE * REPORT_ITERS) / (time() - last_t)
 
-                    log.info("Iter {iter}: loss={loss}, time={duration}, iters/sec={speed}".format(
+                    log.info("Iter {iter}: loss={loss}, time={duration}, states/sec={speed}".format(
                         iter=iter, loss=loss, duration=timedelta(seconds=time()-started),
                         speed=speed
                     ))
