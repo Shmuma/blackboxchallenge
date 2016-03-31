@@ -33,7 +33,7 @@ def prepare_bbox():
 # - our_state:      passed to all funcs
 # - action_func:    calculate action for state
 # - reward_func:    reward got from last action
-def bbox_loop(our_state, action_func, reward_func, verbose=0, max_time=0):
+def bbox_loop(our_state, action_func, reward_func, verbose=0):
     prev_score = bbox.get_score()
 
     started = time()
@@ -61,3 +61,61 @@ def bbox_loop(our_state, action_func, reward_func, verbose=0, max_time=0):
     reward_func(our_state, 0.0, last_round=True)
 
     log.info("Loop done in {duration}".format(duration=timedelta(seconds=time() - started)))
+    return bbox.get_score()
+
+
+def dig_all_actions(prev_score):
+    """
+    For all possible actions find all rewards and next states
+    :param prev_score:
+    :return: list with tuples (reward, stat)
+    """
+    chp_id = bbox.create_checkpoint()
+    result = []
+
+    for action in range(n_actions):
+        bbox.do_action(action)
+        r = bbox.get_score() - prev_score
+        result.append((r, np.array(bbox.get_state())))
+        bbox.load_from_checkpoint(chp_id)
+
+    bbox.clear_all_checkpoints()
+    return result
+
+
+def bbox_checkpoints_loop(our_state, action_reward_func, verbose=0):
+    """
+    Perform bbox loop using checkpoints function to explore all rewards
+    :param our_state: state passed to all functions
+    :param action_reward_func: function with signature (our_state, old_state, rewards, states) -> need to return action to take
+    :param verbose: showe messages
+    :return: total score earned
+    """
+    started = time()
+    has_next = True
+
+    while has_next:
+        score = bbox.get_score()
+        state = np.array(bbox.get_state())
+        # explore state space
+        rewards_states = dig_all_actions(score)
+        rewards, states = zip(*rewards_states)
+        # ask for best action
+        action = action_reward_func(our_state, state, rewards, states)
+        has_next = bbox.do_action(action)
+
+        if verbose > 0:
+            if bbox.get_time() % verbose == 0:
+                log.info("{time}: Action {action} -> {reward} (rewards: {rewards}), "
+                         "duration {duration}, score {score}".format(
+                    time=bbox.get_time(), action=action, reward=bbox.get_score() - score,
+                    rewards=rewards, duration=timedelta(seconds=time() - started),
+                    score=bbox.get_score()
+                ))
+
+    score = bbox.get_score()
+    log.info("Loop done in {duration}, score {score}".format(
+        duration=timedelta(seconds=time()-started), score=score
+    ))
+
+    return score
