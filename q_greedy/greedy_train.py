@@ -11,7 +11,8 @@ N_STATE = 36
 N_ACTIONS = 4
 
 BATCH_SIZE = 100
-
+REPORT_ITERS = 100
+SAVE_MODEL_ITERS = 1000
 
 def make_greedy_readers(file_prefix):
     """
@@ -41,10 +42,10 @@ def make_greedy_pipeline(file_prefix):
 
 if __name__ == "__main__":
     REPLAY_NAME = "seed=42_alpha=0.1"
-    log = infra.setup_logging()
+    log = infra.setup_logging(logfile="q_greedy.log")
     np.random.seed(42)
 
-    started = time()
+    started = last_t = time()
     infra.prepare_bbox()
 
     state_t, q_vals_t = net.make_vars()
@@ -71,10 +72,15 @@ if __name__ == "__main__":
                 loss, _ = session.run([loss_t, opt_t], feed_dict={state_t: states, q_vals_t: qvals})
                 iter += 1
 
-                if iter % 100 == 0:
-                    log.info("Iter {iter}: loss={loss}, time={duration}".format(
-                        iter=iter, loss=loss, duration=timedelta(seconds=time()-started)
+                if iter % REPORT_ITERS == 0:
+                    speed = REPORT_ITERS / time() - last_t
+
+                    log.info("Iter {iter}: loss={loss}, time={duration}, iters/sec={speed}".format(
+                        iter=iter, loss=loss, duration=timedelta(seconds=time()-started),
+                        speed=speed
                     ))
+
+                    last_t = time()
 
                     feed_dict = {
                         summs['loss']: loss
@@ -83,7 +89,7 @@ if __name__ == "__main__":
                     summary_writer.add_summary(summary_res, iter)
                     summary_writer.flush()
 
-                if iter % 1000 == 0:
+                if iter % SAVE_MODEL_ITERS == 0:
                     saver.save(session, "models/model", global_step=iter)
         finally:
             coordinator.request_stop()
