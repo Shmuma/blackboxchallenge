@@ -15,10 +15,10 @@ def action_reward_hook(our_state, bbox_state, rewards, next_states):
     else:
         action = np.argmax(rewards)
 
-    our_state['states'].append(bbox_state)
-    our_state['actions'].append(action)
-    our_state['rewards'].append(rewards)
+    our_state['writer'].append(bbox_state, action, rewards, next_states)
     return action
+
+
 
 
 if __name__ == "__main__":
@@ -35,12 +35,13 @@ if __name__ == "__main__":
     infra.prepare_bbox()
     state = {
         'alpha': args.alpha,
-        'states': [],
-        'actions': [],
-        'rewards': [],
+        'writer': replays.ReplayWriter(args.output)
     }
-    t = time()
-    infra.bbox_checkpoints_loop(state, action_reward_hook, verbose=False)
-    replays.save_replay(zip(state['states'], state['actions'], state['rewards']), args.output)
-    print("Replay of length {len} generated in {duration}".format(
-            len=len(state['states']), duration=timedelta(seconds=time()-t)))
+    try:
+        t = time()
+        infra.bbox_checkpoints_loop(state, action_reward_hook, verbose=False)
+
+        print("Replay generated in {duration}".format(
+                duration=timedelta(seconds=time()-t)))
+    finally:
+        state['writer'].close()
