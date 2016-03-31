@@ -39,6 +39,7 @@ def make_greedy_pipeline(file_prefix):
 
 
 if __name__ == "__main__":
+    REPLAY_NAME = "seed=42_alpha=0.1"
     log = infra.setup_logging()
     np.random.seed(42)
 
@@ -49,9 +50,14 @@ if __name__ == "__main__":
     forward_t = net.make_forward_net(state_t)
     loss_t, opt_t = net.make_loss_and_optimiser(state_t, q_vals_t, forward_t)
 
-    states_batch_t, qvals_batch_t = make_greedy_pipeline("../replays/seed=42_alpha=0.1")
+    states_batch_t, qvals_batch_t = make_greedy_pipeline("../replays/" + REPLAY_NAME)
+
+    log.info("Staring learning from replay {replay}".format(replay=REPLAY_NAME))
+    summs = net.make_summaries()
 
     with tf.Session() as session:
+        summary_writer = tf.train.SummaryWriter("logs/" + REPLAY_NAME, graph_def=session.graph_def)
+
         coordinator = tf.train.Coordinator()
         session.run(tf.initialize_all_variables())
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
@@ -66,6 +72,13 @@ if __name__ == "__main__":
                     log.info("Iter {iter}: loss={loss}, time={duration}".format(
                         iter=iter, loss=loss, duration=timedelta(seconds=time()-started)
                     ))
+
+                    feed_dict = {
+                        summs['loss']: loss
+                    }
+                    summary_res, = session.run([summs['summary_t']], feed_dict=feed_dict)
+                    summary_writer.add_summary(summary_res, iter)
+                    summary_writer.flush()
         finally:
             coordinator.request_stop()
             coordinator.join(threads)
