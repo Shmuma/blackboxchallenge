@@ -10,9 +10,9 @@ import tensorflow as tf
 N_STATE = 36
 N_ACTIONS = 4
 
-BATCH_SIZE = 100
+BATCH_SIZE = 200
 REPORT_ITERS = 100
-SAVE_MODEL_ITERS = 1000
+SAVE_MODEL_ITERS = 3000
 
 def make_greedy_readers(file_prefix):
     """
@@ -70,6 +70,7 @@ if __name__ == "__main__":
             while True:
                 states, qvals = session.run([states_batch_t, qvals_batch_t])
                 loss, _ = session.run([loss_t, opt_t], feed_dict={state_t: states, q_vals_t: qvals})
+                loss /= BATCH_SIZE
                 iter += 1
 
                 if iter % REPORT_ITERS == 0:
