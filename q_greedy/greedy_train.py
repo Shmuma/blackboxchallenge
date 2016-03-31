@@ -32,9 +32,10 @@ def make_greedy_readers(file_prefix):
 
 
 def make_greedy_pipeline(file_prefix):
-    states_t, qvals_t = make_greedy_readers(file_prefix)
-    states_batch, qvals_batch = tf.train.shuffle_batch([states_t, qvals_t], BATCH_SIZE,
-                                                       1003 * BATCH_SIZE, 1000*BATCH_SIZE, num_threads=4)
+    with tf.name_scope("input_pipeline"):
+        states_t, qvals_t = make_greedy_readers(file_prefix)
+        states_batch, qvals_batch = tf.train.shuffle_batch([states_t, qvals_t], BATCH_SIZE,
+                                                           1003 * BATCH_SIZE, 1000*BATCH_SIZE, num_threads=4)
     return states_batch, qvals_batch
 
 
@@ -57,6 +58,7 @@ if __name__ == "__main__":
 
     with tf.Session() as session:
         summary_writer = tf.train.SummaryWriter("logs/" + REPLAY_NAME, graph_def=session.graph_def)
+        saver = tf.train.Saver()
 
         coordinator = tf.train.Coordinator()
         session.run(tf.initialize_all_variables())
@@ -68,6 +70,7 @@ if __name__ == "__main__":
                 states, qvals = session.run([states_batch_t, qvals_batch_t])
                 loss, _ = session.run([loss_t, opt_t], feed_dict={state_t: states, q_vals_t: qvals})
                 iter += 1
+
                 if iter % 100 == 0:
                     log.info("Iter {iter}: loss={loss}, time={duration}".format(
                         iter=iter, loss=loss, duration=timedelta(seconds=time()-started)
@@ -79,6 +82,9 @@ if __name__ == "__main__":
                     summary_res, = session.run([summs['summary_t']], feed_dict=feed_dict)
                     summary_writer.add_summary(summary_res, iter)
                     summary_writer.flush()
+
+                if iter % 1000 == 0:
+                    saver.save(session, "models/model", global_step=iter)
         finally:
             coordinator.request_stop()
             coordinator.join(threads)
