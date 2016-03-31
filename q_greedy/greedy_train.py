@@ -41,8 +41,10 @@ def make_greedy_pipeline(file_prefix):
 
 
 if __name__ == "__main__":
+    LEARNING_RATE = 0.01
     REPLAY_NAME = "seed=42_alpha=0.1"
-    log = infra.setup_logging(logfile="q_greedy.log")
+    EXTRA = "_lr=%.3f" % LEARNING_RATE
+    log = infra.setup_logging(logfile="q_greedy" + EXTRA + ".log")
     np.random.seed(42)
 
     started = last_t = time()
@@ -50,7 +52,7 @@ if __name__ == "__main__":
 
     state_t, q_vals_t = net.make_vars()
     forward_t = net.make_forward_net(state_t)
-    loss_t, opt_t = net.make_loss_and_optimiser(state_t, q_vals_t, forward_t)
+    loss_t, opt_t = net.make_loss_and_optimiser(LEARNING_RATE, state_t, q_vals_t, forward_t)
 
     states_batch_t, qvals_batch_t = make_greedy_pipeline("../replays/" + REPLAY_NAME)
 
@@ -58,7 +60,7 @@ if __name__ == "__main__":
     summs = net.make_summaries()
 
     with tf.Session() as session:
-        summary_writer = tf.train.SummaryWriter("logs/" + REPLAY_NAME, graph_def=session.graph_def)
+        summary_writer = tf.train.SummaryWriter("logs/" + REPLAY_NAME + EXTRA, graph_def=session.graph_def)
         saver = tf.train.Saver()
 
         coordinator = tf.train.Coordinator()

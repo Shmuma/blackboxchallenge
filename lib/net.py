@@ -6,8 +6,6 @@ L1_SIZE = 512
 L2_SIZE = 512
 L3_SIZE = 512
 
-LR = 0.1
-
 
 def make_vars():
     state_t = tf.placeholder(tf.float32, (None, infra.n_features), name="State")
@@ -45,10 +43,10 @@ def make_forward_net(state_t):
     return output
 
 
-def make_loss_and_optimiser(state_t, q_vals_t, forward_t):
+def make_loss_and_optimiser(learning_rate, state_t, q_vals_t, forward_t):
     with tf.name_scope("Opt"):
         loss_t = tf.nn.l2_loss(forward_t - q_vals_t)
-        optimiser = tf.train.AdamOptimizer(learning_rate=LR)
+        optimiser = tf.train.AdamOptimizer(learning_rate=learning_rate)
         opt_t = optimiser.minimize(loss_t)
 
     return loss_t, opt_t
