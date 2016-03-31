@@ -5,3 +5,5 @@ levels
 *.so
 replays
 logs
+models
+*.log
