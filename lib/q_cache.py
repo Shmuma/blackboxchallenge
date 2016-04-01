@@ -1,3 +1,5 @@
+import numpy as np
+
 def round_state(state, digits=2):
     return tuple(map(lambda v: round(v, digits), state))
 
@@ -5,7 +7,7 @@ def round_state(state, digits=2):
 class QCache:
     def __init__(self, gamma):
         self.gamma = gamma
-        self.cache = set()
+        self.cache = dict()
         self.reset()
 
 
@@ -16,11 +18,18 @@ class QCache:
 
     def transform_batch(self, states, qvals, next_states):
         for batch_idx, raw_state in enumerate(states):
-            state = round_state(raw_state)
-
+            new_q = np.zeros_like(qvals[batch_idx])
+            conv_next_states = []
             for action, (qval, raw_next_state) in enumerate(zip(qvals[batch_idx], next_states[batch_idx])):
                 next_state = round_state(raw_next_state)
-                self.lookup(next_state)
+                conv_next_states.append(next_state)
+                next_q = self.lookup(next_state)
+                new_q[action] = qvals[batch_idx][action]
+                if next_q is not None:
+                    new_q[action] += self.gamma * next_q
+            for action, next_state in enumerate(conv_next_states):
+                self.save_cache(next_state, new_q[action])
+            qvals[batch_idx] = new_q
 
 
     def state(self):
@@ -29,8 +38,13 @@ class QCache:
 
 
     def lookup(self, state):
-        if state in self.cache:
+        res = self.cache.get(state)
+        if res is not None:
             self.hits += 1
         else:
             self.misses += 1
-            self.cache.add(state)
+        return res
+
+
+    def save_cache(self, state, qval):
+        self.cache[state] = qval

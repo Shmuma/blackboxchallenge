@@ -46,9 +46,9 @@ def make_greedy_pipeline(file_prefix):
 
 
 if __name__ == "__main__":
-    LEARNING_RATE = 0.01
+    LEARNING_RATE = 0.1
     REPLAY_NAME = "seed=42_alpha=0.1"
-    EXTRA = "_lr=%.3f" % LEARNING_RATE
+    EXTRA = "_lr=%.3f_cache" % LEARNING_RATE
     GAMMA = 0.95
 
     log = infra.setup_logging(logfile="q_greedy" + EXTRA + ".log")
