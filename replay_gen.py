@@ -26,6 +26,8 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--output", required=True, help="File name to save replay")
     parser.add_argument("--alpha", type=float, default=0.0, help="Fraction of random steps, by default=0.0")
+    parser.add_argument("--depth", type=int, default=10, help="Depth to explore state")
+    parser.add_argument("--gamma", type=float, default=0.95, help="Bellman's gamma")
     args = parser.parse_args()
 
     if args.seed is not None:
@@ -35,6 +37,8 @@ if __name__ == "__main__":
     infra.prepare_bbox()
     state = {
         'alpha': args.alpha,
+        'gamma': args.gamma,
+        'depth': args.depth,
         'writer': replays.ReplayWriter(args.output)
     }
     try:
