@@ -48,8 +48,8 @@ def make_greedy_pipeline(file_prefix):
 if __name__ == "__main__":
     LEARNING_RATE = 0.1
     REPLAY_NAME = "seed=42_alpha=0.1"
-    EXTRA = "_lr=%.3f_cache" % LEARNING_RATE
-    GAMMA = 0.95
+    GAMMA = 0.1
+    EXTRA = "_lr=%.3f_gamma=%.2f" % (LEARNING_RATE, GAMMA)
 
     log = infra.setup_logging(logfile="q_greedy" + EXTRA + ".log")
     np.random.seed(42)
