@@ -96,7 +96,7 @@ if __name__ == "__main__":
                     t = time()
                     score = test_bbox.test_net(session, STATES_HISTORY, state_t, qvals_t)
                     log.info("{iter}: test done in {duration}, score={score}".format(
-                        duration=timedelta(seconds=time()-t), score=score
+                        iter=iter, duration=timedelta(seconds=time()-t), score=score
                     ))
 
                 # get data from input pipeline
