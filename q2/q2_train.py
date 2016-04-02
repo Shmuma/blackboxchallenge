@@ -91,7 +91,7 @@ if __name__ == "__main__":
                     log.info("{iter}: Sync nets".format(iter=iter))
                     session.run([sync_nets_t])
 
-                if iter % 10000 == 0:
+                if iter % 10000 == 0 and iter > 0:
                     log.info("{iter}: test model on real bbox".format(iter=iter))
                     t = time()
                     score = test_bbox.test_net(session, STATES_HISTORY, state_t, qvals_t)
