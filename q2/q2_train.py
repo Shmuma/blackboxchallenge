@@ -3,7 +3,7 @@ sys.path.append("..")
 
 from time import time
 from datetime import timedelta
-from lib import infra, net
+from lib import infra, net, test_bbox
 import numpy as np
 import tensorflow as tf
 
@@ -11,7 +11,7 @@ STATES_HISTORY = 4
 N_STATE = 36
 N_ACTIONS = 4
 
-BATCH_SIZE = 10
+BATCH_SIZE = 100
 REPORT_ITERS = 100
 SAVE_MODEL_ITERS = 3000
 
@@ -74,12 +74,7 @@ if __name__ == "__main__":
 
     loss_t = net.make_loss_v2(BATCH_SIZE, GAMMA, qvals_t, action_t, reward_t, next_qvals_t)
     opt_t = net.make_opt_v2(loss_t, LEARNING_RATE)
-
     sync_nets_t = net.make_sync_nets_v2()
-
-#    loss_t, opt_t = net.make_loss_and_optimiser(LEARNING_RATE, state_t, q_vals_t, forward_t)
-
-#    states_batch_t, qvals_batch_t, next_states_batch_t = make_greedy_pipeline("../replays/" + REPLAY_NAME)
 
     log.info("Staring learning from replay {replay}".format(replay=REPLAY_NAME))
 
@@ -89,17 +84,36 @@ if __name__ == "__main__":
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
 
         try:
-            # TODO: Copy forward net options to next_qvals net
-            session.run([sync_nets_t])
+            iter = 0
 
-            # get data from input pipeline
-            states_batch, actions_batch, rewards_batch, next_states_batch = \
-                session.run([states_batch_t, actions_batch_t, rewards_batch_t, next_states_batch_t])
+            while True:
+                if iter % 1000 == 0:
+                    log.info("{iter}: Sync nets".format(iter=iter))
+                    session.run([sync_nets_t])
 
-            qvals = session.run([qvals_t], feed_dict={state_t: states_batch})
-            test_qvals = session.run([next_qvals_t], feed_dict={next_state_t: states_batch})
-            print qvals
-            print test_qvals
+                if iter % 10000 == 0:
+                    log.info("{iter}: test model on real bbox".format(iter=iter))
+                    t = time()
+                    score = test_bbox.test_net(session, STATES_HISTORY, state_t, qvals_t)
+                    log.info("{iter}: test done in {duration}, score={score}".format(
+                        duration=timedelta(seconds=time()-t), score=score
+                    ))
+
+                # get data from input pipeline
+                states_batch, actions_batch, rewards_batch, next_states_batch = \
+                    session.run([states_batch_t, actions_batch_t, rewards_batch_t, next_states_batch_t])
+
+                loss, _ = session.run([loss_t, opt_t], feed_dict={
+                    state_t: states_batch,
+                    action_t: actions_batch,
+                    reward_t: rewards_batch,
+                    next_state_t: next_states_batch
+                })
+
+                if iter % 100 == 0:
+                    log.info("{iter}: loss={loss}".format(iter=iter, loss=loss))
+
+                iter += 1
         finally:
             coordinator.request_stop()
             coordinator.join(threads)
