@@ -55,7 +55,8 @@ def make_pipeline(file_prefix):
 
 if __name__ == "__main__":
     LEARNING_RATE = 0.1
-    REPLAY_NAME = "seed=42_alpha=1.0"
+    #REPLAY_NAME = "seed=42_alpha=1.0"
+    REPLAY_NAME = "tiny"
     GAMMA = 0.99
     EXTRA = "_lr=%.3f_gamma=%.2f" % (LEARNING_RATE, GAMMA)
 
@@ -77,6 +78,7 @@ if __name__ == "__main__":
     sync_nets_t = net.make_sync_nets_v2()
 
     log.info("Staring learning from replay {replay}".format(replay=REPLAY_NAME))
+    report_t = time()
 
     with tf.Session() as session:
         session.run(tf.initialize_all_variables())
@@ -110,8 +112,14 @@ if __name__ == "__main__":
                     next_state_t: next_states_batch
                 })
 
-                if iter % 1000 == 0:
-                    log.info("{iter}: loss={loss}".format(iter=iter, loss=loss))
+                if iter % REPORT_ITERS == 0 and iter > 0:
+                    report_d = time() - report_t
+                    speed = (BATCH_SIZE * REPORT_ITERS) / report_d
+                    log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec".format(
+                            iter=iter, loss=loss, duration=timedelta(seconds=report_d),
+                            speed=speed
+                    ))
+                    report_t = time()
 
                 iter += 1
         finally:
