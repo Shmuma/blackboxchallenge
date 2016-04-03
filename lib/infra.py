@@ -33,7 +33,7 @@ def prepare_bbox():
 # - our_state:      passed to all funcs
 # - action_func:    calculate action for state
 # - reward_func:    reward got from last action
-def bbox_loop(our_state, action_func, reward_func, verbose=0):
+def bbox_loop(our_state, action_func, reward_func, verbose=0, max_steps=None):
     prev_score = bbox.get_score()
 
     started = time()
@@ -55,6 +55,9 @@ def bbox_loop(our_state, action_func, reward_func, verbose=0):
                 log.info("%d: Action %d -> %f, duration %s, score %f",
                     bbox.get_time(), action, reward,
                     timedelta(seconds=time() - started), score)
+
+        if max_steps is not None and bbox.get_time() >= max_steps:
+            break
 
     # last round, flush potential batch
     action_func(our_state, np.array(bbox.get_state()))

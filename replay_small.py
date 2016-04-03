@@ -33,6 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--output", required=True, help="File name to save replay")
     parser.add_argument("--alpha", type=float, default=0.0, help="Fraction of random steps, by default=1.0")
+    parser.add_argument("--steps", type=int, help="Limit of simulator steps. Default = no limit")
     args = parser.parse_args()
 
     if args.seed is not None:
@@ -48,7 +49,7 @@ if __name__ == "__main__":
     }
     try:
         t = time()
-        infra.bbox_loop(state, action_hook, reward_hook, verbose=False)
+        infra.bbox_loop(state, action_hook, reward_hook, verbose=False, max_steps=args.steps)
 
         print("Replay generated in {duration}".format(
                 duration=timedelta(seconds=time()-t)))
