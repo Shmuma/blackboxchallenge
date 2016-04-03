@@ -1,9 +1,9 @@
-import infra
+import infra, replays
 
 import numpy as np
 
 
-def test_net(session, states_history, states_t, qvals_t, alpha=0.0, verbose=0):
+def test_net(session, states_history, states_t, qvals_t, alpha=0.0, verbose=0, save_prefix=None):
     """
     Perform test of neural network using bbox interpreter
     :param session:
@@ -19,8 +19,12 @@ def test_net(session, states_history, states_t, qvals_t, alpha=0.0, verbose=0):
         'alpha': alpha,
         'states_t': states_t,
         'qvals_t': qvals_t,
-        'state': []
+        'state': [],
+        'writer': None,
     }
+
+    if save_prefix is not None:
+        state['writer'] = replays.ReplayWriter(save_prefix)
 
     def action_hook(our_state, bbox_state):
         # save state, keep only fixed amount of states
@@ -41,10 +45,19 @@ def test_net(session, states_history, states_t, qvals_t, alpha=0.0, verbose=0):
             qvals, = sess.run([qvals_t], feed_dict={states_t: state_v})
             action = np.argmax(qvals)
 
+        our_state['action'] = action
+
         return action
 
     def reward_hook(our_state, reward, last_round):
-        pass
+        if last_round or our_state['writer'] is None:
+            return
+
+        if len(our_state['state']) == our_state['history']:
+            next_state = our_state['state'][-(our_state['history']-1):]
+            next_state.append(infra.bbox.get_state())
+            our_state['writer'].append_small(our_state['state'], our_state['action'],
+                                             reward, next_state)
 
     infra.bbox_loop(state, action_hook, reward_hook, verbose=verbose)
     return infra.bbox.get_score()

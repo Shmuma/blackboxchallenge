@@ -109,7 +109,7 @@ if __name__ == "__main__":
                 if iter % 100000 == 0 and iter > 0:
                     log.info("{iter}: test model on real bbox".format(iter=iter))
                     t = time()
-                    score = test_bbox.test_net(session, STATES_HISTORY, state_t, qvals_t)
+                    score = test_bbox.test_net(session, STATES_HISTORY, state_t, qvals_t, save_prefix="replays/%d" % (iter/100000))
                     log.info("{iter}: test done in {duration}, score={score}".format(
                         iter=iter, duration=timedelta(seconds=time()-t), score=score
                     ))
