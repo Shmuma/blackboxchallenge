@@ -87,11 +87,11 @@ if __name__ == "__main__":
             iter = 0
 
             while True:
-                if iter % 1000 == 0:
+                if iter % 10000 == 0:
                     log.info("{iter}: Sync nets".format(iter=iter))
                     session.run([sync_nets_t])
 
-                if iter % 10000 == 0 and iter > 0:
+                if iter % 100000 == 0 and iter > 0:
                     log.info("{iter}: test model on real bbox".format(iter=iter))
                     t = time()
                     score = test_bbox.test_net(session, STATES_HISTORY, state_t, qvals_t)
@@ -110,7 +110,7 @@ if __name__ == "__main__":
                     next_state_t: next_states_batch
                 })
 
-                if iter % 100 == 0:
+                if iter % 1000 == 0:
                     log.info("{iter}: loss={loss}".format(iter=iter, loss=loss))
 
                 iter += 1
