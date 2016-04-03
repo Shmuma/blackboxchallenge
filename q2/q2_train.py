@@ -66,7 +66,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 if __name__ == "__main__":
     LEARNING_RATE = 0.01
     #REPLAY_NAME = "seed=42_alpha=1.0"
-    REPLAY_NAME = "t1"
+    REPLAY_NAME = "t1r1"
     GAMMA = 0.99
     EXTRA = "_lr=%.3f_gamma=%.2f" % (LEARNING_RATE, GAMMA)
 
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     infra.prepare_bbox()
 
     state_t, action_t, reward_t, next_state_t = net.make_vars_v2(STATES_HISTORY)
-    replays = replays.discover_replays("../replays/")
+    replays = replays.discover_replays("../replays/r1/")
 
     states_batch_t, actions_batch_t, rewards_batch_t, next_states_batch_t = make_pipeline(replays)
 
