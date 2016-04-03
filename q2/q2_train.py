@@ -66,7 +66,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 if __name__ == "__main__":
     LEARNING_RATE = 0.01
     #REPLAY_NAME = "seed=42_alpha=1.0"
-    REPLAY_NAME = "t1r1"
+    REPLAY_NAME = "t1r2"
     GAMMA = 0.99
     EXTRA = "_lr=%.3f_gamma=%.2f" % (LEARNING_RATE, GAMMA)
 
@@ -111,16 +111,6 @@ if __name__ == "__main__":
                     log.info("{iter}: Sync nets".format(iter=iter))
                     session.run([sync_nets_t])
 
-                if iter % 100000 == 0 and iter > 0:
-                    saver.save(session, "models/model", global_step=iter)
-                    log.info("{iter}: test model on real bbox".format(iter=iter))
-                    t = time()
-                    score = test_bbox.test_net(session, STATES_HISTORY, state_t, qvals_t, save_prefix="replays/%d" % (iter/100000))
-                    log.info("{iter}: test done in {duration}, score={score}".format(
-                        iter=iter, duration=timedelta(seconds=time()-t), score=score
-                    ))
-                    write_summaries(session, summ, summary_writer, iter, score=score)
-
                 # get data from input pipeline
                 states_batch, actions_batch, rewards_batch, next_states_batch = \
                     session.run([states_batch_t, actions_batch_t, rewards_batch_t, next_states_batch_t])
@@ -145,6 +135,16 @@ if __name__ == "__main__":
                     ))
                     report_t = time()
                     write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed, score=None)
+
+                if iter % 100000 == 0 and iter > 0:
+                    saver.save(session, "models/model", global_step=iter)
+                    log.info("{iter}: test model on real bbox".format(iter=iter))
+                    t = time()
+                    score = test_bbox.test_net(session, STATES_HISTORY, state_t, qvals_t, save_prefix="replays/%d" % (iter/100000))
+                    log.info("{iter}: test done in {duration}, score={score}".format(
+                        iter=iter, duration=timedelta(seconds=time()-t), score=score
+                    ))
+                    write_summaries(session, summ, summary_writer, iter, feed, score=score)
 
                 iter += 1
         finally:
