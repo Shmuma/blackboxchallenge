@@ -130,7 +130,21 @@ def make_opt_v2(loss_t, learning_rate, decay_every_steps=10000):
 
     optimiser = tf.train.AdamOptimizer(learning_rate=exp_learning_rate)
     opt_t = optimiser.minimize(loss_t, global_step=global_step)
-    return opt_t
+    return opt_t, optimiser
+
+
+def get_v2_vars(trainable):
+    layers = ["L0", "L1", "L2", "L3"]
+    l_suffix = "_T" if trainable else "_R"
+    names = []
+    for l in layers:
+        names.append(l + l_suffix + "/w:0")
+        names.append(l + l_suffix + "/b:0")
+    vars = {}
+    for v in tf.all_variables():
+        if v.name in names:
+            vars[v.name] = v
+    return [(name, vars[name]) for name in names]
 
 
 def make_sync_nets_v2():
@@ -163,7 +177,7 @@ def make_sync_nets_v2():
     return tf.group(*ops)
 
 
-def make_summaries_v2():
+def make_summaries_v2(loss_t, optimiser):
     res = {
         'loss': tf.Variable(0.0, trainable=False, name="loss"),
         'score': tf.Variable(0.0, trainable=False, name="score"),
@@ -172,6 +186,17 @@ def make_summaries_v2():
 
     for name, var in res.iteritems():
         tf.scalar_summary(name, var)
+
+    # weights and gradients summary
+    _, v2_vars = zip(*get_v2_vars(trainable=True))
+    grads = optimiser.compute_gradients(loss_t, v2_vars)
+    for grad, var in grads:
+        tf.scalar_summary("magnitude_" + var.name, tf.sqrt(tf.nn.l2_loss(var)))
+        tf.scalar_summary("magnitudeGrad_" + var.name, tf.sqrt(tf.nn.l2_loss(grad)))
+    # reference net doesn't have gradient
+    _, v2_vars_n = zip(*get_v2_vars(trainable=False))
+    for var in v2_vars_n:
+        tf.scalar_summary("magnitude_" + var.name, tf.sqrt(tf.nn.l2_loss(var)))
 
     res['summary_t'] = tf.merge_all_summaries()
     return res

@@ -13,7 +13,7 @@ N_ACTIONS = 4
 
 BATCH_SIZE = 100
 REPORT_ITERS = 100
-SAVE_MODEL_ITERS = 3000
+SAVE_MODEL_ITERS = 100000
 
 
 def make_readers(file_prefix):
@@ -52,10 +52,11 @@ def make_pipeline(file_prefixes):
     return batched_tensors
 
 
-def write_summaries(session, summ, writer, iter_no, **vals):
+def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     feed = {
         summ[name]: value for name, value in vals.iteritems()
     }
+    feed.update(feed_batches)
     summ_res, = session.run([summ['summary_t']], feed_dict=feed)
     writer.add_summary(summ_res, iter_no)
     writer.flush()
@@ -85,9 +86,9 @@ if __name__ == "__main__":
     next_qvals_t = net.make_forward_net_v2(STATES_HISTORY, next_state_t, is_trainable=False)
 
     loss_t = net.make_loss_v2(BATCH_SIZE, GAMMA, qvals_t, action_t, reward_t, next_qvals_t)
-    opt_t = net.make_opt_v2(loss_t, LEARNING_RATE)
+    opt_t, optimiser = net.make_opt_v2(loss_t, LEARNING_RATE, decay_every_steps=50000)
     sync_nets_t = net.make_sync_nets_v2()
-    summ = net.make_summaries_v2()
+    summ = net.make_summaries_v2(loss_t, optimiser)
 
     log.info("Staring learning {name} from replays:".format(name=REPLAY_NAME))
     map(lambda r: log.info("  - {0}".format(r)), replays)
@@ -99,6 +100,7 @@ if __name__ == "__main__":
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
 
         summary_writer = tf.train.SummaryWriter("logs/" + REPLAY_NAME + EXTRA, graph_def=session.graph_def)
+        saver = tf.train.Saver()
         loss_batch = []
 
         try:
@@ -110,6 +112,7 @@ if __name__ == "__main__":
                     session.run([sync_nets_t])
 
                 if iter % 100000 == 0 and iter > 0:
+                    saver.save(session, "models/model", global_step=iter)
                     log.info("{iter}: test model on real bbox".format(iter=iter))
                     t = time()
                     score = test_bbox.test_net(session, STATES_HISTORY, state_t, qvals_t, save_prefix="replays/%d" % (iter/100000))
@@ -122,12 +125,13 @@ if __name__ == "__main__":
                 states_batch, actions_batch, rewards_batch, next_states_batch = \
                     session.run([states_batch_t, actions_batch_t, rewards_batch_t, next_states_batch_t])
 
-                loss, _ = session.run([loss_t, opt_t], feed_dict={
+                feed = {
                     state_t: states_batch,
                     action_t: actions_batch,
                     reward_t: rewards_batch,
                     next_state_t: next_states_batch
-                })
+                }
+                loss, _ = session.run([loss_t, opt_t], feed_dict=feed)
                 loss_batch.append(loss)
 
                 if iter % REPORT_ITERS == 0 and iter > 0:
@@ -140,7 +144,7 @@ if __name__ == "__main__":
                             speed=speed
                     ))
                     report_t = time()
-                    write_summaries(session, summ, summary_writer, iter, loss=avg_loss, speed=speed, score=None)
+                    write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed, score=None)
 
                 iter += 1
         finally:
