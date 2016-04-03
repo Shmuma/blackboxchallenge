@@ -3,7 +3,7 @@ sys.path.append("..")
 
 from time import time
 from datetime import timedelta
-from lib import infra, net, test_bbox
+from lib import infra, net, test_bbox, replays
 import numpy as np
 import tensorflow as tf
 
@@ -44,13 +44,12 @@ def make_readers(file_prefix):
     return states, actions, rewards, next_states
 
 
-def make_pipeline(file_prefix):
+def make_pipeline(file_prefixes):
     with tf.name_scope("input_pipeline"):
-        states_t, actions_t, rewards_t, next_states_t = make_readers(file_prefix)
-        states_batch, actions_batch, rewards_batch, next_states_batch = \
-            tf.train.shuffle_batch([states_t, actions_t, rewards_t, next_states_t], BATCH_SIZE,
-                                   2000 * BATCH_SIZE, 1000*BATCH_SIZE, num_threads=4)
-    return states_batch, actions_batch, rewards_batch, next_states_batch
+        tensors = [make_readers(prefix) for prefix in file_prefixes]
+        batched_tensors = tf.train.shuffle_batch_join(tensors, BATCH_SIZE,
+                                   2000 * BATCH_SIZE, 1000*BATCH_SIZE)
+    return batched_tensors
 
 
 def write_summaries(session, summ, writer, iter_no, **vals):
@@ -62,21 +61,24 @@ def write_summaries(session, summ, writer, iter_no, **vals):
     writer.flush()
 
 
+
 if __name__ == "__main__":
-    LEARNING_RATE = 0.1
+    LEARNING_RATE = 0.01
     #REPLAY_NAME = "seed=42_alpha=1.0"
-    REPLAY_NAME = "tiny"
+    REPLAY_NAME = "t1"
     GAMMA = 0.99
     EXTRA = "_lr=%.3f_gamma=%.2f" % (LEARNING_RATE, GAMMA)
 
-    log = infra.setup_logging(logfile="q2" + EXTRA + ".log")
+    log = infra.setup_logging(logfile="q2_" + REPLAY_NAME + EXTRA + ".log")
     np.random.seed(42)
 
     started = last_t = time()
     infra.prepare_bbox()
 
     state_t, action_t, reward_t, next_state_t = net.make_vars_v2(STATES_HISTORY)
-    states_batch_t, actions_batch_t, rewards_batch_t, next_states_batch_t = make_pipeline("../replays/" + REPLAY_NAME)
+    replays = replays.discover_replays("../replays/")
+
+    states_batch_t, actions_batch_t, rewards_batch_t, next_states_batch_t = make_pipeline(replays)
 
     # make two networks - one is to train, second is periodically cloned from first
     qvals_t = net.make_forward_net_v2(STATES_HISTORY, state_t, is_trainable=True)
@@ -87,7 +89,8 @@ if __name__ == "__main__":
     sync_nets_t = net.make_sync_nets_v2()
     summ = net.make_summaries_v2()
 
-    log.info("Staring learning from replay {replay}".format(replay=REPLAY_NAME))
+    log.info("Staring learning {name} from replays:".format(name=REPLAY_NAME))
+    map(lambda r: log.info("  - {0}".format(r)), replays)
     report_t = time()
 
     with tf.Session() as session:
@@ -137,7 +140,7 @@ if __name__ == "__main__":
                             speed=speed
                     ))
                     report_t = time()
-                    write_summaries(session, summ, summary_writer, iter, loss=avg_loss, speed=speed)
+                    write_summaries(session, summ, summary_writer, iter, loss=avg_loss, speed=speed, score=None)
 
                 iter += 1
         finally:

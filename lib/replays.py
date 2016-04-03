@@ -1,5 +1,5 @@
 import array, struct
-
+import glob
 
 def pack_item(item):
     bbox_state, action, reward = item
@@ -37,3 +37,11 @@ class ReplayWriter:
         self.rewards_fd.write(struct.pack('f', reward))
         for s in next_states:
             pack_state(s).tofile(self.next_states_fd)
+
+
+def discover_replays(path):
+    res = []
+    suffix = ".states"
+    for p in glob.glob(path + "/*" + suffix):
+        res.append(p[:-len(suffix)])
+    return res
