@@ -130,7 +130,7 @@ if __name__ == "__main__":
                 if iter % REPORT_ITERS == 0 and iter > 0:
                     report_d = time() - report_t
                     speed = (BATCH_SIZE * REPORT_ITERS) / report_d
-                    avg_loss = np.mean(loss_batch)
+                    avg_loss = np.median(loss_batch)
                     loss_batch = []
                     log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec".format(
                             iter=iter, loss=avg_loss, duration=timedelta(seconds=report_d),
