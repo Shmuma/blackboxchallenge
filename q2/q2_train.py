@@ -53,6 +53,15 @@ def make_pipeline(file_prefix):
     return states_batch, actions_batch, rewards_batch, next_states_batch
 
 
+def write_summaries(session, summ, writer, iter_no, **vals):
+    feed = {
+        summ[name]: value for name, value in vals.iteritems()
+    }
+    summ_res, = session.run([summ['summary_t']], feed_dict=feed)
+    writer.add_summary(summ_res, iter_no)
+    writer.flush()
+
+
 if __name__ == "__main__":
     LEARNING_RATE = 0.1
     #REPLAY_NAME = "seed=42_alpha=1.0"
@@ -76,6 +85,7 @@ if __name__ == "__main__":
     loss_t = net.make_loss_v2(BATCH_SIZE, GAMMA, qvals_t, action_t, reward_t, next_qvals_t)
     opt_t = net.make_opt_v2(loss_t, LEARNING_RATE)
     sync_nets_t = net.make_sync_nets_v2()
+    summ = net.make_summaries_v2()
 
     log.info("Staring learning from replay {replay}".format(replay=REPLAY_NAME))
     report_t = time()
@@ -84,6 +94,9 @@ if __name__ == "__main__":
         session.run(tf.initialize_all_variables())
         coordinator = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
+
+        summary_writer = tf.train.SummaryWriter("logs/" + REPLAY_NAME + EXTRA, graph_def=session.graph_def)
+        loss_batch = []
 
         try:
             iter = 0
@@ -100,6 +113,7 @@ if __name__ == "__main__":
                     log.info("{iter}: test done in {duration}, score={score}".format(
                         iter=iter, duration=timedelta(seconds=time()-t), score=score
                     ))
+                    write_summaries(session, summ, summary_writer, iter, score=score)
 
                 # get data from input pipeline
                 states_batch, actions_batch, rewards_batch, next_states_batch = \
@@ -111,15 +125,19 @@ if __name__ == "__main__":
                     reward_t: rewards_batch,
                     next_state_t: next_states_batch
                 })
+                loss_batch.append(loss)
 
                 if iter % REPORT_ITERS == 0 and iter > 0:
                     report_d = time() - report_t
                     speed = (BATCH_SIZE * REPORT_ITERS) / report_d
+                    avg_loss = np.mean(loss_batch)
+                    loss_batch = []
                     log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec".format(
-                            iter=iter, loss=loss, duration=timedelta(seconds=report_d),
+                            iter=iter, loss=avg_loss, duration=timedelta(seconds=report_d),
                             speed=speed
                     ))
                     report_t = time()
+                    write_summaries(session, summ, summary_writer, iter, loss=avg_loss, speed=speed)
 
                 iter += 1
         finally:

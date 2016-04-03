@@ -123,7 +123,11 @@ def make_loss_v2(batch_size, gamma, qvals_t, actions_t, rewards_t, next_qvals_t,
 
 
 def make_opt_v2(loss_t, learning_rate):
-    optimiser = tf.train.AdamOptimizer(learning_rate=learning_rate)
+    global_step = tf.Variable(0, trainable=False, name="global_step")
+    exp_learning_rate = tf.train.exponential_decay(learning_rate, global_step, 1000, 0.9, staircase=True)
+    tf.scalar_summary("learningRate", exp_learning_rate)
+
+    optimiser = tf.train.AdamOptimizer(learning_rate=exp_learning_rate)
     opt_t = optimiser.minimize(loss_t)
     return opt_t
 
@@ -156,3 +160,17 @@ def make_sync_nets_v2():
         ops.append(dst.assign(src))
 
     return tf.group(*ops)
+
+
+def make_summaries_v2():
+    res = {
+        'loss': tf.Variable(0.0, trainable=False, name="loss"),
+        'score': tf.Variable(0.0, trainable=False, name="score"),
+        'speed': tf.Variable(0.0, trainable=False, name="speed"),
+    }
+
+    for name, var in res.iteritems():
+        tf.scalar_summary(name, var)
+
+    res['summary_t'] = tf.merge_all_summaries()
+    return res
