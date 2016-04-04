@@ -1,5 +1,9 @@
 import array, struct
 import glob
+import logging as log
+
+import numpy as np
+
 
 def pack_item(item):
     bbox_state, action, reward = item
@@ -48,8 +52,9 @@ def discover_replays(path):
 
 
 class ReplayBuffer:
-    def __init__(self, capacity):
+    def __init__(self, capacity, batch):
         self.capacity = capacity
+        self.batch = batch
         self.buffer = []
 
     def append(self, state, action, reward, next_states):
@@ -57,8 +62,25 @@ class ReplayBuffer:
         while len(self.buffer) > self.capacity:
             self.buffer.pop(0)
 
+    def reshuffle(self):
+        """
+        Regenerate shuffled batch. Should be called after batch of appends.
+        """
+        self.shuffle = np.random.permutation(len(self.buffer))
+        self.batch_idx = 0
+        log.info("Reshuffle")
+
+    def next_batch(self):
+        """
+        Return next batch of data
+        :return:
+        """
+        if (self.batch_idx + 1) * self.batch > len(self.buffer):
+            self.reshuffle()
+        res = [self.buffer[idx] for idx in self.shuffle[self.batch_idx*self.batch:(self.batch_idx+1)*self.batch]]
+        self.batch_idx += 1
+        log.info("Next batch of len {l}".format(l=len(res)))
+        return res
+
     def __str__(self):
         return "ReplayBuffer: size={size}".format(size=len(self.buffer))
-
-    # TODO: generate shuffle index
-    # TODO: iterate over batches
