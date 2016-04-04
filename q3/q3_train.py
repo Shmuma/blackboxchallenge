@@ -16,42 +16,6 @@ REPORT_ITERS = 100
 SAVE_MODEL_ITERS = 100000
 
 
-def make_readers(file_prefix):
-    """
-    Return states and qvals tensors
-    :param file_prefix:
-    :return:
-    """
-    FLOAT_SIZE = 4
-    states_reader = tf.FixedLengthRecordReader(STATES_HISTORY * N_STATE * FLOAT_SIZE)
-    next_states_reader = tf.FixedLengthRecordReader(STATES_HISTORY * N_STATE * FLOAT_SIZE)
-    actions_reader = tf.FixedLengthRecordReader(1)
-    rewards_reader = tf.FixedLengthRecordReader(FLOAT_SIZE)
-    _, states = states_reader.read(tf.train.string_input_producer([file_prefix + ".states"]))
-    _, next_states = next_states_reader.read(tf.train.string_input_producer([file_prefix + ".next_states"]))
-    _, actions = actions_reader.read(tf.train.string_input_producer([file_prefix + ".actions"]))
-    _, rewards = rewards_reader.read(tf.train.string_input_producer([file_prefix + ".rewards"]))
-
-    states = tf.decode_raw(states, tf.float32, name="decode_states")
-    states = tf.reshape(states, (STATES_HISTORY * N_STATE, ), name="reshape_states")
-    next_states = tf.decode_raw(next_states, tf.float32, name="decode_next_states")
-    next_states = tf.reshape(next_states, (STATES_HISTORY * N_STATE, ), name="reshape_next_states")
-    actions = tf.decode_raw(actions, tf.int8, name="decode_actions")
-    actions = tf.reshape(actions, (1, ), name="reshape_actions")
-    actions = tf.to_int32(actions)
-    rewards = tf.decode_raw(rewards, tf.float32, name="decode_rewards")
-    rewards = tf.reshape(rewards, (1, ), name="reshape_qvals")
-    return states, actions, rewards, next_states
-
-
-def make_pipeline(file_prefixes):
-    with tf.name_scope("input_pipeline"):
-        tensors = [make_readers(prefix) for prefix in file_prefixes]
-        batched_tensors = tf.train.shuffle_batch_join(tensors, BATCH_SIZE,
-                                   2000 * BATCH_SIZE, 1000*BATCH_SIZE)
-    return batched_tensors
-
-
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     feed = {
         summ[name]: value for name, value in vals.iteritems()
@@ -64,23 +28,21 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 
 if __name__ == "__main__":
-    LEARNING_RATE = 1.0e-4
-    #REPLAY_NAME = "seed=42_alpha=1.0"
-    REPLAY_NAME = "t1r5"
-    RESTORE_MODEL = "models/model-1600000"
+    LEARNING_RATE = 1.0e-2
+    TEST_NAME = "t1r1"
+    RESTORE_MODEL = None # "models/model-1600000"
     GAMMA = 0.99
     EXTRA = "_lr=%.3f_gamma=%.2f" % (LEARNING_RATE, GAMMA)
 
-    log = infra.setup_logging(logfile="q2_" + REPLAY_NAME + EXTRA + ".log")
+    log = infra.setup_logging(logfile="q3_" + TEST_NAME + EXTRA + ".log")
     np.random.seed(42)
 
     started = last_t = time()
     infra.prepare_bbox()
 
-    state_t, action_t, reward_t, next_state_t = net.make_vars_v2(STATES_HISTORY)
-    replays = replays.discover_replays("../replays/r1/")
+    replay_buffer = replays.ReplayBuffer(10000000, BATCH_SIZE)
 
-    states_batch_t, actions_batch_t, rewards_batch_t, next_states_batch_t = make_pipeline(replays)
+    state_t, action_t, reward_t, next_state_t = net.make_vars_v2(STATES_HISTORY)
 
     # make two networks - one is to train, second is periodically cloned from first
     qvals_t = net.make_forward_net_v2(STATES_HISTORY, state_t, is_trainable=True)
@@ -91,8 +53,7 @@ if __name__ == "__main__":
     sync_nets_t = net.make_sync_nets_v2()
     summ = net.make_summaries_v2(loss_t, optimiser)
 
-    log.info("Staring learning {name} from replays:".format(name=REPLAY_NAME))
-    map(lambda r: log.info("  - {0}".format(r)), replays)
+    log.info("Staring session {name}{extra}".format(name=TEST_NAME, extra=EXTRA))
     report_t = time()
 
     with tf.Session() as session:
@@ -105,7 +66,7 @@ if __name__ == "__main__":
         coordinator = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
 
-        summary_writer = tf.train.SummaryWriter("logs/" + REPLAY_NAME + EXTRA, graph_def=session.graph_def)
+        summary_writer = tf.train.SummaryWriter("logs/" + TEST_NAME + EXTRA, graph_def=session.graph_def)
         loss_batch = []
 
         try:
@@ -116,9 +77,18 @@ if __name__ == "__main__":
                     log.info("{iter}: Sync nets".format(iter=iter))
                     session.run([sync_nets_t])
 
+                if iter % 20000 == 0:
+                    log.info("{iter}: populating replay buffer".format(iter=iter))
+                    t = time()
+                    score = test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
+                                                             alpha=0.1, max_steps=200000)
+                    replay_buffer.reshuffle()
+                    log.info("{iter}: test done in {duration}, score={score}".format(
+                        iter=iter, duration=timedelta(seconds=time()-t), score=score
+                    ))
+
                 # get data from input pipeline
-                states_batch, actions_batch, rewards_batch, next_states_batch = \
-                    session.run([states_batch_t, actions_batch_t, rewards_batch_t, next_states_batch_t])
+                states_batch, actions_batch, rewards_batch, next_states_batch = replay_buffer.next_batch()
 
                 feed = {
                     state_t: states_batch,
@@ -134,22 +104,15 @@ if __name__ == "__main__":
                     speed = (BATCH_SIZE * REPORT_ITERS) / report_d
                     avg_loss = np.median(loss_batch)
                     loss_batch = []
-                    log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec".format(
+                    log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, replay={replay}".format(
                             iter=iter, loss=avg_loss, duration=timedelta(seconds=report_d),
-                            speed=speed
+                            speed=speed, replay=replay_buffer
                     ))
                     report_t = time()
-                    write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed, score=None)
+                    write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed, score=score)
 
-                if iter % 100000 == 0 and iter > 0:
-                    saver.save(session, "models/model" + REPLAY_NAME, global_step=iter)
-                    log.info("{iter}: test model on real bbox".format(iter=iter))
-                    t = time()
-                    score = test_bbox.test_net(session, STATES_HISTORY, state_t, qvals_t, save_prefix="replays/%d" % (iter/100000))
-                    log.info("{iter}: test done in {duration}, score={score}".format(
-                        iter=iter, duration=timedelta(seconds=time()-t), score=score
-                    ))
-                    write_summaries(session, summ, summary_writer, iter, feed, score=score)
+                if iter % SAVE_MODEL_ITERS == 0 and iter > 0:
+                    saver.save(session, "models/model" + TEST_NAME, global_step=iter)
 
                 iter += 1
         finally:

@@ -61,3 +61,56 @@ def test_net(session, states_history, states_t, qvals_t, alpha=0.0, verbose=0, s
 
     infra.bbox_loop(state, action_hook, reward_hook, verbose=verbose)
     return infra.bbox.get_score()
+
+
+def populate_replay_buffer(replay_buffer, session, states_history, states_t, qvals_t, alpha=0.0,
+                           verbose=0, max_steps=None):
+    """
+    Perform test of neural network using bbox interpreter
+    """
+    infra.prepare_bbox()
+    state = {
+        'session': session,
+        'history': states_history,
+        'alpha': alpha,
+        'states_t': states_t,
+        'qvals_t': qvals_t,
+        'state': [],
+        'replay': replay_buffer,
+    }
+
+    def action_hook(our_state, bbox_state):
+        # save state, keep only fixed amount of states
+        our_state['state'].append(bbox_state)
+        our_state['state'] = our_state['state'][-our_state['history']:]
+
+        # make decision about action
+        if np.random.random() < our_state['alpha'] or len(our_state['state']) < our_state['history']:
+            action = np.random.randint(0, infra.n_actions, 1)[0]
+        else:
+            sess = our_state['session']
+            qvals_t = our_state['qvals_t']
+            states_t = our_state['states_t']
+
+            state_v = np.array(our_state['state'])
+            state_v = state_v.reshape((1, state_v.shape[0] * state_v.shape[1]))
+
+            qvals, = sess.run([qvals_t], feed_dict={states_t: state_v})
+            action = np.argmax(qvals)
+
+        our_state['action'] = action
+
+        return action
+
+    def reward_hook(our_state, reward, last_round):
+        if last_round:
+            return
+
+        if len(our_state['state']) == our_state['history']:
+            next_state = our_state['state'][-(our_state['history']-1):]
+            next_state.append(infra.bbox.get_state())
+            our_state['replay'].append(our_state['state'], our_state['action'],
+                                       reward, next_state)
+
+    infra.bbox_loop(state, action_hook, reward_hook, verbose=verbose, max_steps=max_steps)
+    return infra.bbox.get_score()

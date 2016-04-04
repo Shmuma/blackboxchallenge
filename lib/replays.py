@@ -56,6 +56,7 @@ class ReplayBuffer:
         self.capacity = capacity
         self.batch = batch
         self.buffer = []
+        self.epoches = 0
 
     def append(self, state, action, reward, next_states):
         self.buffer.append((state, action, reward, next_states))
@@ -68,7 +69,7 @@ class ReplayBuffer:
         """
         self.shuffle = np.random.permutation(len(self.buffer))
         self.batch_idx = 0
-        log.info("Reshuffle")
+        log.info("Reshuffle of buffer {buffer}".format(buffer=self))
 
     def next_batch(self):
         """
@@ -77,10 +78,22 @@ class ReplayBuffer:
         """
         if (self.batch_idx + 1) * self.batch > len(self.buffer):
             self.reshuffle()
-        res = [self.buffer[idx] for idx in self.shuffle[self.batch_idx*self.batch:(self.batch_idx+1)*self.batch]]
+            self.epoches += 1
+
+        states = []
+        actions = []
+        rewards = []
+        next_states = []
+
+        for idx in self.shuffle[self.batch_idx*self.batch:(self.batch_idx+1)*self.batch]:
+            state, action, reward, next_state = self.buffer[idx]
+            states.append(state)
+            actions.append(action)
+            rewards.append(reward)
+            next_states.append(next_state)
         self.batch_idx += 1
-        log.info("Next batch of len {l}".format(l=len(res)))
-        return res
+        return states, actions, rewards, next_states
 
     def __str__(self):
-        return "ReplayBuffer: size={size}".format(size=len(self.buffer))
+        return "ReplayBuffer: size={size}, batch={batch_idx}, epoch={epoch}".format(
+                size=len(self.buffer), batch=self.batch_idx, epoch=self.epoches)
