@@ -64,9 +64,10 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 
 if __name__ == "__main__":
-    LEARNING_RATE = 0.01
+    LEARNING_RATE = 1.0e-4
     #REPLAY_NAME = "seed=42_alpha=1.0"
-    REPLAY_NAME = "t1r2"
+    REPLAY_NAME = "t1r5"
+    RESTORE_MODEL = "models/model-1600000"
     GAMMA = 0.99
     EXTRA = "_lr=%.3f_gamma=%.2f" % (LEARNING_RATE, GAMMA)
 
@@ -86,7 +87,7 @@ if __name__ == "__main__":
     next_qvals_t = net.make_forward_net_v2(STATES_HISTORY, next_state_t, is_trainable=False)
 
     loss_t = net.make_loss_v2(BATCH_SIZE, GAMMA, qvals_t, action_t, reward_t, next_qvals_t)
-    opt_t, optimiser = net.make_opt_v2(loss_t, LEARNING_RATE, decay_every_steps=50000)
+    opt_t, optimiser, global_step = net.make_opt_v2(loss_t, LEARNING_RATE, decay_every_steps=50000)
     sync_nets_t = net.make_sync_nets_v2()
     summ = net.make_summaries_v2(loss_t, optimiser)
 
@@ -95,12 +96,16 @@ if __name__ == "__main__":
     report_t = time()
 
     with tf.Session() as session:
+        saver = tf.train.Saver(var_list=dict(net.get_v2_vars(trainable=True)).values())
         session.run(tf.initialize_all_variables())
+
+        if RESTORE_MODEL is not None:
+            saver.restore(session, RESTORE_MODEL)
+            print session.run([global_step])
         coordinator = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
 
         summary_writer = tf.train.SummaryWriter("logs/" + REPLAY_NAME + EXTRA, graph_def=session.graph_def)
-        saver = tf.train.Saver()
         loss_batch = []
 
         try:
@@ -137,7 +142,7 @@ if __name__ == "__main__":
                     write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed, score=None)
 
                 if iter % 100000 == 0 and iter > 0:
-                    saver.save(session, "models/model", global_step=iter)
+                    saver.save(session, "models/model" + REPLAY_NAME, global_step=iter)
                     log.info("{iter}: test model on real bbox".format(iter=iter))
                     t = time()
                     score = test_bbox.test_net(session, STATES_HISTORY, state_t, qvals_t, save_prefix="replays/%d" % (iter/100000))

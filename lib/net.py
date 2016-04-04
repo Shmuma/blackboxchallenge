@@ -130,7 +130,7 @@ def make_opt_v2(loss_t, learning_rate, decay_every_steps=10000):
 
     optimiser = tf.train.AdamOptimizer(learning_rate=exp_learning_rate)
     opt_t = optimiser.minimize(loss_t, global_step=global_step)
-    return opt_t, optimiser
+    return opt_t, optimiser, global_step
 
 
 def get_v2_vars(trainable):
