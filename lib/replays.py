@@ -45,3 +45,20 @@ def discover_replays(path):
     for p in glob.glob(path + "/*" + suffix):
         res.append(p[:-len(suffix)])
     return res
+
+
+class ReplayBuffer:
+    def __init__(self, capacity):
+        self.capacity = capacity
+        self.buffer = []
+
+    def append(self, state, action, reward, next_states):
+        self.buffer.append((state, action, reward, next_states))
+        while len(self.buffer) > self.capacity:
+            self.buffer.pop(0)
+
+    def __str__(self):
+        return "ReplayBuffer: size={size}".format(size=len(self.buffer))
+
+    # TODO: generate shuffle index
+    # TODO: iterate over batches
