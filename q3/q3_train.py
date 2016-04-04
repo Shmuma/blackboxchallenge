@@ -42,11 +42,11 @@ if __name__ == "__main__":
 
     replay_buffer = replays.ReplayBuffer(10000000, BATCH_SIZE)
 
-    state_t, action_t, reward_t, next_state_t = net.make_vars_v2(STATES_HISTORY)
+    state_t, action_t, reward_t, next_state_t = net.make_vars_v3(STATES_HISTORY)
 
     # make two networks - one is to train, second is periodically cloned from first
-    qvals_t = net.make_forward_net_v2(STATES_HISTORY, state_t, is_trainable=True)
-    next_qvals_t = net.make_forward_net_v2(STATES_HISTORY, next_state_t, is_trainable=False)
+    qvals_t = net.make_forward_net_v3(STATES_HISTORY, state_t, is_trainable=True)
+    next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, is_trainable=False)
 
     loss_t = net.make_loss_v2(BATCH_SIZE, GAMMA, qvals_t, action_t, reward_t, next_qvals_t)
     opt_t, optimiser, global_step = net.make_opt_v2(loss_t, LEARNING_RATE, decay_every_steps=50000)
