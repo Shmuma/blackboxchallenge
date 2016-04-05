@@ -4,8 +4,8 @@ import infra
 
 L1_SIZE = 512
 L2_SIZE = 256
-L3_SIZE = 128
 
+L3_SIZE = 128
 
 def make_vars():
     state_t = tf.placeholder(tf.float32, (None, infra.n_features), name="State")
@@ -155,8 +155,6 @@ def make_sync_nets_v2():
         ("L1_T/b", "L1_R/b"),
         ("L2_T/w", "L2_R/w"),
         ("L2_T/b", "L2_R/b"),
-        ("L3_T/w", "L3_R/w"),
-        ("L3_T/b", "L3_R/b"),
     ]
     vars = {}
 
@@ -194,12 +192,8 @@ def make_summaries_v2(loss_t, optimiser):
         tf.scalar_summary("magnitude_" + var.name, tf.sqrt(tf.nn.l2_loss(var)))
         tf.scalar_summary("magnitudeGrad_" + var.name, tf.sqrt(tf.nn.l2_loss(grad)))
 
-#    tf.contrib.layers.summarize_weights()
-#    tf.contrib.layers.summarize_biases()
-    # reference net doesn't have gradient
-#    _, v2_vars_n = zip(*get_v2_vars(trainable=False))
-#    for var in v2_vars_n:
-#        tf.scalar_summary("magnitude_" + var.name, tf.sqrt(tf.nn.l2_loss(var)))
+    tf.contrib.layers.summarize_weights()
+    tf.contrib.layers.summarize_biases()
 
     res['summary_t'] = tf.merge_all_summaries()
     return res
@@ -236,7 +230,6 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
         b = tf.Variable(tf.zeros((L1_SIZE,)), **b_attrs)
         l0_out = tf.nn.softplus(tf.matmul(states_t, w) + b)
         if is_trainable:
-            tf.contrib.layers.summarize_tensors([w, b])
             tf.contrib.layers.summarize_activation(l0_out)
 
     with tf.name_scope("L1" + suff):
@@ -244,21 +237,12 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
         b = tf.Variable(tf.zeros((L2_SIZE,)), **b_attrs)
         l1_out = tf.nn.softplus(tf.matmul(l0_out, w) + b)
         if is_trainable:
-            tf.contrib.layers.summarize_tensors([w, b])
             tf.contrib.layers.summarize_activation(l1_out)
 
     with tf.name_scope("L2" + suff):
-        w = tf.Variable(xavier((L2_SIZE, L3_SIZE)), **w_attrs)
-        b = tf.Variable(tf.zeros((L3_SIZE,)), **b_attrs)
-        l2_out = tf.nn.softplus(tf.matmul(l1_out, w) + b)
-        if is_trainable:
-            tf.contrib.layers.summarize_tensors([w, b])
-            tf.contrib.layers.summarize_activation(l2_out)
-
-    with tf.name_scope("L3" + suff):
-        w = tf.Variable(xavier((L3_SIZE, infra.n_actions)), **w_attrs)
+        w = tf.Variable(xavier((L2_SIZE, infra.n_actions)), **w_attrs)
         b = tf.Variable(tf.zeros((infra.n_actions,)), **b_attrs)
-        output = tf.matmul(l2_out, w) + b
+        output = tf.matmul(l1_out, w) + b
         output = tf.squeeze(output)
         if is_trainable:
             tf.contrib.layers.summarize_tensors([w, b, output])

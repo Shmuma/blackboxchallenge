@@ -31,7 +31,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1.0e-3
-    TEST_NAME = "t4r1"
+    TEST_NAME = "t5r1"
     RESTORE_MODEL = None #"models/modelt1r1-700000"
     GAMMA = 0.99
     EXTRA = "_lr=%.3f_gamma=%.2f" % (LEARNING_RATE, GAMMA)
