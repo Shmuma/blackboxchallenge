@@ -7,13 +7,15 @@ from lib import infra, net, test_bbox, replays
 import numpy as np
 import tensorflow as tf
 
-STATES_HISTORY = 4
+STATES_HISTORY = 40
 N_STATE = 36
 N_ACTIONS = 4
 
 BATCH_SIZE = 100
 REPORT_ITERS = 100
 SAVE_MODEL_ITERS = 100000
+SYNC_MODELS_ITERS = 1000
+FILL_REPLAY_ITERS = 50000
 
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
@@ -29,7 +31,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1.0e-3
-    TEST_NAME = "t1r4"
+    TEST_NAME = "t2r1"
     RESTORE_MODEL = "models/modelt1r1-700000"
     GAMMA = 0.99
     EXTRA = "_lr=%.3f_gamma=%.2f" % (LEARNING_RATE, GAMMA)
@@ -49,7 +51,7 @@ if __name__ == "__main__":
     next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, is_trainable=False)
 
     loss_t = net.make_loss_v2(BATCH_SIZE, GAMMA, qvals_t, action_t, reward_t, next_qvals_t)
-    opt_t, optimiser, global_step = net.make_opt_v2(loss_t, LEARNING_RATE, decay_every_steps=50000)
+    opt_t, optimiser, global_step = net.make_opt_v2(loss_t, LEARNING_RATE, decay_every_steps=100000)
     sync_nets_t = net.make_sync_nets_v2()
     summ = net.make_summaries_v2(loss_t, optimiser)
 
@@ -73,11 +75,11 @@ if __name__ == "__main__":
             iter = 0
 
             while True:
-                if iter % 10000 == 0:
+                if iter % SYNC_MODELS_ITERS == 0:
                     log.info("{iter}: Sync nets".format(iter=iter))
                     session.run([sync_nets_t])
 
-                if iter % 20000 == 0:
+                if iter % FILL_REPLAY_ITERS == 0:
                     log.info("{iter}: populating replay buffer".format(iter=iter))
                     t = time()
                     score = test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
