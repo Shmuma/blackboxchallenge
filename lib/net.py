@@ -203,7 +203,7 @@ def make_summaries_v2(loss_t, optimiser):
 def make_vars_v3(states_history):
     state_t = tf.placeholder(tf.float32, (None, states_history, infra.n_features), name="state")
     rewards_t = tf.placeholder(tf.float32, (None, infra.n_actions), name="reward")
-    next_state_t = tf.placeholder(tf.float32, (None, states_history, infra.n_features), name="next_state")
+    next_state_t = tf.placeholder(tf.float32, (None, infra.n_actions, states_history, infra.n_features), name="next_state")
 
     return state_t, rewards_t, next_state_t
 
@@ -243,7 +243,6 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
         w = tf.Variable(xavier((L2_SIZE, infra.n_actions)), **w_attrs)
         b = tf.Variable(tf.zeros((infra.n_actions,)), **b_attrs)
         output = tf.matmul(l1_out, w) + b
-        print output
 #        output = tf.squeeze(output, name="qvals")
         if is_trainable:
             tf.contrib.layers.summarize_tensors([output])

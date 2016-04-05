@@ -69,7 +69,6 @@ class ReplayBuffer:
             self.buffer.pop(0)
         self.shuffle = np.random.permutation(len(self.buffer))
         self.batch_idx = 0
-        log.info("Reshuffle of buffer {buffer}".format(buffer=self))
 
     def next_batch(self):
         """
@@ -85,10 +84,16 @@ class ReplayBuffer:
         next_states = []
 
         for idx in self.shuffle[self.batch_idx*self.batch:(self.batch_idx+1)*self.batch]:
-            state, reward, next_state = self.buffer[idx]
+            state, reward, next_4_state = self.buffer[idx]
             states.append(state)
             rewards.append(reward)
-            next_states.append(next_state)
+
+            # combine state history and next_4_state into full next states history
+            top_cur_state = state[:-1, :]
+            v = []
+            for next_state in next_4_state:
+                v.append([np.vstack([next_state, top_cur_state])])
+            next_states.append(np.concatenate(v))
         self.batch_idx += 1
         return states, rewards, next_states
 

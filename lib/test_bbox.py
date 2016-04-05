@@ -96,9 +96,7 @@ def populate_replay_buffer(replay_buffer, session, states_history, states_t, qva
             action = np.argmax(qvals)
 
         if len(our_state['state']) == our_state['history']:
-            next_states_head = our_state['state'][-(our_state['history']-1):]
-            for next_state in next_states:
-                our_state['replay'].append(our_state['state'], rewards, next_states_head + [next_state])
+            our_state['replay'].append(our_state['state'], rewards, next_states)
 
         return action
 

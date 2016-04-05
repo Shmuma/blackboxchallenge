@@ -76,14 +76,13 @@ if __name__ == "__main__":
 
             while True:
                 if iter % SYNC_MODELS_ITERS == 0:
-#                    log.info("{iter}: Sync nets".format(iter=iter))
                     session.run([sync_nets_t])
 
                 if iter % FILL_REPLAY_ITERS == 0:
                     log.info("{iter}: populating replay buffer".format(iter=iter))
                     t = time()
                     score = test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
-                                                             alpha=0.1, max_steps=500) # TODO: Make back 50000
+                                                             alpha=0.1, max_steps=50000)
                     replay_buffer.reshuffle()
                     log.info("{iter}: test done in {duration}, score={score}".format(
                         iter=iter, duration=timedelta(seconds=time()-t), score=score
@@ -91,8 +90,7 @@ if __name__ == "__main__":
 
                 # get data from input pipeline
                 states_batch, rewards_batch, next_states_batch = replay_buffer.next_batch()
-                # TODO: wrong size of next_states_batch, should be (100, 4, 10, 36)
-                print np.array(next_states_batch).shape
+
 
                 feed = {
                     state_t: states_batch,
