@@ -59,7 +59,13 @@ class ReplayBuffer:
         self.epoches = 0
 
     def append(self, state, rewards, next_states):
-        self.buffer.append((np.copy(state), np.copy(rewards), np.copy(next_states)))
+        st = np.copy(state)
+        # combine state history and next_4_state into full next states history
+        top_cur_state = st[:-1, :]
+        v = []
+        for next_state in next_states:
+            v.append([np.vstack([next_state, top_cur_state])])
+        self.buffer.append((st, np.copy(rewards), np.concatenate(v)))
 
     def reshuffle(self):
         """
@@ -87,13 +93,8 @@ class ReplayBuffer:
             state, reward, next_4_state = self.buffer[idx]
             states.append(state)
             rewards.append(reward)
+            next_states.append(next_4_state)
 
-            # combine state history and next_4_state into full next states history
-            top_cur_state = state[:-1, :]
-            v = []
-            for next_state in next_4_state:
-                v.append([np.vstack([next_state, top_cur_state])])
-            next_states.append(np.concatenate(v))
         self.batch_idx += 1
         return states, rewards, next_states
 
