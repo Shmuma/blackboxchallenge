@@ -194,8 +194,8 @@ def make_summaries_v2(loss_t, optimiser):
         tf.scalar_summary("magnitude_" + var.name, tf.sqrt(tf.nn.l2_loss(var)))
         tf.scalar_summary("magnitudeGrad_" + var.name, tf.sqrt(tf.nn.l2_loss(grad)))
 
-    tf.contrib.layers.summarize_weights()
-    tf.contrib.layers.summarize_biases()
+#    tf.contrib.layers.summarize_weights()
+#    tf.contrib.layers.summarize_biases()
     # reference net doesn't have gradient
 #    _, v2_vars_n = zip(*get_v2_vars(trainable=False))
 #    for var in v2_vars_n:
