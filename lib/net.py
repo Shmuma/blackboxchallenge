@@ -114,11 +114,12 @@ def make_loss_v2(batch_size, gamma, qvals_t, actions_t, rewards_t, next_qvals_t,
     q_flat = tf.reshape(qvals_t, (batch_size * n_actions, ))
     act_idx = tf.range(batch_size) * n_actions + actions_t
     # vector with qvalues from taken actions
-    q_actions = tf.gather(q_flat, act_idx)
+    q_actions = tf.gather(q_flat, act_idx, name="q_actions")
     # reference q_values from Bellman's equation
-    q_ref = rewards_t + gamma * tf.reduce_max(next_qvals_t, 1)
+    q_ref = tf.add(rewards_t, gamma * tf.reduce_max(next_qvals_t, 1), name="q_ref")
     # error
     error = tf.reduce_mean(tf.pow(q_actions - q_ref, 2), name="error")
+    tf.contrib.layers.summarize_tensors([q_actions, q_ref, error])
     return error
 
 
@@ -243,8 +244,8 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
         w = tf.Variable(xavier((L2_SIZE, infra.n_actions)), **w_attrs)
         b = tf.Variable(tf.zeros((infra.n_actions,)), **b_attrs)
         output = tf.matmul(l1_out, w) + b
-        output = tf.squeeze(output)
+        output = tf.squeeze(output, name="qvals")
         if is_trainable:
-            tf.contrib.layers.summarize_tensors([w, b, output])
+            tf.contrib.layers.summarize_tensors([output])
 
     return output
