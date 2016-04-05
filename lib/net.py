@@ -193,6 +193,9 @@ def make_summaries_v2(loss_t, optimiser):
     for grad, var in grads:
         tf.scalar_summary("magnitude_" + var.name, tf.sqrt(tf.nn.l2_loss(var)))
         tf.scalar_summary("magnitudeGrad_" + var.name, tf.sqrt(tf.nn.l2_loss(grad)))
+
+    tf.contrib.layers.summarize_weights()
+    tf.contrib.layers.summarize_biases()
     # reference net doesn't have gradient
 #    _, v2_vars_n = zip(*get_v2_vars(trainable=False))
 #    for var in v2_vars_n:
@@ -218,26 +221,33 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
     xavier = tf.contrib.layers.xavier_initializer()
     with tf.name_scope("L0" + suff):
         w = tf.Variable(xavier((infra.n_features * states_history, L1_SIZE)),
-                        trainable=is_trainable, name="w")
-        b = tf.Variable(tf.zeros((L1_SIZE,)), trainable=is_trainable, name="b")
+                        trainable=is_trainable, name="w", collections=tf.GraphKeys.WEIGHTS)
+        b = tf.Variable(tf.zeros((L1_SIZE,)), trainable=is_trainable, name="b",
+                        collections=tf.GraphKeys.BIASES)
+
         l0_out = tf.nn.relu(tf.matmul(states_t, w) + b)
+        tf.contrib.layers.summarize_activation(l0_out)
 
     with tf.name_scope("L1" + suff):
-        w = tf.Variable(xavier((L1_SIZE, L2_SIZE)),
-                        trainable=is_trainable, name="w")
-        b = tf.Variable(tf.zeros((L2_SIZE,)), trainable=is_trainable, name="b")
+        w = tf.Variable(xavier((L1_SIZE, L2_SIZE)), trainable=is_trainable,
+                        name="w", collections=tf.GraphKeys.WEIGHTS)
+        b = tf.Variable(tf.zeros((L2_SIZE,)), trainable=is_trainable, name="b",
+                        collections=tf.GraphKeys.BIASES)
         l1_out = tf.nn.relu(tf.matmul(l0_out, w) + b)
+        tf.contrib.layers.summarize_activation(l1_out)
 
     with tf.name_scope("L2" + suff):
-        w = tf.Variable(xavier((L2_SIZE, L3_SIZE)),
-                        trainable=is_trainable, name="w")
-        b = tf.Variable(tf.zeros((L3_SIZE,)), trainable=is_trainable, name="b")
+        w = tf.Variable(xavier((L2_SIZE, L3_SIZE)), trainable=is_trainable,
+                        name="w", collections=tf.GraphKeys.WEIGHTS)
+        b = tf.Variable(tf.zeros((L3_SIZE,)), trainable=is_trainable, name="b", collections=tf.GraphKeys.BIASES)
         l2_out = tf.nn.relu(tf.matmul(l1_out, w) + b)
+        tf.contrib.layers.summarize_activation(l2_out)
 
     with tf.name_scope("L3" + suff):
-        w = tf.Variable(xavier((L3_SIZE, infra.n_actions)),
-                        trainable=is_trainable, name="w")
-        b = tf.Variable(tf.zeros((infra.n_actions,)), trainable=is_trainable, name="b")
+        w = tf.Variable(xavier((L3_SIZE, infra.n_actions)), trainable=is_trainable,
+                        name="w", collections=tf.GraphKeys.WEIGHTS)
+        b = tf.Variable(tf.zeros((infra.n_actions,)), trainable=is_trainable,
+                        name="b", collections=tf.GraphKeys.BIASES)
         output = tf.matmul(l2_out, w) + b
         output = tf.squeeze(output)
 
