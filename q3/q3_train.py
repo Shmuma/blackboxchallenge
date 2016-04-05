@@ -12,7 +12,7 @@ N_STATE = 36
 N_ACTIONS = 4
 
 BATCH_SIZE = 100
-REPORT_ITERS = 100
+REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 100000
 SYNC_MODELS_ITERS = 1000
 FILL_REPLAY_ITERS = 50000
@@ -76,7 +76,7 @@ if __name__ == "__main__":
 
             while True:
                 if iter % SYNC_MODELS_ITERS == 0:
-                    log.info("{iter}: Sync nets".format(iter=iter))
+#                    log.info("{iter}: Sync nets".format(iter=iter))
                     session.run([sync_nets_t])
 
                 if iter % FILL_REPLAY_ITERS == 0:
