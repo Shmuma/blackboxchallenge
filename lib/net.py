@@ -3,8 +3,7 @@ import tensorflow as tf
 import infra
 
 L1_SIZE = 512
-L2_SIZE = 256
-
+L2_SIZE = 512
 L3_SIZE = 128
 
 def make_vars():
@@ -134,13 +133,14 @@ def make_opt(loss_t, learning_rate, decay_every_steps=10000):
     return opt_t, optimiser, global_step
 
 
-def get_v2_vars(trainable):
-    layers = ["L0", "L1", "L2"]
+def get_v2_vars(trainable, only_weights=False):
+    layers = ["L0", "L1", "L2", "L3"]
     l_suffix = "_T" if trainable else "_R"
     names = []
     for l in layers:
         names.append(l + l_suffix + "/w:0")
-        names.append(l + l_suffix + "/b:0")
+        if not only_weights:
+            names.append(l + l_suffix + "/b:0")
     vars = {}
     for v in tf.all_variables():
         if v.name in names:
@@ -156,6 +156,8 @@ def make_sync_nets_v2():
         ("L1_T/b", "L1_R/b"),
         ("L2_T/w", "L2_R/w"),
         ("L2_T/b", "L2_R/b"),
+        ("L3_T/w", "L3_R/w"),
+        ("L3_T/b", "L3_R/b"),
     ]
     vars = {}
 
@@ -214,44 +216,61 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
     w_attrs = {
         'trainable': is_trainable,
         'name': 'w',
-        'collections': [tf.GraphKeys.VARIABLES, tf.GraphKeys.WEIGHTS]
+        'collections': [tf.GraphKeys.VARIABLES]
     }
 
     b_attrs = {
         'trainable': is_trainable,
         'name': 'b',
-        'collections': [tf.GraphKeys.VARIABLES, tf.GraphKeys.BIASES]
+        'collections': [tf.GraphKeys.VARIABLES]
     }
+
+    if is_trainable:
+        w_attrs['collections'].append(tf.GraphKeys.WEIGHTS)
+        b_attrs['collections'].append(tf.GraphKeys.BIASES)
 
     suff = "_T" if is_trainable else "_R"
     xavier = tf.contrib.layers.xavier_initializer()
     with tf.name_scope("L0" + suff):
         w = tf.Variable(xavier((infra.n_features * states_history, L1_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L1_SIZE,)), **b_attrs)
-        l0_out = tf.nn.softplus(tf.matmul(states_t, w) + b)
+        l0_out = tf.nn.relu(tf.matmul(states_t, w) + b)
         if is_trainable:
             tf.contrib.layers.summarize_activation(l0_out)
 
     with tf.name_scope("L1" + suff):
         w = tf.Variable(xavier((L1_SIZE, L2_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L2_SIZE,)), **b_attrs)
-        l1_out = tf.nn.softplus(tf.matmul(l0_out, w) + b)
+        l1_out = tf.nn.relu(tf.matmul(l0_out, w) + b)
         if is_trainable:
             tf.contrib.layers.summarize_activation(l1_out)
 
     with tf.name_scope("L2" + suff):
-        w = tf.Variable(xavier((L2_SIZE, infra.n_actions)), **w_attrs)
+        w = tf.Variable(xavier((L2_SIZE, L3_SIZE)), **w_attrs)
+        b = tf.Variable(tf.zeros((L3_SIZE,)), **b_attrs)
+        l2_out = tf.nn.relu(tf.matmul(l1_out, w) + b)
+        if is_trainable:
+            tf.contrib.layers.summarize_activation(l2_out)
+
+    with tf.name_scope("L3" + suff):
+        w = tf.Variable(xavier((L3_SIZE, infra.n_actions)), **w_attrs)
         b = tf.Variable(tf.zeros((infra.n_actions,)), **b_attrs)
-        output = tf.matmul(l1_out, w) + b
-#        output = tf.squeeze(output, name="qvals")
+        output = tf.matmul(l2_out, w) + b
         if is_trainable:
             tf.contrib.layers.summarize_tensors([output])
 
     return output
 
 
-def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=4):
+def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=4, l2_reg=0.0):
     max_qvals = tf.reduce_max(next_qvals_t, 1) * gamma
     q_ref = tf.add(rewards_t, tf.reshape(max_qvals, (batch_size, n_actions)), name="q_ref")
     error = tf.reduce_mean(tf.pow(qvals_t - q_ref, 2), name="error")
-    return error
+
+    regularize = tf.contrib.layers.l2_regularizer(l2_reg)
+    _, vars = zip(*get_v2_vars(trainable=True, only_weights=True))
+    reg_vars = map(regularize, vars)
+    l2_error = tf.add_n(reg_vars, name="l2_error")
+    tf.contrib.layers.summarize_tensor(l2_error)
+
+    return error + l2_error
