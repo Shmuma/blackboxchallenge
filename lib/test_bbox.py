@@ -79,7 +79,7 @@ def populate_replay_buffer(replay_buffer, session, states_history, states_t, qva
         'replay': replay_buffer,
     }
 
-    def action_hook(our_state, bbox_state):
+    def action_reward_hook(our_state, bbox_state, rewards, next_states):
         # save state, keep only fixed amount of states
         our_state['state'].append(bbox_state)
         our_state['state'] = our_state['state'][-our_state['history']:]
@@ -95,20 +95,13 @@ def populate_replay_buffer(replay_buffer, session, states_history, states_t, qva
             qvals, = sess.run([qvals_t], feed_dict={states_t: [our_state['state']]})
             action = np.argmax(qvals)
 
-        our_state['action'] = action
+        if len(our_state['state']) == our_state['history']:
+            next_states_head = our_state['state'][-(our_state['history']-1):]
+            for next_state in next_states:
+                our_state['replay'].append(our_state['state'], rewards, next_states_head + [next_state])
 
         return action
 
-    def reward_hook(our_state, reward, last_round):
-        if last_round:
-            return
-
-        if len(our_state['state']) == our_state['history']:
-            next_state = our_state['state'][-(our_state['history']-1):]
-            next_state.append(np.array(infra.bbox.get_state()))
-            our_state['replay'].append(our_state['state'], our_state['action'],
-                                       reward, next_state)
-
     _max_steps = None if max_steps is None else max_steps + states_history - 1
-    infra.bbox_loop(state, action_hook, reward_hook, verbose=verbose, max_steps=_max_steps)
+    infra.bbox_checkpoints_loop(state, action_reward_hook, verbose=verbose, max_steps=_max_steps)
     return infra.bbox.get_score()

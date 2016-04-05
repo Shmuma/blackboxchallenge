@@ -123,7 +123,7 @@ def make_loss_v2(batch_size, gamma, qvals_t, actions_t, rewards_t, next_qvals_t,
     return error
 
 
-def make_opt_v2(loss_t, learning_rate, decay_every_steps=10000):
+def make_opt(loss_t, learning_rate, decay_every_steps=10000):
     global_step = tf.Variable(0, trainable=False, name="global_step")
     exp_learning_rate = tf.train.exponential_decay(
             learning_rate, global_step, decay_every_steps, 0.9, staircase=True)
@@ -202,11 +202,10 @@ def make_summaries_v2(loss_t, optimiser):
 
 def make_vars_v3(states_history):
     state_t = tf.placeholder(tf.float32, (None, states_history, infra.n_features), name="state")
-    action_t = tf.placeholder(tf.int32, (None, 1), name="action")
-    reward_t = tf.placeholder(tf.float32, (None, 1), name="reward")
+    rewards_t = tf.placeholder(tf.float32, (None, infra.n_actions), name="reward")
     next_state_t = tf.placeholder(tf.float32, (None, states_history, infra.n_features), name="next_state")
 
-    return state_t, action_t, reward_t, next_state_t
+    return state_t, rewards_t, next_state_t
 
 
 def make_forward_net_v3(states_history, states_t, is_trainable):
@@ -244,8 +243,16 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
         w = tf.Variable(xavier((L2_SIZE, infra.n_actions)), **w_attrs)
         b = tf.Variable(tf.zeros((infra.n_actions,)), **b_attrs)
         output = tf.matmul(l1_out, w) + b
-        output = tf.squeeze(output, name="qvals")
+        print output
+#        output = tf.squeeze(output, name="qvals")
         if is_trainable:
             tf.contrib.layers.summarize_tensors([output])
 
     return output
+
+
+def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=4):
+    max_qvals = tf.reduce_max(next_qvals_t, 1) * gamma
+    q_ref = tf.add(rewards_t, tf.reshape(max_qvals, (batch_size, n_actions)), name="q_ref")
+    error = tf.reduce_mean(tf.pow(qvals_t - q_ref, 2), name="error")
+    return error

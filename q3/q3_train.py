@@ -31,7 +31,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1.0e-3
-    TEST_NAME = "t5r1"
+    TEST_NAME = "t6r1"
     RESTORE_MODEL = None #"models/modelt1r1-700000"
     GAMMA = 0.99
     EXTRA = "_lr=%.3f_gamma=%.2f" % (LEARNING_RATE, GAMMA)
@@ -44,14 +44,14 @@ if __name__ == "__main__":
 
     replay_buffer = replays.ReplayBuffer(200000, BATCH_SIZE)
 
-    state_t, action_t, reward_t, next_state_t = net.make_vars_v3(STATES_HISTORY)
+    state_t, rewards_t, next_state_t = net.make_vars_v3(STATES_HISTORY)
 
     # make two networks - one is to train, second is periodically cloned from first
     qvals_t = net.make_forward_net_v3(STATES_HISTORY, state_t, is_trainable=True)
     next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, is_trainable=False)
 
-    loss_t = net.make_loss_v2(BATCH_SIZE, GAMMA, qvals_t, action_t, reward_t, next_qvals_t)
-    opt_t, optimiser, global_step = net.make_opt_v2(loss_t, LEARNING_RATE, decay_every_steps=100000)
+    loss_t = net.make_loss_v3(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t)
+    opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=200000)
     sync_nets_t = net.make_sync_nets_v2()
     summ = net.make_summaries_v2(loss_t, optimiser)
 
@@ -83,19 +83,20 @@ if __name__ == "__main__":
                     log.info("{iter}: populating replay buffer".format(iter=iter))
                     t = time()
                     score = test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
-                                                             alpha=0.1, max_steps=50000)
+                                                             alpha=0.1, max_steps=500) # TODO: Make back 50000
                     replay_buffer.reshuffle()
                     log.info("{iter}: test done in {duration}, score={score}".format(
                         iter=iter, duration=timedelta(seconds=time()-t), score=score
                     ))
 
                 # get data from input pipeline
-                states_batch, actions_batch, rewards_batch, next_states_batch = replay_buffer.next_batch()
+                states_batch, rewards_batch, next_states_batch = replay_buffer.next_batch()
+                # TODO: wrong size of next_states_batch, should be (100, 4, 10, 36)
+                print np.array(next_states_batch).shape
 
                 feed = {
                     state_t: states_batch,
-                    action_t: actions_batch,
-                    reward_t: rewards_batch,
+                    rewards_t: rewards_batch,
                     next_state_t: next_states_batch
                 }
                 loss, _ = session.run([loss_t, opt_t], feed_dict=feed)

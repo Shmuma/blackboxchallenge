@@ -86,7 +86,7 @@ def dig_all_actions(prev_score):
     return result
 
 
-def bbox_checkpoints_loop(our_state, action_reward_func, verbose=0):
+def bbox_checkpoints_loop(our_state, action_reward_func, verbose=0, max_steps=None):
     """
     Perform bbox loop using checkpoints function to explore all rewards
     :param our_state: state passed to all functions
@@ -115,6 +115,9 @@ def bbox_checkpoints_loop(our_state, action_reward_func, verbose=0):
                     rewards=rewards, duration=timedelta(seconds=time() - started),
                     score=bbox.get_score()
                 ))
+
+        if max_steps is not None and bbox.get_time() >= max_steps:
+            break
 
     score = bbox.get_score()
     log.info("Loop done in {duration}, score {score}".format(
