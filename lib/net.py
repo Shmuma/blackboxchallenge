@@ -234,26 +234,33 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
     with tf.name_scope("L0" + suff):
         w = tf.Variable(xavier((infra.n_features * states_history, L1_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L1_SIZE,)), **b_attrs)
-
-        l0_out = tf.nn.relu(tf.matmul(states_t, w) + b)
-        tf.contrib.layers.summarize_activation(l0_out)
+        l0_out = tf.nn.softplus(tf.matmul(states_t, w) + b)
+        if is_trainable:
+            tf.contrib.layers.summarize_tensors([w, b])
+            tf.contrib.layers.summarize_activation(l0_out)
 
     with tf.name_scope("L1" + suff):
         w = tf.Variable(xavier((L1_SIZE, L2_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L2_SIZE,)), **b_attrs)
-        l1_out = tf.nn.relu(tf.matmul(l0_out, w) + b)
-        tf.contrib.layers.summarize_activation(l1_out)
+        l1_out = tf.nn.softplus(tf.matmul(l0_out, w) + b)
+        if is_trainable:
+            tf.contrib.layers.summarize_tensors([w, b])
+            tf.contrib.layers.summarize_activation(l1_out)
 
     with tf.name_scope("L2" + suff):
         w = tf.Variable(xavier((L2_SIZE, L3_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L3_SIZE,)), **b_attrs)
-        l2_out = tf.nn.relu(tf.matmul(l1_out, w) + b)
-        tf.contrib.layers.summarize_activation(l2_out)
+        l2_out = tf.nn.softplus(tf.matmul(l1_out, w) + b)
+        if is_trainable:
+            tf.contrib.layers.summarize_tensors([w, b])
+            tf.contrib.layers.summarize_activation(l2_out)
 
     with tf.name_scope("L3" + suff):
         w = tf.Variable(xavier((L3_SIZE, infra.n_actions)), **w_attrs)
         b = tf.Variable(tf.zeros((infra.n_actions,)), **b_attrs)
         output = tf.matmul(l2_out, w) + b
         output = tf.squeeze(output)
+        if is_trainable:
+            tf.contrib.layers.summarize_tensors([w, b, output])
 
     return output
