@@ -29,8 +29,8 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1.0e-2
-    TEST_NAME = "t1r1"
-    RESTORE_MODEL = None # "models/model-1600000"
+    TEST_NAME = "t1r2"
+    RESTORE_MODEL = "modelt1r1-1000000"
     GAMMA = 0.99
     EXTRA = "_lr=%.3f_gamma=%.2f" % (LEARNING_RATE, GAMMA)
 
@@ -81,7 +81,7 @@ if __name__ == "__main__":
                     log.info("{iter}: populating replay buffer".format(iter=iter))
                     t = time()
                     score = test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
-                                                             alpha=0.1, max_steps=200000)
+                                                             alpha=0.1, max_steps=500000)
                     replay_buffer.reshuffle()
                     log.info("{iter}: test done in {duration}, score={score}".format(
                         iter=iter, duration=timedelta(seconds=time()-t), score=score
@@ -112,7 +112,7 @@ if __name__ == "__main__":
                     write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed, score=score)
 
                 if iter % SAVE_MODEL_ITERS == 0 and iter > 0:
-                    saver.save(session, "models/model" + TEST_NAME, global_step=iter)
+                    saver.save(session, "models/model_" + TEST_NAME, global_step=iter)
 
                 iter += 1
         finally:

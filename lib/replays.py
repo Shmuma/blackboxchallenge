@@ -60,13 +60,13 @@ class ReplayBuffer:
 
     def append(self, state, action, reward, next_states):
         self.buffer.append((list(state), action, reward, list(next_states)))
-        while len(self.buffer) > self.capacity:
-            self.buffer.pop(0)
 
     def reshuffle(self):
         """
         Regenerate shuffled batch. Should be called after batch of appends.
         """
+        while len(self.buffer) > self.capacity:
+            self.buffer.pop(0)
         self.shuffle = np.random.permutation(len(self.buffer))
         self.batch_idx = 0
         log.info("Reshuffle of buffer {buffer}".format(buffer=self))
