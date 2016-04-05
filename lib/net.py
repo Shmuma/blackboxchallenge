@@ -134,7 +134,7 @@ def make_opt_v2(loss_t, learning_rate, decay_every_steps=10000):
 
 
 def get_v2_vars(trainable):
-    layers = ["L0", "L1", "L2", "L3"]
+    layers = ["L0", "L1", "L2"]
     l_suffix = "_T" if trainable else "_R"
     names = []
     for l in layers:
