@@ -11,7 +11,7 @@ STATES_HISTORY = 40
 N_STATE = 36
 N_ACTIONS = 4
 
-BATCH_SIZE = 100
+BATCH_SIZE = 500
 REPORT_ITERS = 100
 SAVE_MODEL_ITERS = 100000
 SYNC_MODELS_ITERS = 1000
@@ -31,8 +31,8 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1.0e-3
-    TEST_NAME = "t2r1"
-    RESTORE_MODEL = "models/modelt1r1-700000"
+    TEST_NAME = "t2r2"
+    RESTORE_MODEL = None #"models/modelt1r1-700000"
     GAMMA = 0.99
     EXTRA = "_lr=%.3f_gamma=%.2f" % (LEARNING_RATE, GAMMA)
 
