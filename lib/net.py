@@ -215,29 +215,27 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
     states_t = tf.reshape(states_t, (-1, infra.n_features * states_history))
 
     suff = "_T" if is_trainable else "_R"
+    xavier = tf.contrib.layers.xavier_initializer()
     with tf.name_scope("L0" + suff):
-        w = tf.Variable(tf.random_normal((infra.n_features * states_history, L1_SIZE),
-                                         mean=0.0, stddev=0.01),
+        w = tf.Variable(xavier((infra.n_features * states_history, L1_SIZE)),
                         trainable=is_trainable, name="w")
         b = tf.Variable(tf.zeros((L1_SIZE,)), trainable=is_trainable, name="b")
         l0_out = tf.nn.relu(tf.matmul(states_t, w) + b)
 
     with tf.name_scope("L1" + suff):
-        w = tf.Variable(tf.random_normal((L1_SIZE, L2_SIZE),
-                                         mean=0.0, stddev=0.01),
+        w = tf.Variable(xavier((L1_SIZE, L2_SIZE)),
                         trainable=is_trainable, name="w")
         b = tf.Variable(tf.zeros((L2_SIZE,)), trainable=is_trainable, name="b")
         l1_out = tf.nn.relu(tf.matmul(l0_out, w) + b)
 
     with tf.name_scope("L2" + suff):
-        w = tf.Variable(tf.random_normal((L2_SIZE, L3_SIZE), mean=0.0, stddev=0.01),
+        w = tf.Variable(xavier((L2_SIZE, L3_SIZE)),
                         trainable=is_trainable, name="w")
         b = tf.Variable(tf.zeros((L3_SIZE,)), trainable=is_trainable, name="b")
         l2_out = tf.nn.relu(tf.matmul(l1_out, w) + b)
 
     with tf.name_scope("L3" + suff):
-        w = tf.Variable(tf.random_normal((L3_SIZE, infra.n_actions),
-                                         mean=0.0, stddev=0.01),
+        w = tf.Variable(xavier((L3_SIZE, infra.n_actions)),
                         trainable=is_trainable, name="w")
         b = tf.Variable(tf.zeros((infra.n_actions,)), trainable=is_trainable, name="b")
         output = tf.matmul(l2_out, w) + b
