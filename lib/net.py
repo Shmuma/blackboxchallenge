@@ -124,9 +124,13 @@ def make_loss_v2(batch_size, gamma, qvals_t, actions_t, rewards_t, next_qvals_t,
 
 def make_opt(loss_t, learning_rate, decay_every_steps=10000):
     global_step = tf.Variable(0, trainable=False, name="global_step")
-    exp_learning_rate = tf.train.exponential_decay(
-            learning_rate, global_step, decay_every_steps, 0.9, staircase=True)
-    tf.scalar_summary("learningRate", exp_learning_rate)
+
+    if decay_every_steps is not None:
+        exp_learning_rate = tf.train.exponential_decay(
+                learning_rate, global_step, decay_every_steps, 0.9, staircase=True)
+        tf.scalar_summary("learningRate", exp_learning_rate)
+    else:
+        exp_learning_rate = learning_rate
 
     optimiser = tf.train.AdamOptimizer(learning_rate=exp_learning_rate)
     opt_t = optimiser.minimize(loss_t, global_step=global_step)
