@@ -110,7 +110,7 @@ if __name__ == "__main__":
                         speed=speed, replay=replay_buffer
                 ))
                 write_summaries(session, summ, summary_writer, iter, feed,
-                                loss=avg_loss, speed=speed, score=score, avg_score=score_avg)
+                                loss=avg_loss, speed=speed, score=score, score_avg=score_avg)
 
             if iter % SAVE_MODEL_ITERS == 0 and iter > 0:
                 saver.save(session, "models/model_" + TEST_NAME, global_step=iter)
