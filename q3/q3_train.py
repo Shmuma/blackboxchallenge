@@ -79,7 +79,6 @@ if __name__ == "__main__":
             if iter % REPORT_ITERS == 0 and iter > 0:
                 report_d = time() - report_t
                 speed = (BATCH_SIZE * REPORT_ITERS) / report_d
-                report_t = time()
 
             if iter % FILL_REPLAY_ITERS == 0:
                 log.info("{iter}: populating replay buffer".format(iter=iter))
@@ -103,6 +102,7 @@ if __name__ == "__main__":
             loss_batch.append(loss)
 
             if iter % REPORT_ITERS == 0 and iter > 0:
+                report_t = time()
                 avg_loss = np.median(loss_batch)
                 loss_batch = []
                 log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, replay={replay}".format(
