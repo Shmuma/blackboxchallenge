@@ -31,8 +31,8 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1.0e-4
-    TEST_NAME = "t7r1"
-    RESTORE_MODEL = None #"models/modelt1r1-700000"
+    TEST_NAME = "t7r2"
+    RESTORE_MODEL = "models-copy/model_t7r1-2600000"
     GAMMA = 0.99
     L2_REG = 0.01
     EXTRA = "_lr=%.3f_gamma=%.2f" % (LEARNING_RATE, GAMMA)
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     started = last_t = time()
     infra.prepare_bbox()
 
-    replay_buffer = replays.ReplayBuffer(200000, BATCH_SIZE)
+    replay_buffer = replays.ReplayBuffer(400000, BATCH_SIZE)
 
     state_t, rewards_t, next_state_t = net.make_vars_v3(STATES_HISTORY)
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
     report_t = time()
 
     with tf.Session() as session:
-        saver = tf.train.Saver(var_list=dict(net.get_v2_vars(trainable=True)).values())
+        saver = tf.train.Saver(var_list=dict(net.get_v2_vars(trainable=True)).values(), max_to_keep=20)
         session.run(tf.initialize_all_variables())
 
         if RESTORE_MODEL is not None:
@@ -81,7 +81,7 @@ if __name__ == "__main__":
                 log.info("{iter}: populating replay buffer".format(iter=iter))
                 t = time()
                 score = test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
-                                                         alpha=0.1, max_steps=50000)
+                                                         alpha=0.05, max_steps=100000)
                 replay_buffer.reshuffle()
                 log.info("{iter}: test done in {duration}, score={score}".format(
                     iter=iter, duration=timedelta(seconds=time()-t), score=score
