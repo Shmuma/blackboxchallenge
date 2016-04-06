@@ -120,8 +120,9 @@ def bbox_checkpoints_loop(our_state, action_reward_func, verbose=0, max_steps=No
             break
 
     score = bbox.get_score()
-    log.info("Loop done in {duration}, score {score}".format(
-        duration=timedelta(seconds=time()-started), score=score
-    ))
+    if verbose > 0:
+        log.info("Loop done in {duration}, score {score}".format(
+            duration=timedelta(seconds=time()-started), score=score
+        ))
 
     return score

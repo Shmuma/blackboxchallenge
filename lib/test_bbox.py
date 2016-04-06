@@ -102,4 +102,6 @@ def populate_replay_buffer(replay_buffer, session, states_history, states_t, qva
 
     _max_steps = None if max_steps is None else max_steps + states_history - 1
     infra.bbox_checkpoints_loop(state, action_reward_hook, verbose=verbose, max_steps=_max_steps)
-    return infra.bbox.get_score()
+    score = infra.bbox.get_score()
+    avg_score = score / infra.bbox.get_time()
+    return score, avg_score

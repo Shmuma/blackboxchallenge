@@ -70,7 +70,7 @@ if __name__ == "__main__":
         loss_batch = []
 
         iter = 0
-        report_d = score = 0
+        report_d = score = score_avg = 0
 
         while True:
             if iter % SYNC_MODELS_ITERS == 0:
@@ -85,11 +85,11 @@ if __name__ == "__main__":
             if iter % FILL_REPLAY_ITERS == 0:
                 log.info("{iter}: populating replay buffer".format(iter=iter))
                 t = time()
-                score = test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
-                                                         alpha=0.05, max_steps=10000)
+                score, score_avg = test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
+                                                                    alpha=0.05, max_steps=10000)
                 replay_buffer.reshuffle()
-                log.info("{iter}: test done in {duration}, score={score}".format(
-                    iter=iter, duration=timedelta(seconds=time()-t), score=score
+                log.info("{iter}: test done in {duration}, score={score}, avg_score={avg_score}".format(
+                    iter=iter, duration=timedelta(seconds=time()-t), score=score, score_avg=score_avg
                 ))
 
             # get data from input pipeline
@@ -110,7 +110,8 @@ if __name__ == "__main__":
                         iter=iter, loss=avg_loss, duration=timedelta(seconds=report_d),
                         speed=speed, replay=replay_buffer
                 ))
-                write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed, score=score)
+                write_summaries(session, summ, summary_writer, iter, feed,
+                                loss=avg_loss, speed=speed, score=score, avg_score=score_avg)
 
             if iter % SAVE_MODEL_ITERS == 0 and iter > 0:
                 saver.save(session, "models/model_" + TEST_NAME, global_step=iter)

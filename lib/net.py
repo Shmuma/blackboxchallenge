@@ -186,6 +186,7 @@ def make_summaries_v2(loss_t, optimiser):
     res = {
         'loss': tf.Variable(0.0, trainable=False, name="loss"),
         'score': tf.Variable(0.0, trainable=False, name="score"),
+        'score_avg': tf.Variable(0.0, trainable=False, name="score_avg"),
         'speed': tf.Variable(0.0, trainable=False, name="speed"),
     }
 
@@ -199,8 +200,8 @@ def make_summaries_v2(loss_t, optimiser):
         tf.scalar_summary("magnitude_" + var.name, tf.sqrt(tf.nn.l2_loss(var)))
         tf.scalar_summary("magnitudeGrad_" + var.name, tf.sqrt(tf.nn.l2_loss(grad)))
 
-    tf.contrib.layers.summarize_weights()
-    tf.contrib.layers.summarize_biases()
+#    tf.contrib.layers.summarize_weights()
+#    tf.contrib.layers.summarize_biases()
 
     res['summary_t'] = tf.merge_all_summaries()
     return res
@@ -259,7 +260,7 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
     with tf.name_scope("L3" + suff):
         w = tf.Variable(xavier((L3_SIZE, infra.n_actions)), **w_attrs)
         b = tf.Variable(tf.zeros((infra.n_actions,)), **b_attrs)
-        output = tf.matmul(l2_out, w) + b
+        output = tf.add(tf.matmul(l2_out, w), b, name="qvals")
         if is_trainable:
             tf.contrib.layers.summarize_tensors([output])
 
@@ -269,12 +270,13 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
 def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=4, l2_reg=0.0):
     max_qvals = tf.reduce_max(next_qvals_t, 1) * gamma
     q_ref = tf.add(rewards_t, tf.reshape(max_qvals, (batch_size, n_actions)), name="q_ref")
-    error = tf.reduce_mean(tf.pow(qvals_t - q_ref, 2), name="error")
+    error = tf.reduce_mean(tf.pow(qvals_t - q_ref, 2), name="loss_err")
 
     regularize = tf.contrib.layers.l2_regularizer(l2_reg)
     _, vars = zip(*get_v2_vars(trainable=True, only_weights=True))
     reg_vars = map(regularize, vars)
-    l2_error = tf.add_n(reg_vars, name="l2_error")
-    tf.contrib.layers.summarize_tensor(l2_error)
+    l2_error = tf.add_n(reg_vars, name="loss_l2")
+
+    tf.contrib.layers.summarize_tensors([l2_error, error])
 
     return error + l2_error
