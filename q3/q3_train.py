@@ -87,7 +87,7 @@ if __name__ == "__main__":
                 score, score_avg = test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
                                                                     alpha=0.05, max_steps=20000)
                 replay_buffer.reshuffle()
-                log.info("{iter}: test done in {duration}, score={score}, avg_score={avg_score}".format(
+                log.info("{iter}: test done in {duration}, score={score}, avg={score_avg:.3e}".format(
                     iter=iter, duration=timedelta(seconds=time()-t), score=score, score_avg=score_avg
                 ))
 
