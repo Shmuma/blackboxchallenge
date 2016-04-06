@@ -31,8 +31,8 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5.0e-5
-    TEST_NAME = "t7r3"
-    RESTORE_MODEL = "models-copy/model_t7r2-500000"
+    TEST_NAME = "t7r4"
+    RESTORE_MODEL = "models-copy/model_t7r3-400000"
     GAMMA = 0.99
     L2_REG = 0.01
 
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     started = last_t = time()
     infra.prepare_bbox()
 
-    replay_buffer = replays.ReplayBuffer(500000, BATCH_SIZE)
+    replay_buffer = replays.ReplayBuffer(100000, BATCH_SIZE)
 
     state_t, rewards_t, next_state_t = net.make_vars_v3(STATES_HISTORY)
 
@@ -64,7 +64,6 @@ if __name__ == "__main__":
 
         if RESTORE_MODEL is not None:
             saver.restore(session, RESTORE_MODEL)
-            print session.run([global_step])
 
         summary_writer = tf.train.SummaryWriter("logs/" + TEST_NAME, graph_def=session.graph_def)
         loss_batch = []
@@ -86,7 +85,7 @@ if __name__ == "__main__":
                 log.info("{iter}: populating replay buffer".format(iter=iter))
                 t = time()
                 score, score_avg = test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
-                                                                    alpha=0.05, max_steps=10000)
+                                                                    alpha=0.05, max_steps=20000)
                 replay_buffer.reshuffle()
                 log.info("{iter}: test done in {duration}, score={score}, avg_score={avg_score}".format(
                     iter=iter, duration=timedelta(seconds=time()-t), score=score, score_avg=score_avg
