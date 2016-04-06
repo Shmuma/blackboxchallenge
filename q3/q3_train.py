@@ -52,7 +52,7 @@ if __name__ == "__main__":
     next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, is_trainable=False)
 
     loss_t = net.make_loss_v3(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, l2_reg=L2_REG)
-    opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=200000)
+    opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=200000*1000)
     sync_nets_t = net.make_sync_nets_v2()
     summ = net.make_summaries_v2(loss_t, optimiser)
 
