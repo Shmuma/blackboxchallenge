@@ -30,9 +30,9 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 
 if __name__ == "__main__":
-    LEARNING_RATE = 5.0e-5
-    TEST_NAME = "t7r4"
-    RESTORE_MODEL = "models-copy/model_t7r3-400000"
+    LEARNING_RATE = 1e-5
+    TEST_NAME = "t7r5"
+    RESTORE_MODEL = "models-copy/model_t7r4-200000"
     GAMMA = 0.99
     L2_REG = 0.01
 
