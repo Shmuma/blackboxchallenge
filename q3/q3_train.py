@@ -32,8 +32,8 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-5
-    TEST_NAME = "t8r2"
-    RESTORE_MODEL = "models-copy/model_t8r1-2000000"
+    TEST_NAME = "t9r1"
+    RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
     L2_REG = 0.01
 
@@ -85,10 +85,18 @@ if __name__ == "__main__":
                 speed = (BATCH_SIZE * REPORT_ITERS) / report_d
 
             if iter % FILL_REPLAY_ITERS == 0:
-                log.info("{iter}: populating replay buffer".format(iter=iter))
+                if iter < 200000:
+                    alpha = 1.0
+                elif iter <= 1000000:
+                    alpha = 1.0 - (float(iter) / 1000000) + 0.1
+                else:
+                    alpha = 0.1
+
+                log.info("{iter}: populating replay buffer with alpha={alpha}".format(
+                        iter=iter, alpha=alpha))
                 t = time()
                 test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
-                                                                    alpha=1.0, max_steps=20000)
+                                                                    alpha=alpha, max_steps=20000)
                 replay_buffer.reshuffle()
                 log.info("{iter}: population done in {duration}".format(
                     iter=iter, duration=timedelta(seconds=time()-t)
