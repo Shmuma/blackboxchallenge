@@ -264,7 +264,7 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
 def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=4, l2_reg=0.0):
     max_qvals = tf.reduce_max(next_qvals_t, 1) * gamma
     q_ref = tf.add(rewards_t, tf.reshape(max_qvals, (batch_size, n_actions)), name="q_ref")
-    error = tf.reduce_mean(tf.clip_by_value(tf.pow(qvals_t - q_ref, 2), -1.0, 1.0), name="loss_err")
+    error = tf.clip_by_value(tf.nn.l2_loss(qvals_t - q_ref), -1.0, 1.0, name="loss_err")
 
     regularize = tf.contrib.layers.l2_regularizer(l2_reg)
     _, vars = zip(*get_v2_vars(trainable=True, only_weights=True))
