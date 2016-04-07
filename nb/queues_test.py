@@ -1,6 +1,8 @@
 import tensorflow as tf
 
 
+
+
 if __name__ == "__main__":
     queue = tf.FIFOQueue(10, (tf.int32))
     enqueue_t = queue.enqueue(tf.constant(1))
@@ -18,13 +20,12 @@ if __name__ == "__main__":
         coordinator = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
         print threads
-        size_t = queue.size()
 
         try:
             for _ in range(100):
-                val = session.run([queue_val_t, size_t])
+                val = session.run([queue_val_t])
                 print val
-
+                print queue.size()
 
         finally:
             coordinator.request_stop()
