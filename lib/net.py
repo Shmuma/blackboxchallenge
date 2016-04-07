@@ -230,10 +230,6 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
         'collections': [tf.GraphKeys.VARIABLES]
     }
 
-    if is_trainable:
-        w_attrs['collections'].append(tf.GraphKeys.WEIGHTS)
-        b_attrs['collections'].append(tf.GraphKeys.BIASES)
-
     suff = "_T" if is_trainable else "_R"
     xavier = tf.contrib.layers.xavier_initializer()
     with tf.name_scope("L0" + suff):
@@ -261,8 +257,6 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
         w = tf.Variable(xavier((L3_SIZE, infra.n_actions)), **w_attrs)
         b = tf.Variable(tf.zeros((infra.n_actions,)), **b_attrs)
         output = tf.add(tf.matmul(l2_out, w), b, name="qvals")
-        if is_trainable:
-            tf.contrib.layers.summarize_tensors([output])
 
     return output
 
@@ -270,7 +264,7 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
 def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=4, l2_reg=0.0):
     max_qvals = tf.reduce_max(next_qvals_t, 1) * gamma
     q_ref = tf.add(rewards_t, tf.reshape(max_qvals, (batch_size, n_actions)), name="q_ref")
-    error = tf.reduce_mean(tf.pow(qvals_t - q_ref, 2), name="loss_err")
+    error = tf.reduce_mean(tf.clip_by_value(tf.pow(qvals_t - q_ref, 2), -1.0, 1.0), name="loss_err")
 
     regularize = tf.contrib.layers.l2_regularizer(l2_reg)
     _, vars = zip(*get_v2_vars(trainable=True, only_weights=True))
