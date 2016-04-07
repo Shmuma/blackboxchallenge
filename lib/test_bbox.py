@@ -66,7 +66,7 @@ def test_net(session, states_history, states_t, qvals_t, alpha=0.0, verbose=0, s
 def populate_replay_buffer(replay_buffer, session, states_history, states_t, qvals_t, alpha=0.0,
                            verbose=0, max_steps=None):
     """
-    Perform test of neural network using bbox interpreter
+    Refill replay buffer
     """
     infra.prepare_bbox()
     state = {
@@ -105,3 +105,42 @@ def populate_replay_buffer(replay_buffer, session, states_history, states_t, qva
     score = infra.bbox.get_score()
     avg_score = score / infra.bbox.get_time()
     return score, avg_score
+
+
+def test_performance(session, states_history, states_t, qvals_t, alpha=0.0, verbose=0, max_steps=None):
+    """
+    Perform test of neural network using bbox interpreter
+    """
+    infra.prepare_bbox()
+    state = {
+        'session': session,
+        'history': states_history,
+        'alpha': alpha,
+        'states_t': states_t,
+        'qvals_t': qvals_t,
+        'state': [],
+    }
+
+    def action_reward_hook(our_state, bbox_state, rewards, next_states):
+        # save state, keep only fixed amount of states
+        our_state['state'].append(bbox_state)
+        our_state['state'] = our_state['state'][-our_state['history']:]
+
+        # make decision about action
+        if np.random.random() < our_state['alpha'] or len(our_state['state']) < our_state['history']:
+            action = np.random.randint(0, infra.n_actions, 1)[0]
+        else:
+            sess = our_state['session']
+            qvals_t = our_state['qvals_t']
+            states_t = our_state['states_t']
+
+            qvals, = sess.run([qvals_t], feed_dict={states_t: [our_state['state']]})
+            action = np.argmax(qvals)
+
+        return action
+
+    infra.bbox_checkpoints_loop(state, action_reward_hook, verbose=verbose, max_steps=max_steps)
+    score = infra.bbox.get_score()
+    avg_score = score / infra.bbox.get_time()
+    return score, avg_score
+

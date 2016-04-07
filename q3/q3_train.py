@@ -16,6 +16,7 @@ REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 100000
 SYNC_MODELS_ITERS = 10000
 FILL_REPLAY_ITERS = 5000
+TEST_PERFORMANCE_ITERS = 10000
 
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
@@ -86,8 +87,18 @@ if __name__ == "__main__":
             if iter % FILL_REPLAY_ITERS == 0:
                 log.info("{iter}: populating replay buffer".format(iter=iter))
                 t = time()
-                score, score_avg = test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
+                test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
                                                                     alpha=1.0, max_steps=20000)
+                replay_buffer.reshuffle()
+                log.info("{iter}: population done in {duration}".format(
+                    iter=iter, duration=timedelta(seconds=time()-t)
+                ))
+
+            if iter % TEST_PERFORMANCE_ITERS == 0 and iter > 0:
+                log.info("{iter}: test performance".format(iter=iter))
+                t = time()
+                score, score_avg = test_bbox.test_performance(session, STATES_HISTORY, state_t,
+                                                              qvals_t, alpha=0.05, max_steps=20000)
                 replay_buffer.reshuffle()
                 log.info("{iter}: test done in {duration}, score={score}, avg={score_avg:.3e}".format(
                     iter=iter, duration=timedelta(seconds=time()-t), score=score, score_avg=score_avg
