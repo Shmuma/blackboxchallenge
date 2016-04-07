@@ -11,11 +11,11 @@ STATES_HISTORY = 10
 N_STATE = 36
 N_ACTIONS = 4
 
-BATCH_SIZE = 32
+BATCH_SIZE = 500
 REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 100000
 SYNC_MODELS_ITERS = 10000
-FILL_REPLAY_ITERS = 10000
+FILL_REPLAY_ITERS = 5000
 
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     started = last_t = time()
     infra.prepare_bbox()
 
-    replay_buffer = replays.ReplayBuffer(100000, BATCH_SIZE)
+    replay_buffer = replays.ReplayBuffer(1000000, BATCH_SIZE)
 
     state_t, rewards_t, next_state_t = net.make_vars_v3(STATES_HISTORY)
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
                 log.info("{iter}: populating replay buffer".format(iter=iter))
                 t = time()
                 score, score_avg = test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
-                                                                    alpha=0.05, max_steps=20000)
+                                                                    alpha=1.0, max_steps=20000)
                 replay_buffer.reshuffle()
                 log.info("{iter}: test done in {duration}, score={score}, avg={score_avg:.3e}".format(
                     iter=iter, duration=timedelta(seconds=time()-t), score=score, score_avg=score_avg
