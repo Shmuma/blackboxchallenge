@@ -5,7 +5,7 @@ from datetime import timedelta
 import logging as log
 
 n_features = n_actions = None
-
+test_level_loaded = None
 
 def setup_logging(logfile=None, level=log.INFO):
     fmt = "%(asctime)s %(levelname)s %(message)s"
@@ -16,13 +16,18 @@ def setup_logging(logfile=None, level=log.INFO):
     return log
 
 
-def prepare_bbox():
-    global n_features, n_actions
+def prepare_bbox(test_level=False):
+    global n_features, n_actions, test_level_loaded
 
-    if bbox.is_level_loaded():
+    if bbox.is_level_loaded() and test_level_loaded == test_level:
         bbox.reset_level()
     else:
-        bbox.load_level("levels/train_level.data", verbose=1)
+        if test_level:
+            level_file = "levels/test_level.data"
+        else:
+            level_file = "levels/train_level.data"
+        test_level_loaded = test_level
+        bbox.load_level(level_file, verbose=1)
         n_features = bbox.get_num_of_features()
         n_actions = bbox.get_num_of_actions()
 

@@ -184,10 +184,12 @@ def make_sync_nets_v2():
 
 def make_summaries_v2(loss_t, optimiser):
     res = {
-        'loss': tf.Variable(0.0, trainable=False, name="loss"),
-        'score': tf.Variable(0.0, trainable=False, name="score"),
-        'score_avg': tf.Variable(0.0, trainable=False, name="score_avg"),
-        'speed': tf.Variable(0.0, trainable=False, name="speed"),
+        'loss':             tf.Variable(0.0, trainable=False, name="loss"),
+        'score_train':      tf.Variable(0.0, trainable=False, name="score_train"),
+        'score_test':       tf.Variable(0.0, trainable=False, name="score_test"),
+        'score_avg_train':  tf.Variable(0.0, trainable=False, name="score_avg_train"),
+        'score_avg_test':   tf.Variable(0.0, trainable=False, name="score_avg_test"),
+        'speed':            tf.Variable(0.0, trainable=False, name="speed"),
     }
 
     for name, var in res.iteritems():
@@ -221,13 +223,11 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
     w_attrs = {
         'trainable': is_trainable,
         'name': 'w',
-        'collections': [tf.GraphKeys.VARIABLES]
     }
 
     b_attrs = {
         'trainable': is_trainable,
         'name': 'b',
-        'collections': [tf.GraphKeys.VARIABLES]
     }
 
     suff = "_T" if is_trainable else "_R"

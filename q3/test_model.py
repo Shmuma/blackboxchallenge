@@ -11,10 +11,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--history", type=int, default=10, help="Amount of states to keep in history")
     parser.add_argument("--model", required=True, help="File with model to restore")
-    parser.add_argument("--alpha", type=float, default=0.05, help="Alpha value for testing")
-    parser.add_argument("--steps", type=int, default=None, help="Limit amount of steps, default == no limit")
-    parser.add_argument("--rounds", type=int, default=1, help="Count of rounds to perform")
+    parser.add_argument("--alpha", type=float, default=0.05, help="Alpha value for testing, default=0.05")
+    parser.add_argument("--steps", type=int, default=None, help="Limit amount of steps, default=no limit")
+    parser.add_argument("--rounds", type=int, default=1, help="Count of rounds to perform, default=1")
     parser.add_argument("--quiet", action="store_true", default=False, help="Do not show intermediate rounds")
+    parser.add_argument("--verbose", type=int, default=None, help="Show progress of testing every N steps")
+    parser.add_argument("--test", action="store_true", default=False, help="Use test levelfile")
     args = parser.parse_args()
 
     log = infra.setup_logging()
@@ -37,7 +39,8 @@ if __name__ == "__main__":
 
         for round in xrange(args.rounds):
             score, _ = test_bbox.test_performance(session, args.history, state_t, qvals_t,
-                                                          alpha=args.alpha, max_steps=args.steps)
+                                                  alpha=args.alpha, max_steps=args.steps,
+                                                  verbose=args.verbose, test_level=args.test)
             if not args.quiet:
                 log.info("Round {round}: score={score}".format(round=round+1, score=score))
 

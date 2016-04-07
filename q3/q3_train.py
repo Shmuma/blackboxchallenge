@@ -31,8 +31,8 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 
 if __name__ == "__main__":
-    LEARNING_RATE = 1e-5
-    TEST_NAME = "t10r1"
+    LEARNING_RATE = 1e-4
+    TEST_NAME = "t11r1"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
     L2_REG = 0.01
@@ -73,7 +73,8 @@ if __name__ == "__main__":
         loss_batch = []
 
         iter = 0
-        report_d = score = score_avg = 0
+        report_d = score_train = score_avg_train = 0
+        score_test = score_avg_test = 0
 
         while True:
             if iter % SYNC_MODELS_ITERS == 0:
@@ -103,13 +104,17 @@ if __name__ == "__main__":
                 ))
 
             if iter % TEST_PERFORMANCE_ITERS == 0 and iter > 0:
-                log.info("{iter}: test performance".format(iter=iter))
+                log.info("{iter}: test performance on train and test levels".format(iter=iter))
                 t = time()
-                score, score_avg = test_bbox.test_performance(session, STATES_HISTORY, state_t,
-                                                              qvals_t, alpha=0.05, max_steps=20000)
+                score_train, score_avg_train = test_bbox.test_performance(session, STATES_HISTORY, state_t,
+                                                              qvals_t, alpha=0.0, max_steps=20000, test_level=False)
+                score_test, score_avg_test = test_bbox.test_performance(session, STATES_HISTORY, state_t,
+                                                              qvals_t, alpha=0.0, max_steps=20000, test_level=True)
                 replay_buffer.reshuffle()
-                log.info("{iter}: test done in {duration}, score={score}, avg={score_avg:.3e}".format(
-                    iter=iter, duration=timedelta(seconds=time()-t), score=score, score_avg=score_avg
+                log.info("{iter}: test done in {duration}, score_train={score_train}, avg_train={score_avg_train:.3e}, "
+                         "score_test={score_test}, avg_test={score_avg_test:.3}".format(
+                         iter=iter, duration=timedelta(seconds=time()-t), score_train=score_train,
+                         score_avg_train=score_avg_train, score_test=score_test, score_avg_test=score_avg_test
                 ))
 
             # get data from input pipeline
@@ -131,8 +136,9 @@ if __name__ == "__main__":
                         iter=iter, loss=avg_loss, duration=timedelta(seconds=report_d),
                         speed=speed, replay=replay_buffer
                 ))
-                write_summaries(session, summ, summary_writer, iter, feed,
-                                loss=avg_loss, speed=speed, score=score, score_avg=score_avg)
+                write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed,
+                                score_train=score_train, score_avg_train=score_avg_train,
+                                score_test=score_test, score_avg_test=score_avg_test)
 
             if iter % SAVE_MODEL_ITERS == 0 and iter > 0:
                 saver.save(session, "models/model_" + TEST_NAME, global_step=iter)

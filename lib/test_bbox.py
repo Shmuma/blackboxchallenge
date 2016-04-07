@@ -107,11 +107,11 @@ def populate_replay_buffer(replay_buffer, session, states_history, states_t, qva
     return score, avg_score
 
 
-def test_performance(session, states_history, states_t, qvals_t, alpha=0.0, verbose=0, max_steps=None):
+def test_performance(session, states_history, states_t, qvals_t, alpha=0.0, verbose=0, max_steps=None, test_level=False):
     """
     Perform test of neural network using bbox interpreter
     """
-    infra.prepare_bbox()
+    infra.prepare_bbox(test_level=test_level)
     state = {
         'session': session,
         'history': states_history,
