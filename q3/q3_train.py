@@ -112,7 +112,7 @@ if __name__ == "__main__":
                                                               qvals_t, alpha=0.0, max_steps=20000, test_level=True)
                 replay_buffer.reshuffle()
                 log.info("{iter}: test done in {duration}, score_train={score_train}, avg_train={score_avg_train:.3e}, "
-                         "score_test={score_test}, avg_test={score_avg_test:.3}".format(
+                         "score_test={score_test}, avg_test={score_avg_test:.3e}".format(
                          iter=iter, duration=timedelta(seconds=time()-t), score_train=score_train,
                          score_avg_train=score_avg_train, score_test=score_test, score_avg_test=score_avg_test
                 ))
