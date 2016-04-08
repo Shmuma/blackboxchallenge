@@ -14,7 +14,7 @@ N_ACTIONS = 4
 BATCH_SIZE = 500
 REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 100000
-SYNC_MODELS_ITERS = 10000
+SYNC_MODELS_ITERS = 2000
 FILL_REPLAY_ITERS = 2000
 TEST_PERFORMANCE_ITERS = 10000
 
@@ -33,7 +33,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t12r1"
+    TEST_NAME = "t12r2"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
     L2_REG = 0.01
