@@ -7,7 +7,7 @@ from lib import infra, net, test_bbox, replays
 import numpy as np
 import tensorflow as tf
 
-STATES_HISTORY = 10
+STATES_HISTORY = 20
 N_STATE = 36
 N_ACTIONS = 4
 
@@ -18,6 +18,7 @@ SYNC_MODELS_ITERS = 10000
 FILL_REPLAY_ITERS = 2000
 TEST_PERFORMANCE_ITERS = 10000
 
+REPLAY_STEPS = 20000
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     feed = {
@@ -32,7 +33,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t11r2"
+    TEST_NAME = "t12r1"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
     L2_REG = 0.01
@@ -55,7 +56,7 @@ if __name__ == "__main__":
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(next_qvals_t, name="qvals_next"))
 
     loss_t = net.make_loss_v3(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, l2_reg=L2_REG)
-    opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=None)
+    opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=100000)
     sync_nets_t = net.make_sync_nets_v2()
     summ = net.make_summaries_v2(loss_t, optimiser)
 
@@ -97,7 +98,7 @@ if __name__ == "__main__":
                         iter=iter, alpha=alpha))
                 t = time()
                 test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
-                                                                    alpha=alpha, max_steps=20000)
+                                                                    alpha=alpha, max_steps=REPLAY_STEPS)
                 replay_buffer.reshuffle()
                 log.info("{iter}: population done in {duration}".format(
                     iter=iter, duration=timedelta(seconds=time()-t)
@@ -107,9 +108,9 @@ if __name__ == "__main__":
                 log.info("{iter}: test performance on train and test levels".format(iter=iter))
                 t = time()
                 score_train, score_avg_train = test_bbox.test_performance(session, STATES_HISTORY, state_t,
-                                                              qvals_t, alpha=0.0, max_steps=20000, test_level=False)
+                                                              qvals_t, alpha=0.0, max_steps=REPLAY_STEPS, test_level=False)
                 score_test, score_avg_test = test_bbox.test_performance(session, STATES_HISTORY, state_t,
-                                                              qvals_t, alpha=0.0, max_steps=20000, test_level=True)
+                                                              qvals_t, alpha=0.0, max_steps=REPLAY_STEPS, test_level=True)
                 replay_buffer.reshuffle()
                 log.info("{iter}: test done in {duration}, score_train={score_train}, avg_train={score_avg_train:.3e}, "
                          "score_test={score_test}, avg_test={score_avg_test:.3e}".format(
