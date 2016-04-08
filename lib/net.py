@@ -138,7 +138,8 @@ def make_opt(loss_t, learning_rate, decay_every_steps=10000):
 
 
 def get_v2_vars(trainable, only_weights=False):
-    layers = ["L0", "L1", "L2", "L3"]
+#    layers = ["L0", "L1", "L2", "L3"]
+    layers = ["L0"]
     l_suffix = "_T" if trainable else "_R"
     names = []
     for l in layers:
@@ -156,12 +157,12 @@ def make_sync_nets_v2():
     sync_vars = [
         ("L0_T/w", "L0_R/w"),
         ("L0_T/b", "L0_R/b"),
-        ("L1_T/w", "L1_R/w"),
-        ("L1_T/b", "L1_R/b"),
-        ("L2_T/w", "L2_R/w"),
-        ("L2_T/b", "L2_R/b"),
-        ("L3_T/w", "L3_R/w"),
-        ("L3_T/b", "L3_R/b"),
+#        ("L1_T/w", "L1_R/w"),
+#        ("L1_T/b", "L1_R/b"),
+#        ("L2_T/w", "L2_R/w"),
+#        ("L2_T/b", "L2_R/b"),
+#        ("L3_T/w", "L3_R/w"),
+#        ("L3_T/b", "L3_R/b"),
     ]
     vars = {}
 
@@ -233,41 +234,61 @@ def make_forward_net_v3(states_history, states_t, is_trainable, dropout=False, d
     suff = "_T" if is_trainable else "_R"
     xavier = tf.contrib.layers.xavier_initializer()
     with tf.name_scope("L0" + suff):
-        w = tf.Variable(xavier((infra.n_features * states_history, L1_SIZE)), **w_attrs)
-        b = tf.Variable(tf.zeros((L1_SIZE,)), **b_attrs)
-        v = tf.matmul(states_t, w) + b
-        if dropout:
-            v = tf.nn.dropout(v, dropout_prob)
-        l0_out = tf.nn.relu(v)
-        if is_trainable:
-            tf.contrib.layers.summarize_activation(l0_out)
-
-    with tf.name_scope("L1" + suff):
-        w = tf.Variable(xavier((L1_SIZE, L2_SIZE)), **w_attrs)
-        b = tf.Variable(tf.zeros((L2_SIZE,)), **b_attrs)
-        v = tf.matmul(l0_out, w) + b
-        if dropout:
-            v = tf.nn.dropout(v, dropout_prob)
-        l1_out = tf.nn.relu(v)
-        if is_trainable:
-            tf.contrib.layers.summarize_activation(l1_out)
-
-    with tf.name_scope("L2" + suff):
-        w = tf.Variable(xavier((L2_SIZE, L3_SIZE)), **w_attrs)
-        b = tf.Variable(tf.zeros((L3_SIZE,)), **b_attrs)
-        v = tf.matmul(l1_out, w) + b
-        if dropout:
-            v = tf.nn.dropout(v, dropout_prob)
-        l2_out = tf.nn.relu(v)
-        if is_trainable:
-            tf.contrib.layers.summarize_activation(l2_out)
-
-    with tf.name_scope("L3" + suff):
-        w = tf.Variable(xavier((L3_SIZE, infra.n_actions)), **w_attrs)
+        w = tf.Variable(xavier((infra.n_features * states_history, infra.n_actions)), **w_attrs)
         b = tf.Variable(tf.zeros((infra.n_actions,)), **b_attrs)
-        output = tf.add(tf.matmul(l2_out, w), b, name="qvals")
-
+        output = tf.matmul(states_t, w) + b
     return output
+
+    if False:
+        states_t = tf.reshape(states_t, (-1, infra.n_features * states_history))
+        w_attrs = {
+            'trainable': is_trainable,
+            'name': 'w',
+        }
+
+        b_attrs = {
+            'trainable': is_trainable,
+            'name': 'b',
+        }
+
+        suff = "_T" if is_trainable else "_R"
+        xavier = tf.contrib.layers.xavier_initializer()
+        with tf.name_scope("L0" + suff):
+            w = tf.Variable(xavier((infra.n_features * states_history, L1_SIZE)), **w_attrs)
+            b = tf.Variable(tf.zeros((L1_SIZE,)), **b_attrs)
+            v = tf.matmul(states_t, w) + b
+            if dropout:
+                v = tf.nn.dropout(v, dropout_prob)
+            l0_out = tf.nn.relu(v)
+            if is_trainable:
+                tf.contrib.layers.summarize_activation(l0_out)
+
+        with tf.name_scope("L1" + suff):
+            w = tf.Variable(xavier((L1_SIZE, L2_SIZE)), **w_attrs)
+            b = tf.Variable(tf.zeros((L2_SIZE,)), **b_attrs)
+            v = tf.matmul(l0_out, w) + b
+            if dropout:
+                v = tf.nn.dropout(v, dropout_prob)
+            l1_out = tf.nn.relu(v)
+            if is_trainable:
+                tf.contrib.layers.summarize_activation(l1_out)
+
+        with tf.name_scope("L2" + suff):
+            w = tf.Variable(xavier((L2_SIZE, L3_SIZE)), **w_attrs)
+            b = tf.Variable(tf.zeros((L3_SIZE,)), **b_attrs)
+            v = tf.matmul(l1_out, w) + b
+            if dropout:
+                v = tf.nn.dropout(v, dropout_prob)
+            l2_out = tf.nn.relu(v)
+            if is_trainable:
+                tf.contrib.layers.summarize_activation(l2_out)
+
+        with tf.name_scope("L3" + suff):
+            w = tf.Variable(xavier((L3_SIZE, infra.n_actions)), **w_attrs)
+            b = tf.Variable(tf.zeros((infra.n_actions,)), **b_attrs)
+            output = tf.add(tf.matmul(l2_out, w), b, name="qvals")
+
+        return output
 
 
 def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=4, l2_reg=0.0):

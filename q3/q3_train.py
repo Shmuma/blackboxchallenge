@@ -7,7 +7,7 @@ from lib import infra, net, test_bbox, replays
 import numpy as np
 import tensorflow as tf
 
-STATES_HISTORY = 10
+STATES_HISTORY = 1
 N_STATE = 36
 N_ACTIONS = 4
 
@@ -15,10 +15,10 @@ BATCH_SIZE = 500
 REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 100000
 SYNC_MODELS_ITERS = 10000
-FILL_REPLAY_ITERS = 500000
+FILL_REPLAY_ITERS = 50000
 TEST_PERFORMANCE_ITERS = 10000
 
-REPLAY_STEPS = 200000
+REPLAY_STEPS = 20000
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     feed = {
@@ -33,7 +33,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-5
-    TEST_NAME = "t14r2"
+    TEST_NAME = "t15r1"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
     L2_REG = 0.01
