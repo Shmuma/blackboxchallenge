@@ -217,7 +217,7 @@ def make_vars_v3(states_history):
     return state_t, rewards_t, next_state_t
 
 
-def make_forward_net_v3(states_history, states_t, is_trainable, dropout=True, dropout_prob=0.5):
+def make_forward_net_v3(states_history, states_t, is_trainable, dropout=False, dropout_prob=0.5):
     states_t = tf.reshape(states_t, (-1, infra.n_features * states_history))
 
     w_attrs = {
