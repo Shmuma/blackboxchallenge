@@ -52,11 +52,15 @@ if __name__ == "__main__":
     qvals_t = net.make_forward_net_v3(STATES_HISTORY, state_t, is_trainable=True, dropout=False)
     next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, is_trainable=False, dropout=False)
 
+    # describe qvalues
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(qvals_t, name="qvals"))
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(next_qvals_t, name="qvals_next"))
+    
+    tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(qvals_t, 1), name="qbest"))
+    tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(next_qvals_t, 1), name="qbest_next"))
 
-#    tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(qvals_t, 1), name="qvals"))
-#    tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(next_qvals_t, 1), name="qvals_next"))
+    tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(qvals_t, 1), name="qworst"))
+    tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(next_qvals_t, 1), name="qworst_next"))
 
     loss_t = net.make_loss_v3(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, l2_reg=L2_REG)
     opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=100000)
