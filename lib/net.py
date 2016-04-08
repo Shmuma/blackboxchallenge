@@ -217,7 +217,7 @@ def make_vars_v3(states_history):
     return state_t, rewards_t, next_state_t
 
 
-def make_forward_net_v3(states_history, states_t, is_trainable):
+def make_forward_net_v3(states_history, states_t, is_trainable, dropout=True, dropout_prob=0.5):
     states_t = tf.reshape(states_t, (-1, infra.n_features * states_history))
 
     w_attrs = {
@@ -235,21 +235,30 @@ def make_forward_net_v3(states_history, states_t, is_trainable):
     with tf.name_scope("L0" + suff):
         w = tf.Variable(xavier((infra.n_features * states_history, L1_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L1_SIZE,)), **b_attrs)
-        l0_out = tf.nn.relu(tf.matmul(states_t, w) + b)
+        v = tf.matmul(states_t, w) + b
+        if dropout:
+            v = tf.nn.dropout(v, dropout_prob)
+        l0_out = tf.nn.relu(v)
         if is_trainable:
             tf.contrib.layers.summarize_activation(l0_out)
 
     with tf.name_scope("L1" + suff):
         w = tf.Variable(xavier((L1_SIZE, L2_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L2_SIZE,)), **b_attrs)
-        l1_out = tf.nn.relu(tf.matmul(l0_out, w) + b)
+        v = tf.matmul(l0_out, w) + b
+        if dropout:
+            v = tf.nn.dropout(v, dropout_prob)
+        l1_out = tf.nn.relu(v)
         if is_trainable:
             tf.contrib.layers.summarize_activation(l1_out)
 
     with tf.name_scope("L2" + suff):
         w = tf.Variable(xavier((L2_SIZE, L3_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L3_SIZE,)), **b_attrs)
-        l2_out = tf.nn.relu(tf.matmul(l1_out, w) + b)
+        v = tf.matmul(l1_out, w) + b
+        if dropout:
+            v = tf.nn.dropout(v, dropout_prob)
+        l2_out = tf.nn.relu(v)
         if is_trainable:
             tf.contrib.layers.summarize_activation(l2_out)
 

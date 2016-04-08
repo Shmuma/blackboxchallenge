@@ -14,11 +14,11 @@ N_ACTIONS = 4
 BATCH_SIZE = 500
 REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 100000
-SYNC_MODELS_ITERS = 2000
-FILL_REPLAY_ITERS = 2000
+SYNC_MODELS_ITERS = 10000
+FILL_REPLAY_ITERS = 5000
 TEST_PERFORMANCE_ITERS = 10000
 
-REPLAY_STEPS = 20000
+REPLAY_STEPS = 50000
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     feed = {
@@ -33,7 +33,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t12r2"
+    TEST_NAME = "t13r1"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
     L2_REG = 0.01
@@ -49,8 +49,8 @@ if __name__ == "__main__":
     state_t, rewards_t, next_state_t = net.make_vars_v3(STATES_HISTORY)
 
     # make two networks - one is to train, second is periodically cloned from first
-    qvals_t = net.make_forward_net_v3(STATES_HISTORY, state_t, is_trainable=True)
-    next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, is_trainable=False)
+    qvals_t = net.make_forward_net_v3(STATES_HISTORY, state_t, is_trainable=True, dropout=True)
+    next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, is_trainable=False, dropout=False)
 
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(qvals_t, 1), name="qvals"))
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(next_qvals_t, 1), name="qvals_next"))
