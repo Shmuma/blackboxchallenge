@@ -268,10 +268,22 @@ def make_forward_net_v3(states_history, states_t, is_trainable, dropout=False, d
     return output
 
 
-def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=4, l2_reg=0.0):
+def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, q_mean_t, q_var_t, n_actions=4, l2_reg=0.0):
     max_qvals = tf.reduce_max(next_qvals_t, 1) * gamma
     q_ref = tf.add(rewards_t, tf.reshape(max_qvals, (batch_size, n_actions)), name="q_ref")
-    error = tf.nn.l2_loss(qvals_t - q_ref, name="loss_err")
+
+    # q-normalisation
+    mean, variance = tf.nn.moments(qvals_t, [0, 1])
+    assign_mean = q_mean_t.assign(mean)
+    assign_variance = q_var_t.assign(variance)
+
+    with tf.control_dependencies([assign_mean, assign_variance]):
+        norm_qvals_t = qvals_t / (q_var_t + 0.001) - q_mean_t
+        norm_qref_t = q_ref / (q_var_t + 0.001) - q_mean_t
+
+    tf.contrib.layers.summarize_tensors([tf.identity(norm_qvals_t, name="q_val_norm"),
+                                         tf.identity(norm_qref_t, name="q_ref_norm")])
+    error = tf.nn.l2_loss(norm_qvals_t - norm_qref_t, name="loss_err")
 
     regularize = tf.contrib.layers.l2_regularizer(l2_reg)
     _, vars = zip(*get_v2_vars(trainable=True, only_weights=True))
