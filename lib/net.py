@@ -278,8 +278,8 @@ def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, q_mean_t, 
     assign_variance = q_var_t.assign(variance)
 
     with tf.control_dependencies([assign_mean, assign_variance]):
-        norm_qvals_t = qvals_t / (q_var_t + 0.001) - q_mean_t
-        norm_qref_t = q_ref / (q_var_t + 0.001) - q_mean_t
+        norm_qvals_t = (qvals_t - q_mean_t) / (q_var_t + 0.001)
+        norm_qref_t = (q_ref - q_mean_t) / (q_var_t + 0.001)
 
     tf.contrib.layers.summarize_tensors([tf.identity(mean, name="qbatch_mean"),
                                          tf.identity(variance, name="qbatch_variance")])
