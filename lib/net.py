@@ -236,8 +236,6 @@ def make_forward_net_v3(states_history, states_t, is_trainable, dropout=False, d
         w = tf.Variable(xavier((infra.n_features * states_history, L1_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L1_SIZE,)), **b_attrs)
         v = tf.matmul(states_t, w) + b
-        if dropout:
-            v = tf.nn.dropout(v, dropout_prob)
         l0_out = tf.nn.relu(v)
         if is_trainable:
             tf.contrib.layers.summarize_activation(l0_out)
