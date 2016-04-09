@@ -15,10 +15,10 @@ BATCH_SIZE = 500
 REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 100000
 SYNC_MODELS_ITERS = 10000
-FILL_REPLAY_ITERS = 500000
+FILL_REPLAY_ITERS = 100000
 TEST_PERFORMANCE_ITERS = 10000
 
-REPLAY_STEPS = 200000
+REPLAY_STEPS = 20000
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     feed = {
@@ -33,10 +33,10 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-5
-    TEST_NAME = "t14r2"
+    TEST_NAME = "t16r1"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
-    L2_REG = 0.01
+    L2_REG = 0.1
 
     log = infra.setup_logging(logfile="q3_" + TEST_NAME + ".log")
     np.random.seed(42)
@@ -44,12 +44,12 @@ if __name__ == "__main__":
     started = last_t = time()
     infra.prepare_bbox()
 
-    replay_buffer = replays.ReplayBuffer(1000000, BATCH_SIZE)
+    replay_buffer = replays.ReplayBuffer(50000, BATCH_SIZE)
 
     state_t, rewards_t, next_state_t = net.make_vars_v3(STATES_HISTORY)
 
     # make two networks - one is to train, second is periodically cloned from first
-    qvals_t = net.make_forward_net_v3(STATES_HISTORY, state_t, is_trainable=True, dropout=False)
+    qvals_t = net.make_forward_net_v3(STATES_HISTORY, state_t, is_trainable=True, dropout=True)
     next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, is_trainable=False, dropout=False)
 
     # describe qvalues
