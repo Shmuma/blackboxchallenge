@@ -33,7 +33,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-5
-    TEST_NAME = "t17r3"
+    TEST_NAME = "t18r0"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
     L2_REG = 0.1
@@ -53,12 +53,15 @@ if __name__ == "__main__":
     next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, is_trainable=False, dropout=False)
 
     # apply q normalisation
-    ewma = tf.train.ExponentialMovingAverage(decay=0.99)
-    q_mean_t = tf.Variable(tf.constant(0.0), trainable=False, name="q_mean")
-    q_var_t = tf.Variable(tf.constant(1.0), trainable=False, name="q_variance")
-    norm_assigners = ewma.apply([q_mean_t, q_var_t])
+    if False:
+        ewma = tf.train.ExponentialMovingAverage(decay=0.99)
+        q_mean_t = tf.Variable(tf.constant(0.0), trainable=False, name="q_mean")
+        q_var_t = tf.Variable(tf.constant(1.0), trainable=False, name="q_variance")
+        norm_assigners = ewma.apply([q_mean_t, q_var_t])
 
-    tf.contrib.layers.summarize_tensors([q_mean_t, q_var_t])
+        tf.contrib.layers.summarize_tensors([q_mean_t, q_var_t])
+    else:
+        q_mean_t = q_var_t = None
 
     # describe qvalues
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(qvals_t, name="qvals"))
@@ -74,8 +77,9 @@ if __name__ == "__main__":
     opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=100000)
 
     # attach assigners from q-norm
-    with tf.control_dependencies([opt_t]):
-        opt_t = tf.group(norm_assigners)
+    if False:
+        with tf.control_dependencies([opt_t]):
+            opt_t = tf.group(norm_assigners)
 
     sync_nets_t = net.make_sync_nets_v2()
     summ = net.make_summaries_v2(loss_t, optimiser)

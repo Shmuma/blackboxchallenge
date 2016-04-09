@@ -273,19 +273,20 @@ def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, q_mean_t, 
     q_ref = tf.add(rewards_t, tf.reshape(max_qvals, (batch_size, n_actions)), name="q_ref")
 
     # q-normalisation
-    mean, variance = tf.nn.moments(qvals_t, [0, 1])
-    assign_mean = q_mean_t.assign(mean)
-    assign_variance = q_var_t.assign(variance)
+    if False:
+        mean, variance = tf.nn.moments(qvals_t, [0, 1])
+        assign_mean = q_mean_t.assign(mean)
+        assign_variance = q_var_t.assign(variance)
 
-    with tf.control_dependencies([assign_mean, assign_variance]):
-        norm_qvals_t = (qvals_t - q_mean_t) / (q_var_t + 0.001)
-        norm_qref_t = (q_ref - q_mean_t) / (q_var_t + 0.001)
+        with tf.control_dependencies([assign_mean, assign_variance]):
+            norm_qvals_t = (qvals_t - q_mean_t) / (q_var_t + 0.001)
+            norm_qref_t = (q_ref - q_mean_t) / (q_var_t + 0.001)
 
-    tf.contrib.layers.summarize_tensors([tf.identity(mean, name="qbatch_mean"),
-                                         tf.identity(variance, name="qbatch_variance")])
-    tf.contrib.layers.summarize_tensors([tf.reduce_mean(norm_qvals_t, name="q_val_norm"),
-                                         tf.reduce_mean(norm_qref_t, name="q_ref_norm")])
-    error = tf.nn.l2_loss(norm_qvals_t - norm_qref_t, name="loss_err")
+        tf.contrib.layers.summarize_tensors([tf.identity(mean, name="qbatch_mean"),
+                                             tf.identity(variance, name="qbatch_variance")])
+        tf.contrib.layers.summarize_tensors([tf.reduce_mean(norm_qvals_t, name="q_val_norm"),
+                                             tf.reduce_mean(norm_qref_t, name="q_ref_norm")])
+    error = tf.nn.l2_loss(tf.clip_by_value(qvals_t - q_ref, -1.0, 1.0), name="loss_err")
 
     regularize = tf.contrib.layers.l2_regularizer(l2_reg)
     _, vars = zip(*get_v2_vars(trainable=True, only_weights=True))
