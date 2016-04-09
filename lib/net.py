@@ -281,8 +281,10 @@ def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, q_mean_t, 
         norm_qvals_t = qvals_t / (q_var_t + 0.001) - q_mean_t
         norm_qref_t = q_ref / (q_var_t + 0.001) - q_mean_t
 
-    tf.contrib.layers.summarize_tensors([tf.identity(norm_qvals_t, name="q_val_norm"),
-                                         tf.identity(norm_qref_t, name="q_ref_norm")])
+    tf.contrib.layers.summarize_tensors([tf.identity(mean, name="qbatch_mean"),
+                                         tf.identity(variance, name="qbatch_variance")])
+    tf.contrib.layers.summarize_tensors([tf.reduce_mean(norm_qvals_t, name="q_val_norm"),
+                                         tf.reduce_mean(norm_qref_t, name="q_ref_norm")])
     error = tf.nn.l2_loss(norm_qvals_t - norm_qref_t, name="loss_err")
 
     regularize = tf.contrib.layers.l2_regularizer(l2_reg)
