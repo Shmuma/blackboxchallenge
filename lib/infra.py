@@ -1,11 +1,19 @@
-import interface as bbox
 import numpy as np
 from time import time
 from datetime import timedelta
 import logging as log
 
+from bbox import get_bbox
+
+bbox = None
 n_features = n_actions = None
 test_level_loaded = None
+
+
+def init(name=None):
+    global bbox
+    bbox = get_bbox(name)
+
 
 def setup_logging(logfile=None, level=log.INFO):
     fmt = "%(asctime)s %(levelname)s %(message)s"
@@ -18,6 +26,9 @@ def setup_logging(logfile=None, level=log.INFO):
 
 def prepare_bbox(test_level=False):
     global n_features, n_actions, test_level_loaded
+
+    if bbox is None:
+        init()
 
     if bbox.is_level_loaded() and test_level_loaded == test_level:
         bbox.reset_level()
