@@ -286,7 +286,7 @@ def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, q_mean_t, 
                                              tf.identity(variance, name="qbatch_variance")])
         tf.contrib.layers.summarize_tensors([tf.reduce_mean(norm_qvals_t, name="q_val_norm"),
                                              tf.reduce_mean(norm_qref_t, name="q_ref_norm")])
-    error = tf.nn.l2_loss(tf.clip_by_value(qvals_t - q_ref, -1.0, 1.0), name="loss_err")
+    error = tf.nn.l2_loss(qvals_t - q_ref, name="loss_err")
 
     regularize = tf.contrib.layers.l2_regularizer(l2_reg)
     _, vars = zip(*get_v2_vars(trainable=True, only_weights=True))
