@@ -53,17 +53,6 @@ if __name__ == "__main__":
     qvals_t = net.make_forward_net_v3(STATES_HISTORY, state_t, is_main_net=True)
     next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, is_main_net=False)
 
-    # apply q normalisation
-    if False:
-        ewma = tf.train.ExponentialMovingAverage(decay=0.99)
-        q_mean_t = tf.Variable(tf.constant(0.0), trainable=False, name="q_mean")
-        q_var_t = tf.Variable(tf.constant(1.0), trainable=False, name="q_variance")
-        norm_assigners = ewma.apply([q_mean_t, q_var_t])
-
-        tf.contrib.layers.summarize_tensors([q_mean_t, q_var_t])
-    else:
-        q_mean_t = q_var_t = None
-
     # describe qvalues
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(qvals_t, name="qvals"))
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(next_qvals_t, name="qvals_next"))
@@ -74,13 +63,8 @@ if __name__ == "__main__":
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(qvals_t, 1), name="qworst"))
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(next_qvals_t, 1), name="qworst_next"))
 
-    loss_t, qref_t = net.make_loss_v3(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, q_mean_t, q_var_t, l2_reg=L2_REG)
+    loss_t, qref_t = net.make_loss_v3(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, l2_reg=L2_REG)
     opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=None)
-
-    # attach assigners from q-norm
-    if False:
-        with tf.control_dependencies([opt_t]):
-            opt_t = tf.group(norm_assigners)
 
     sync_nets_t = net.make_sync_nets_v2()
     summ = net.make_summaries_v2(loss_t, optimiser)
