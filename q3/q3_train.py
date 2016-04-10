@@ -7,18 +7,18 @@ from lib import infra, net, test_bbox, replays
 import numpy as np
 import tensorflow as tf
 
-STATES_HISTORY = 10
+STATES_HISTORY = 1
 N_STATE = 36
 N_ACTIONS = 4
 
-BATCH_SIZE = 500
-REPORT_ITERS = 1000
+BATCH_SIZE = 5
+REPORT_ITERS = 10
 SAVE_MODEL_ITERS = 100000
-SYNC_MODELS_ITERS = 10000
-FILL_REPLAY_ITERS = 100000
+SYNC_MODELS_ITERS = 10
+FILL_REPLAY_ITERS = 100
 TEST_PERFORMANCE_ITERS = 10000
 
-REPLAY_STEPS = 20000
+REPLAY_STEPS = 20
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     feed = {
@@ -33,7 +33,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-5
-    TEST_NAME = "t19r1"
+    TEST_NAME = "t20r1"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
     L2_REG = 0.1
@@ -45,13 +45,13 @@ if __name__ == "__main__":
     started = last_t = time()
     infra.prepare_bbox()
 
-    replay_buffer = replays.ReplayBuffer(50000, BATCH_SIZE)
+    replay_buffer = replays.ReplayBuffer(100, BATCH_SIZE)
 
     state_t, rewards_t, next_state_t = net.make_vars_v3(STATES_HISTORY)
 
     # make two networks - one is to train, second is periodically cloned from first
-    qvals_t = net.make_forward_net_v3(STATES_HISTORY, state_t, is_trainable=True, dropout=True)
-    next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, is_trainable=False, dropout=False)
+    qvals_t = net.make_forward_net_v3(STATES_HISTORY, state_t, is_main_net=True)
+    next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, is_main_net=False)
 
     # apply q normalisation
     if False:
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(qvals_t, 1), name="qworst"))
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(next_qvals_t, 1), name="qworst_next"))
 
-    loss_t = net.make_loss_v3(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, q_mean_t, q_var_t, l2_reg=L2_REG)
+    loss_t, qref_t = net.make_loss_v3(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, q_mean_t, q_var_t, l2_reg=L2_REG)
     opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=None)
 
     # attach assigners from q-norm
@@ -103,7 +103,8 @@ if __name__ == "__main__":
         score_test = score_avg_test = 0
 
         while True:
-            if iter % SYNC_MODELS_ITERS == 0:
+            # first iters we use zero-initialised next_qvals_t
+            if iter % SYNC_MODELS_ITERS == 0 and iter > 0:
                 session.run([sync_nets_t])
 
             # estimate speed before potential refill to prevent confusing numbers
@@ -151,7 +152,7 @@ if __name__ == "__main__":
                 rewards_t: rewards_batch,
                 next_state_t: next_states_batch
             }
-            loss, _ = session.run([loss_t, opt_t], feed_dict=feed)
+            loss, qvals, next_qvals, qref, _ = session.run([loss_t, qvals_t, next_qvals_t, qref_t, opt_t], feed_dict=feed)
             loss_batch.append(loss)
 
             if iter % REPORT_ITERS == 0 and iter > 0:

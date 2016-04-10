@@ -217,51 +217,59 @@ def make_vars_v3(states_history):
     return state_t, rewards_t, next_state_t
 
 
-def make_forward_net_v3(states_history, states_t, is_trainable, dropout=False, dropout_prob=0.5):
+def make_forward_net_v3(states_history, states_t, is_main_net, dropout_prob=0.5):
     states_t = tf.reshape(states_t, (-1, infra.n_features * states_history))
 
     w_attrs = {
-        'trainable': is_trainable,
+        'trainable': is_main_net,
         'name': 'w',
     }
 
     b_attrs = {
-        'trainable': is_trainable,
+        'trainable': is_main_net,
         'name': 'b',
     }
 
-    suff = "_T" if is_trainable else "_R"
-    xavier = tf.contrib.layers.xavier_initializer()
+    # zero initialisation helps on first stages of learning to reduce randomness in Q values
+    if is_main_net:
+        init = tf.contrib.layers.xavier_initializer()
+        suff = "_T"
+        dropout = True
+    else:
+        init = tf.zeros
+        suff = "_R"
+        dropout = False
+
     with tf.name_scope("L0" + suff):
-        w = tf.Variable(xavier((infra.n_features * states_history, L1_SIZE)), **w_attrs)
+        w = tf.Variable(init((infra.n_features * states_history, L1_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L1_SIZE,)), **b_attrs)
         v = tf.matmul(states_t, w) + b
         l0_out = tf.nn.relu(v)
-        if is_trainable:
+        if is_main_net:
             tf.contrib.layers.summarize_activation(l0_out)
 
     with tf.name_scope("L1" + suff):
-        w = tf.Variable(xavier((L1_SIZE, L2_SIZE)), **w_attrs)
+        w = tf.Variable(init((L1_SIZE, L2_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L2_SIZE,)), **b_attrs)
         v = tf.matmul(l0_out, w) + b
         if dropout:
             v = tf.nn.dropout(v, dropout_prob)
         l1_out = tf.nn.relu(v)
-        if is_trainable:
+        if is_main_net:
             tf.contrib.layers.summarize_activation(l1_out)
 
     with tf.name_scope("L2" + suff):
-        w = tf.Variable(xavier((L2_SIZE, L3_SIZE)), **w_attrs)
+        w = tf.Variable(init((L2_SIZE, L3_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L3_SIZE,)), **b_attrs)
         v = tf.matmul(l1_out, w) + b
         if dropout:
             v = tf.nn.dropout(v, dropout_prob)
         l2_out = tf.nn.relu(v)
-        if is_trainable:
+        if is_main_net:
             tf.contrib.layers.summarize_activation(l2_out)
 
     with tf.name_scope("L3" + suff):
-        w = tf.Variable(xavier((L3_SIZE, infra.n_actions)), **w_attrs)
+        w = tf.Variable(init((L3_SIZE, infra.n_actions)), **w_attrs)
         b = tf.Variable(tf.zeros((infra.n_actions,)), **b_attrs)
         output = tf.add(tf.matmul(l2_out, w), b, name="qvals")
 
@@ -295,4 +303,5 @@ def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, q_mean_t, 
 
     tf.contrib.layers.summarize_tensors([l2_error, error])
 
-    return error + l2_error
+    # TODO: return l2_error to sum
+    return error, q_ref
