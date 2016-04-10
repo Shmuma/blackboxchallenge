@@ -11,15 +11,15 @@ STATES_HISTORY = 1
 N_STATE = 36
 N_ACTIONS = 4
 
-BATCH_SIZE = 5
-REPORT_ITERS = 10
+BATCH_SIZE = 500
+REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 100000
-SYNC_MODELS_ITERS = 10000
-FILL_REPLAY_ITERS = 100
+SYNC_MODELS_ITERS = 100000
+FILL_REPLAY_ITERS = 10000
 TEST_PERFORMANCE_ITERS = 10000
-TEST_CUSTOM_BBOX_ITERS = 100
+TEST_CUSTOM_BBOX_ITERS = 0
 
-REPLAY_STEPS = 20
+REPLAY_STEPS = 20000
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     feed = {
@@ -34,19 +34,19 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-5
-    TEST_NAME = "t20r7"
+    TEST_NAME = "t21r1"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.9
     L2_REG = 0.1
 
-    infra.init("grid_2x2")
+#    infra.init("grid_2x2")
     log = infra.setup_logging(logfile="q3_" + TEST_NAME + ".log")
     np.random.seed(42)
 
     started = last_t = time()
     infra.prepare_bbox()
 
-    replay_buffer = replays.ReplayBuffer(100, BATCH_SIZE)
+    replay_buffer = replays.ReplayBuffer(1000000, BATCH_SIZE)
 
     state_t, rewards_t, next_state_t = net.make_vars_v3(STATES_HISTORY)
 
@@ -154,7 +154,7 @@ if __name__ == "__main__":
                                 score_test=score_test, score_avg_test=score_avg_test)
 
 
-            if iter % TEST_CUSTOM_BBOX_ITERS == 0 and iter > 0:
+            if TEST_CUSTOM_BBOX_ITERS > 0 and iter % TEST_CUSTOM_BBOX_ITERS == 0 and iter > 0:
                 log.info("{iter} Do custom model states:".format(iter=iter))
                 for state in infra.bbox._all_states():
                     qvals, = session.run([qvals_t], feed_dict={

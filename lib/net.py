@@ -289,4 +289,4 @@ def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=
     tf.contrib.layers.summarize_tensors([l2_error, error])
 
     # TODO: return l2_error to sum
-    return error, q_ref
+    return error + l2_error, q_ref
