@@ -32,8 +32,8 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 
 if __name__ == "__main__":
-    LEARNING_RATE = 1e-4
-    TEST_NAME = "t18r1"
+    LEARNING_RATE = 5e-4
+    TEST_NAME = "t18r2"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
     L2_REG = 0.1
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(next_qvals_t, 1), name="qworst_next"))
 
     loss_t = net.make_loss_v3(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, q_mean_t, q_var_t, l2_reg=L2_REG)
-    opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=100000)
+    opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=None)
 
     # attach assigners from q-norm
     if False:
