@@ -32,12 +32,13 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 
 if __name__ == "__main__":
-    LEARNING_RATE = 5e-4
-    TEST_NAME = "t18r2"
+    LEARNING_RATE = 1e-5
+    TEST_NAME = "t19r1"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
     L2_REG = 0.1
 
+    infra.init("grid_2x2")
     log = infra.setup_logging(logfile="q3_" + TEST_NAME + ".log")
     np.random.seed(42)
 

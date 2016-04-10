@@ -31,8 +31,9 @@ def get_score():
 def do_action(action):
     old = str(_state)
     next = _state.do_action(action)
-    log.info("Action {action}: {old}=>{new}".format(
-            action=action, old=old, new=str(_state)))
+#    log.info("Action {action}({aname}): {old} => {new}".format(
+#            action=action, aname=_state.action_name(action),
+#            old=old, new=str(_state)))
     return next
 
 def get_num_of_features():
@@ -40,3 +41,16 @@ def get_num_of_features():
 
 def get_num_of_actions():
     return _state.num_actions()
+
+def reset_level():
+    _state.reset()
+#    log.info("Reset level to: {state}".format(state=str(_state)))
+
+def create_checkpoint():
+    return _state.create_checkpoint()
+
+def load_from_checkpoint(chp_id):
+    _state.load_from_checkpoint(chp_id)
+
+def clear_all_checkpoints():
+    _state.clear_all_checkpoints()

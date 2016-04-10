@@ -77,6 +77,7 @@ def populate_replay_buffer(replay_buffer, session, states_history, states_t, qva
         'qvals_t': qvals_t,
         'state': [],
         'replay': replay_buffer,
+        'appended': 0
     }
 
     def action_reward_hook(our_state, bbox_state, rewards, next_states):
@@ -97,13 +98,24 @@ def populate_replay_buffer(replay_buffer, session, states_history, states_t, qva
 
         if len(our_state['state']) == our_state['history']:
             our_state['replay'].append(our_state['state'], rewards, next_states)
+            our_state['appended'] += 1
 
         return action
 
     _max_steps = None if max_steps is None else max_steps + states_history - 1
-    infra.bbox_checkpoints_loop(state, action_reward_hook, verbose=verbose, max_steps=_max_steps)
-    score = infra.bbox.get_score()
-    avg_score = score / infra.bbox.get_time()
+    if _max_steps is None:
+        infra.bbox_checkpoints_loop(state, action_reward_hook, verbose=verbose, max_steps=_max_steps)
+        score = infra.bbox.get_score()
+        avg_score = score / infra.bbox.get_time()
+    else:
+        score = 0
+        steps = 0
+        while state['appended'] < _max_steps:
+            infra.bbox_checkpoints_loop(state, action_reward_hook, verbose=verbose, max_steps=_max_steps)
+            score += infra.bbox.get_score()
+            steps += infra.bbox.get_time()
+            infra.bbox.reset_level()
+        avg_score = score / steps
     return score, avg_score
 
 

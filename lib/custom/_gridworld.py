@@ -1,6 +1,4 @@
 import numpy as np
-import logging as log
-
 
 class GridWorldState:
     def __init__(self, size, start, end, rewards):
@@ -8,7 +6,13 @@ class GridWorldState:
         self.start = start
         self.end = end
         self.init_rewards = rewards
+        self.checkpoints = []
+
         self.reset()
+        self.rewards = {}
+        self.pos = start
+        self.score = 0.0
+        self.time = 0
 
     def reset(self):
         self.rewards = {(x, y): reward for x, y, reward in self.init_rewards}
@@ -42,7 +46,7 @@ class GridWorldState:
             return self.pos
         if x >= self.size[0] or y >= self.size[1]:
             return self.pos
-        return (x, y)
+        return x, y
 
     def do_action(self, action):
         new_pos = self.get_new_pos(action)
@@ -51,3 +55,18 @@ class GridWorldState:
         self.time += 1
         self.pos = new_pos
         return new_pos != self.end
+
+    def create_checkpoint(self):
+        self.checkpoints.append((self.pos, self.score, self.time, dict(self.rewards)))
+        return len(self.checkpoints)
+
+    def clear_all_checkpoints(self):
+        self.checkpoints = []
+
+    def load_from_checkpoint(self, chp_id):
+        self.pos, self.score, self.time, rewards = self.checkpoints[chp_id-1]
+        self.rewards = dict(rewards)
+
+    def action_name(self, action):
+        return ["l", "u", "d", "r"][action]
+
