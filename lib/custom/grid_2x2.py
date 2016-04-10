@@ -54,3 +54,10 @@ def load_from_checkpoint(chp_id):
 
 def clear_all_checkpoints():
     _state.clear_all_checkpoints()
+
+
+def _all_states():
+    return _state._all_states()
+
+def _describe_state(state):
+    return _state._describe_state(state)

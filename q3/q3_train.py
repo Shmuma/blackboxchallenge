@@ -14,9 +14,10 @@ N_ACTIONS = 4
 BATCH_SIZE = 5
 REPORT_ITERS = 10
 SAVE_MODEL_ITERS = 100000
-SYNC_MODELS_ITERS = 10
+SYNC_MODELS_ITERS = 10000
 FILL_REPLAY_ITERS = 100
 TEST_PERFORMANCE_ITERS = 10000
+TEST_CUSTOM_BBOX_ITERS = 100
 
 REPLAY_STEPS = 20
 
@@ -33,9 +34,9 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-5
-    TEST_NAME = "t20r1"
+    TEST_NAME = "t20r7"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
-    GAMMA = 0.99
+    GAMMA = 0.9
     L2_REG = 0.1
 
     infra.init("grid_2x2")
@@ -89,6 +90,7 @@ if __name__ == "__main__":
         while True:
             # first iters we use zero-initialised next_qvals_t
             if iter % SYNC_MODELS_ITERS == 0 and iter > 0:
+                log.info("{iter}: sync nets")
                 session.run([sync_nets_t])
 
             # estimate speed before potential refill to prevent confusing numbers
@@ -150,6 +152,18 @@ if __name__ == "__main__":
                 write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed,
                                 score_train=score_train, score_avg_train=score_avg_train,
                                 score_test=score_test, score_avg_test=score_avg_test)
+
+
+            if iter % TEST_CUSTOM_BBOX_ITERS == 0 and iter > 0:
+                log.info("{iter} Do custom model states:".format(iter=iter))
+                for state in infra.bbox._all_states():
+                    qvals, = session.run([qvals_t], feed_dict={
+                        state_t: [[state]] * BATCH_SIZE
+                    })
+                    log.info("   {state}: {qvals}".format(
+                            state=infra.bbox._describe_state(state),
+                            qvals=", ".join(map(lambda v: "%7.3f" % v, qvals[0]))
+                    ))
 
             if iter % SAVE_MODEL_ITERS == 0 and iter > 0:
                 saver.save(session, "models/model_" + TEST_NAME, global_step=iter)

@@ -25,11 +25,14 @@ class GridWorldState:
             pos=self.pos, score=self.score, time=self.time, rewards=self.rewards
         )
 
-    def state(self):
+    def state_from(self, pos):
         st = np.zeros((self.num_features(), ))
-        st[0] = self.pos[0]
-        st[1] = self.pos[1]
+        st[0] = pos[0]
+        st[1] = pos[1]
         return st
+
+    def state(self):
+        return self.state_from(self.pos)
 
     def num_features(self):
         return 36
@@ -70,3 +73,8 @@ class GridWorldState:
     def action_name(self, action):
         return ["l", "u", "d", "r"][action]
 
+    def _describe_state(self, state):
+        return "pos: (%d, %d)" % (int(state[0]), int(state[1]))
+
+    def _all_states(self):
+        return [self.state_from((0, 0)), self.state_from((1, 0)), self.state_from((0, 1)), self.state_from((1, 1))]
