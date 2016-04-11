@@ -15,7 +15,7 @@ def action_reward_hook(our_state, bbox_state, rewards, next_states):
     for act in range(infra.n_actions):
         reward = rewards[act]
         for idx in range(infra.n_features):
-            our_state['fds'][idx].write("%f,%f\n" % (reward, next_states[act][idx]))
+            our_state['fds'][idx].write("%.5f,%.10f\n" % (reward, next_states[act][idx]))
 
     return action
 
