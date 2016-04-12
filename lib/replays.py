@@ -63,7 +63,7 @@ class ReplayBuffer:
         st = np.copy(state)
 
         if st.shape[0] == 1:
-            next_st = np.copy([next_states])
+            next_st = np.expand_dims(next_states, 1)
         else:
             # combine state history and next_4_state into full next states history
             top_cur_state = st[:-1, :]
