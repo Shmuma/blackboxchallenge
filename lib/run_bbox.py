@@ -93,7 +93,8 @@ def populate_replay_buffer(replay_buffer, session, states_history, states_t, qva
             qvals_t = our_state['qvals_t']
             states_t = our_state['states_t']
 
-            qvals, = sess.run([qvals_t], feed_dict={states_t: [our_state['state']]})
+            state = np.apply_along_axis(features.transform, 1, our_state['state'])
+            qvals, = sess.run([qvals_t], feed_dict={states_t: [state]})
             action = np.argmax(qvals)
 
         if len(our_state['state']) == our_state['history']:
