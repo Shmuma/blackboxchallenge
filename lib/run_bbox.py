@@ -1,4 +1,4 @@
-import infra, replays
+import infra, replays, features
 
 import numpy as np
 
@@ -146,7 +146,10 @@ def test_performance(session, states_history, states_t, qvals_t, alpha=0.0, verb
             qvals_t = our_state['qvals_t']
             states_t = our_state['states_t']
 
-            qvals, = sess.run([qvals_t], feed_dict={states_t: [our_state['state']]})
+            # do a features transformation
+            state = np.apply_along_axis(features.transform, 2, our_state['state'])
+
+            qvals, = sess.run([qvals_t], feed_dict={states_t: [state]})
             action = np.argmax(qvals)
 
         return action
