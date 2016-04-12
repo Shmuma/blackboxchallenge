@@ -73,8 +73,8 @@ class ReplayBuffer:
             next_st = np.concatenate(v)
 
         # transform features
-        tr_st = np.apply_along_axis(features.transform, 1, st)
-        next_st = np.apply_over_axes(features.transform, next_st, [0, 1])
+        st = np.apply_along_axis(features.transform, 1, st)
+        next_st = np.apply_along_axis(features.transform, 1, next_st)
 
         self.buffer.append((st, np.copy(rewards), next_st))
 
