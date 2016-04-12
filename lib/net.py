@@ -209,16 +209,16 @@ def make_summaries_v2(loss_t, optimiser):
     return res
 
 
-def make_vars_v3(states_history):
-    state_t = tf.placeholder(tf.float32, (None, states_history, infra.n_features), name="state")
+def make_vars_v3(states_history, n_features):
+    state_t = tf.placeholder(tf.float32, (None, states_history, n_features), name="state")
     rewards_t = tf.placeholder(tf.float32, (None, infra.n_actions), name="reward")
-    next_state_t = tf.placeholder(tf.float32, (None, infra.n_actions, states_history, infra.n_features), name="next_state")
+    next_state_t = tf.placeholder(tf.float32, (None, infra.n_actions, states_history, n_features), name="next_state")
 
     return state_t, rewards_t, next_state_t
 
 
-def make_forward_net_v3(states_history, states_t, is_main_net, dropout_prob=0.5):
-    states_t = tf.reshape(states_t, (-1, infra.n_features * states_history))
+def make_forward_net_v3(states_history, states_t, is_main_net, n_features, dropout_prob=0.5):
+    states_t = tf.reshape(states_t, (-1, n_features * states_history))
 
     w_attrs = {
         'trainable': is_main_net,
@@ -241,7 +241,7 @@ def make_forward_net_v3(states_history, states_t, is_main_net, dropout_prob=0.5)
         dropout = False
 
     with tf.name_scope("L0" + suff):
-        w = tf.Variable(init((infra.n_features * states_history, L1_SIZE)), **w_attrs)
+        w = tf.Variable(init((n_features * states_history, L1_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L1_SIZE,)), **b_attrs)
         v = tf.matmul(states_t, w) + b
         l0_out = tf.nn.relu(v)
@@ -288,5 +288,4 @@ def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=
 
     tf.contrib.layers.summarize_tensors([l2_error, error])
 
-    # TODO: return l2_error to sum
     return error + l2_error, q_ref

@@ -3,13 +3,11 @@ sys.path.append("..")
 
 from time import time
 from datetime import timedelta
-from lib import infra, net, run_bbox, replays
+from lib import infra, net, run_bbox, replays, features
 import numpy as np
 import tensorflow as tf
 
 STATES_HISTORY = 1
-N_STATE = 36
-N_ACTIONS = 4
 
 BATCH_SIZE = 500
 REPORT_ITERS = 1000
@@ -34,7 +32,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-5
-    TEST_NAME = "t21r1"
+    TEST_NAME = "t22r1"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.9
     L2_REG = 0.1
@@ -46,13 +44,14 @@ if __name__ == "__main__":
     started = last_t = time()
     infra.prepare_bbox()
 
+    n_features = features.transformed_size()
     replay_buffer = replays.ReplayBuffer(1000000, BATCH_SIZE)
 
-    state_t, rewards_t, next_state_t = net.make_vars_v3(STATES_HISTORY)
+    state_t, rewards_t, next_state_t = net.make_vars_v3(STATES_HISTORY, n_features)
 
     # make two networks - one is to train, second is periodically cloned from first
-    qvals_t = net.make_forward_net_v3(STATES_HISTORY, state_t, is_main_net=True)
-    next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, is_main_net=False)
+    qvals_t = net.make_forward_net_v3(STATES_HISTORY, state_t, n_features=n_features, is_main_net=True)
+    next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, n_features=n_features, is_main_net=False)
 
     # describe qvalues
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(qvals_t, name="qvals"))

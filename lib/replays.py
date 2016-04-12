@@ -1,9 +1,9 @@
 import array, struct
 import glob
-import logging as log
 
 import numpy as np
 
+import features
 
 def pack_item(item):
     bbox_state, action, reward = item
@@ -59,13 +59,24 @@ class ReplayBuffer:
         self.epoches = 0
 
     def append(self, state, rewards, next_states):
+        # if state_history == 1, we don't need to do anything
         st = np.copy(state)
-        # combine state history and next_4_state into full next states history
-        top_cur_state = st[:-1, :]
-        v = []
-        for next_state in next_states:
-            v.append([np.vstack([next_state, top_cur_state])])
-        self.buffer.append((st, np.copy(rewards), np.concatenate(v)))
+
+        if st.shape[0] == 1:
+            next_st = np.copy(next_states)
+        else:
+            # combine state history and next_4_state into full next states history
+            top_cur_state = st[:-1, :]
+            v = []
+            for next_state in next_states:
+                v.append([np.vstack([next_state, top_cur_state])])
+            next_st = np.concatenate(v)
+
+        # transform features
+        tr_st = np.apply_along_axis(features.transform, 1, st)
+        next_st = np.apply_over_axes(features.transform, next_st, [0, 1])
+
+        self.buffer.append((st, np.copy(rewards), next_st))
 
     def reshuffle(self):
         """
