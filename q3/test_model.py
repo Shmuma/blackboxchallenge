@@ -2,7 +2,7 @@ import sys
 sys.path.append("..")
 import argparse
 
-from lib import infra, net, test_bbox
+from lib import infra, net, run_bbox
 
 import tensorflow as tf
 import numpy as np
@@ -38,9 +38,9 @@ if __name__ == "__main__":
         scores = []
 
         for round in xrange(args.rounds):
-            score, _ = test_bbox.test_performance(session, args.history, state_t, qvals_t,
-                                                  alpha=args.alpha, max_steps=args.steps,
-                                                  verbose=args.verbose, test_level=args.test)
+            score, _ = run_bbox.test_performance(session, args.history, state_t, qvals_t,
+                                                 alpha=args.alpha, max_steps=args.steps,
+                                                 verbose=args.verbose, test_level=args.test)
             if not args.quiet:
                 log.info("Round {round}: score={score}".format(round=round+1, score=score))
 

@@ -3,7 +3,7 @@ sys.path.append("..")
 
 from time import time
 from datetime import timedelta
-from lib import infra, net, test_bbox, replays
+from lib import infra, net, run_bbox, replays
 import numpy as np
 import tensorflow as tf
 
@@ -109,8 +109,8 @@ if __name__ == "__main__":
                 log.info("{iter}: populating replay buffer with alpha={alpha}".format(
                         iter=iter, alpha=alpha))
                 t = time()
-                test_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
-                                                                    alpha=alpha, max_steps=REPLAY_STEPS)
+                run_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
+                                                alpha=alpha, max_steps=REPLAY_STEPS)
                 replay_buffer.reshuffle()
                 log.info("{iter}: population done in {duration}".format(
                     iter=iter, duration=timedelta(seconds=time()-t)
@@ -119,10 +119,10 @@ if __name__ == "__main__":
             if iter % TEST_PERFORMANCE_ITERS == 0 and iter > 0:
                 log.info("{iter}: test performance on train and test levels".format(iter=iter))
                 t = time()
-                score_train, score_avg_train = test_bbox.test_performance(session, STATES_HISTORY, state_t,
-                                                              qvals_t, alpha=0.0, max_steps=REPLAY_STEPS, test_level=False)
-                score_test, score_avg_test = test_bbox.test_performance(session, STATES_HISTORY, state_t,
-                                                              qvals_t, alpha=0.0, max_steps=REPLAY_STEPS, test_level=True)
+                score_train, score_avg_train = run_bbox.test_performance(session, STATES_HISTORY, state_t,
+                                                                         qvals_t, alpha=0.0, max_steps=REPLAY_STEPS, test_level=False)
+                score_test, score_avg_test = run_bbox.test_performance(session, STATES_HISTORY, state_t,
+                                                                       qvals_t, alpha=0.0, max_steps=REPLAY_STEPS, test_level=True)
                 replay_buffer.reshuffle()
                 log.info("{iter}: test done in {duration}, score_train={score_train}, avg_train={score_avg_train:.3e}, "
                          "score_test={score_test}, avg_test={score_avg_test:.3e}".format(

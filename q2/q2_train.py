@@ -3,7 +3,7 @@ sys.path.append("..")
 
 from time import time
 from datetime import timedelta
-from lib import infra, net, test_bbox, replays
+from lib import infra, net, run_bbox, replays
 import numpy as np
 import tensorflow as tf
 
@@ -145,7 +145,7 @@ if __name__ == "__main__":
                     saver.save(session, "models/model" + REPLAY_NAME, global_step=iter)
                     log.info("{iter}: test model on real bbox".format(iter=iter))
                     t = time()
-                    score = test_bbox.test_net(session, STATES_HISTORY, state_t, qvals_t, save_prefix="replays/%d" % (iter/100000))
+                    score = run_bbox.test_net(session, STATES_HISTORY, state_t, qvals_t, save_prefix="replays/%d" % (iter / 100000))
                     log.info("{iter}: test done in {duration}, score={score}".format(
                         iter=iter, duration=timedelta(seconds=time()-t), score=score
                     ))
