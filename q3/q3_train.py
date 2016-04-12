@@ -12,7 +12,7 @@ STATES_HISTORY = 1
 BATCH_SIZE = 500
 REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 100000
-SYNC_MODELS_ITERS = 100000
+SYNC_MODELS_ITERS = 50000
 FILL_REPLAY_ITERS = 10000
 TEST_PERFORMANCE_ITERS = 10000
 TEST_CUSTOM_BBOX_ITERS = 0
@@ -29,13 +29,19 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     writer.flush()
 
 
+# TODO:
+
+# Run t22r3
+# 1. try long run with gamma = 0.99
+# 2. increase learning rate to speed up training
+# 3. sync interval decreased to 50k
 
 if __name__ == "__main__":
-    LEARNING_RATE = 1e-5
-    TEST_NAME = "t22r2"
+    LEARNING_RATE = 5e-5
+    TEST_NAME = "t22r3"
     TEST_DESCRIPTION = "Transform feature 35"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
-    GAMMA = 0.9
+    GAMMA = 0.99
     L2_REG = 0.1
 
 #    infra.init("grid_2x2")
