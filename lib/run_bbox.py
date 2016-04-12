@@ -147,7 +147,8 @@ def test_performance(session, states_history, states_t, qvals_t, alpha=0.0, verb
             states_t = our_state['states_t']
 
             # do a features transformation
-            state = np.apply_along_axis(features.transform, 2, our_state['state'])
+
+            state = np.apply_along_axis(features.transform, 1, our_state['state'])
 
             qvals, = sess.run([qvals_t], feed_dict={states_t: [state]})
             action = np.argmax(qvals)
