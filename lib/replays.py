@@ -63,7 +63,7 @@ class ReplayBuffer:
         st = np.copy(state)
 
         if st.shape[0] == 1:
-            next_st = np.copy(next_states)
+            next_st = np.copy([next_states])
         else:
             # combine state history and next_4_state into full next states history
             top_cur_state = st[:-1, :]
@@ -74,7 +74,7 @@ class ReplayBuffer:
 
         # transform features
         st = np.apply_along_axis(features.transform, 1, st)
-        next_st = np.apply_along_axis(features.transform, 1, next_st)
+        next_st = np.apply_along_axis(features.transform, 2, next_st)
 
         self.buffer.append((st, np.copy(rewards), next_st))
 
