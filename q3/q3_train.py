@@ -32,7 +32,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-5
-    TEST_NAME = "t22r1"
+    TEST_NAME = "t22r2"
     TEST_DESCRIPTION = "Transform feature 35"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.9
