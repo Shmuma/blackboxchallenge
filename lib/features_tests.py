@@ -5,7 +5,7 @@ import features
 
 class TestFeatures(unittest.TestCase):
     def test_final_size(self):
-        self.assertEqual(118, features.transformed_size())
+        self.assertEqual(178, features.transformed_size())
 
     def test_feature_35(self):
         r = features._transform_35(-1.1)
@@ -27,10 +27,10 @@ class TestFeatures(unittest.TestCase):
 
     def test_feature_00(self):
         r = features._transform_00(-0.7275277972002714)
-        self.assertEqual(len(r), 61)
+        self.assertEqual(len(r), 121)
         self.assertAlmostEqual(r[18], 1.0)
-        r = features._transform_00(-0.5)
-        self.assertAlmostEqual(r[0], -0.5)
+        r = features._transform_00(-1.5)
+        self.assertAlmostEqual(r[0], -1.5)
 
     def test_result(self):
         f = features.transform(np.zeros((features.ORIGIN_N_FEATURES, )))
@@ -43,7 +43,12 @@ class TestFeatures(unittest.TestCase):
             'stop': 0.5
         }
 
-        r = features._transform_striped(0.5, **opts)
-        self.assertEqual(len(r), 12)
+        filled, r = features._transform_striped(0.5, **opts)
+        self.assertTrue(filled)
+        self.assertEqual(len(r), 11)
         self.assertAlmostEqual(r[0], 0.0)
         self.assertAlmostEqual(r[-1], 1.0)
+
+        filled, r = features._transform_striped(-1, **opts)
+        self.assertFalse(filled)
+        self.assertAlmostEqual(0.0, r.sum())

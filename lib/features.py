@@ -1,4 +1,5 @@
 import numpy as np
+import math
 
 ORIGIN_N_FEATURES = 36
 
@@ -26,7 +27,13 @@ def transformed_size():
 
 
 def _transform_00(value):
-    return _transform_striped(value, delta=0.0029091158169317999, start=-0.7769826650988442, stop=-0.605344831899868)
+    filled_1, res_1 = _transform_striped(value, delta=0.0029091158169317999, start=-0.7769826650988442, stop=-0.605344831899868)
+    filled_2, res_2 = _transform_striped(value, delta=0.0046108435779661019, start=1.2650883198, stop=1.5371280909)
+    if filled_1 or filled_2:
+        first = 0.0
+    else:
+        first = value
+    return np.concatenate([[first], res_1, res_2])
 
 
 def _transform_35(value):
@@ -42,7 +49,7 @@ def _transform_35(value):
 
 # dictionary with resulting feature sizes
 sizes = {
-    0:  61,
+    0:  1 + 60 + 60,
     35: 23
 }
 
@@ -52,18 +59,20 @@ transforms = {
 }
 
 
-def _transform_striped(value, delta, start, stop, fill_value = 0.0):
+def _transform_striped(value, delta, start, stop):
     """
     Perform striped decoding of value
     :param value: value to decode
     :param delta: delta step for stripe
     :param start: first stripe
     :param stop: last stripe
-    :return: numpy array with first 'value' or fill_value and rest are one-hot encoding of range
+    :return: tuple from (filled_bool, one-hot array)
     """
-    count = int((stop-start) / delta + 1)
-    res = np.zeros((count + 1,))
-    ofs = 1
+    count = int(round((stop-start) / delta + 1))
+    res = np.zeros((count,))
+    if value < start - delta/2:
+        return False, res
+    ofs = 0
     bound = start + delta/2
     filled = False
     while bound < stop + delta:
@@ -73,10 +82,4 @@ def _transform_striped(value, delta, start, stop, fill_value = 0.0):
             break
         ofs += 1
         bound += delta
-
-    if not filled:
-        res[0] = value
-    else:
-        res[0] = fill_value
-
-    return res
+    return filled, res
