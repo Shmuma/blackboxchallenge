@@ -27,13 +27,14 @@ def transformed_size():
 
 
 def _transform_00(value):
-    filled_1, res_1 = _transform_striped(value, delta=0.0029091158169317999, start=-0.7769826650988442, stop=-0.605344831899868)
-    filled_2, res_2 = _transform_striped(value, delta=0.0046108435779661019, start=1.2650883198, stop=1.5371280909)
-    if filled_1 or filled_2:
+    filled_1, res_1 = _transform_striped(value, delta=0.0029091158169317999, start=-0.7769826651, stop=-0.6053448319)
+    filled_2, res_2 = _transform_striped(value, delta=0.0046108435779661019, start= 1.2650883198, stop= 1.5371280909)
+    filled_3, res_3 = _transform_striped(value, delta=0.0058182296101694873, start= 2.7139606476, stop= 3.0572361946)
+    if filled_1 or filled_2 or filled_3:
         first = 0.0
     else:
         first = value
-    return np.concatenate([[first], res_1, res_2])
+    return np.concatenate([[first], res_1, res_2, res_3])
 
 
 def _transform_35(value):
@@ -49,7 +50,7 @@ def _transform_35(value):
 
 # dictionary with resulting feature sizes
 sizes = {
-    0:  1 + 60 + 60,
+    0:  1 + 60 + 60 + 60,
     35: 23
 }
 
