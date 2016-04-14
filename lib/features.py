@@ -48,14 +48,33 @@ def _transform_35(value):
     return result
 
 
+def _split_bound_func(bound):
+    def fun(value):
+        res = np.zeros((2,))
+        if value < bound:
+            res[0] = value
+        else:
+            res[1] = value
+        return res
+    return fun
+
+
 # dictionary with resulting feature sizes
 sizes = {
     0:  1 + 60 + 60 + 60,
+    1:  2,
+    2:  2,
+    3:  2,
+    4:  2,
     35: 23
 }
 
 transforms = {
     0: _transform_00,
+    1: _split_bound_func(0.0),
+    2: _split_bound_func(0.0),
+    3: _split_bound_func(0.0),
+    4: _split_bound_func(0.0),
     35: _transform_35
 }
 
