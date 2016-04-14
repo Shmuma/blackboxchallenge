@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pylab as pl
 import seaborn as sb
 
+pl.rcParams['figure.figsize'] = [10.0, 8.0]
 
 def feature_data(index, seed):
     return "../tests/out/seed={seed}/{index:02d}-reward-state.txt".format(seed=seed, index=index)
@@ -41,3 +42,25 @@ def deltas(arr):
 def scatter_mask(feat, mask):
     pl.scatter(feat[0][mask], feat[1][mask], marker='.')
     pl.show()
+
+
+def cluster_1D(values, eps=1e-5):
+    centers = []
+    bucket = []
+    s_bucket = 0
+    for v in sorted(values):
+        if len(bucket) == 0:
+            bucket.append(v)
+            s_bucket = v
+        else:
+            c = float(s_bucket) / len(bucket)
+            if abs(c - v) < eps:
+                bucket.append(v)
+                s_bucket += v
+            else:
+                centers.append(c)
+                bucket = [v]
+                s_bucket = v
+
+    centers.append(float(s_bucket) / len(bucket))
+    return centers
