@@ -8,17 +8,21 @@ class TestFeatures(unittest.TestCase):
         self.assertEqual(363, features.transformed_size())
 
     def test_feature_35(self):
-        r = features._transform_35(-1.1)
+        v = -1.1
+        r = features._transform_35(v)
         self.assertEqual(23, len(r))
         self.assertAlmostEqual(1, sum(r))
         self.assertAlmostEqual(1.0, r[0])
         self.assertAlmostEqual(0, r[1])
+        self.assertAlmostEqual(v, features._reverse_35(r))
 
-        r = features._transform_35(0.0)
+        v = 0.0
+        r = features._transform_35(v)
         self.assertEqual(23, len(r))
         self.assertAlmostEqual(1, sum(r))
         self.assertAlmostEqual(0, r[0])
         self.assertAlmostEqual(1, r[11])
+        self.assertAlmostEqual(v, features._reverse_35(r))
 
         # bad range is an exception
         self.assertRaises(AssertionError, lambda: features._transform_35(-1.2))
@@ -47,14 +51,19 @@ class TestFeatures(unittest.TestCase):
         self.assertAlmostEqual(1.0, features._unsplit_bound(r))
 
     def test_feature_05(self):
-        r = features._transform_05(-0.65676)
+        v = -0.65676
+        r = features._transform_05(v)
         self.assertEqual(len(r), 122)
         self.assertAlmostEqual(r[0], 1.0)
         self.assertAlmostEqual(sum(r[1:]), 0.0)
-        r = features._transform_05(0.5661479235)  # 5'th entry
+        self.assertAlmostEqual(v, features._reverse_05(r), places=5)
+
+        v = 0.5661479235
+        r = features._transform_05(v)  # 5'th entry
         self.assertAlmostEqual(r[5], 1.0)
         self.assertAlmostEqual(sum(r[:5]), 0.0)
         self.assertAlmostEqual(sum(r[6:]), 0.0)
+        self.assertAlmostEqual(v, features._reverse_05(r), places=5)
 
     def test_result(self):
         f = features.transform(np.zeros((features.ORIGIN_N_FEATURES, )))

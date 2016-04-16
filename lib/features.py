@@ -153,10 +153,39 @@ def _unsplit_bound(data):
     return data.sum()
 
 
+def _reverse_05(data):
+    assert len(data) == sizes[5]
+    assert np.count_nonzero(data) == 1
+
+    first = data[0]
+    bound_1 = data[1:1+60]
+    bound_2 = data[1+60:1+60+60]
+    left = data[1+60+60]
+
+    if first > 0.5:
+        return -0.6567607522
+    if np.count_nonzero(bound_1) == 1:
+        idx = np.nonzero(bound_1)[0][0]
+        return 0.5622291565 + idx * 0.00097969932033898461
+    if np.count_nonzero(bound_2) == 1:
+        idx = np.nonzero(bound_2)[0][0]
+        return 1.2752926350 + idx * 0.00155278787796609800
+    return left
+
+
+def _reverse_35(data):
+    assert len(data) == 23
+    assert np.count_nonzero(data) == 1
+    idx = np.nonzero(data)[0][0]
+    return float(idx-11) / 10.0
+
+
 reverse_transforms = {
     0: _reverse_00,
     1: _unsplit_bound,
     2: _unsplit_bound,
     3: _unsplit_bound,
-    4: _unsplit_bound
+    4: _unsplit_bound,
+    5: _reverse_05,
+    35: _reverse_35,
 }
