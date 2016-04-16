@@ -33,11 +33,11 @@ class TestFeatures(unittest.TestCase):
         v = -0.7275277972002714
         r = features._transform_00(v)
         self.assertEqual(len(r), 181)
-        self.assertAlmostEqual(r[18], 1.0)
+        self.assertAlmostEqual(r[17], 1.0)
         self.assertAlmostEqual(v, features._reverse_00(r), places=5)
         v = -1.5
         r = features._transform_00(v)
-        self.assertAlmostEqual(r[0], -1.5)
+        self.assertAlmostEqual(r[-1], -1.5)
         self.assertAlmostEqual(v, features._reverse_00(r), places=5)
 
     def test_feature_01(self):
