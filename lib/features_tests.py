@@ -5,7 +5,7 @@ import features
 
 class TestFeatures(unittest.TestCase):
     def test_final_size(self):
-        self.assertEqual(1206, features.transformed_size())
+        self.assertEqual(1688, features.transformed_size())
 
     def test_feature_35(self):
         v = -1.1
@@ -64,6 +64,25 @@ class TestFeatures(unittest.TestCase):
         self.assertAlmostEqual(sum(r[:5]), 0.0)
         self.assertAlmostEqual(sum(r[6:]), 0.0)
         self.assertAlmostEqual(v, features._reverse_05(r), places=5)
+
+    def test_feature_09(self):
+        v = -.7955922120711471674 # 7'th entry in first stripe
+        r = features._transform_09(v)
+        self.assertEqual(1, np.count_nonzero(r))
+        self.assertAlmostEqual(1.0, r[7])
+        self.assertAlmostEqual(v, features._reverse_09(r), places=5)
+
+        v = -.7140044569994015538 # 60'th entry in first stripe
+        r = features._transform_09(v)
+        self.assertEqual(1, np.count_nonzero(r))
+        self.assertAlmostEqual(1.0, r[59])
+        self.assertAlmostEqual(v, features._reverse_09(r), places=5)
+
+        v = 1.293757915496888 # single stripe value
+        r = features._transform_09(v)
+        self.assertEqual(1, np.count_nonzero(r))
+        self.assertAlmostEqual(1.0, r[60])
+        self.assertAlmostEqual(v, features._reverse_09(r), places=5)
 
     def test_result(self):
         f = features.transform(np.zeros((features.ORIGIN_N_FEATURES, )))
