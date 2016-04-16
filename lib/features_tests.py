@@ -5,7 +5,7 @@ import features
 
 class TestFeatures(unittest.TestCase):
     def test_final_size(self):
-        self.assertEqual(1084, features.transformed_size())
+        self.assertEqual(1206, features.transformed_size())
 
     def test_feature_35(self):
         v = -1.1
@@ -53,7 +53,7 @@ class TestFeatures(unittest.TestCase):
     def test_feature_05(self):
         v = -0.65676
         r = features._transform_05(v)
-        self.assertEqual(len(r), 422)
+        self.assertEqual(len(r), 242)
         self.assertAlmostEqual(r[0], 1.0)
         self.assertAlmostEqual(sum(r[1:]), 0.0)
         self.assertAlmostEqual(v, features._reverse_05(r), places=5)
