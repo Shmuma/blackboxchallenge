@@ -40,18 +40,36 @@ def _transform_00(value):
 def _transform_05(value):
     first_bucket = value < -0.655
     first_val = 1.0 if first_bucket else 0.0
-    filled_1, res_1 = _transform_striped(value, delta=0.00097969932033898461, start=0.5622291565, stop=0.6200314164)
-    filled_2, res_2 = _transform_striped(value, delta=0.00155278787796609800, start=1.2752926350, stop=1.3669071198)
-    filled_3, res_3 = _transform_striped(value, delta=0.00195939864067796920, start=1.7812191248, stop=1.8968236446)
-    filled_4, res_4 = _transform_striped(value, delta=0.00227479207288135530, start=2.1736462116, stop=2.3078589439)
-    filled_5, res_5 = _transform_striped(value, delta=0.00253248618813559780, start=2.4942824841, stop=2.6436991692)
-    filled_6, res_6 = _transform_striped(value, delta=0.00275036440169491680, start=2.7653765678, stop=2.9276480675)
-    filled_7, res_7 = _transform_striped(value, delta=0.00293910301355931970, start=3.0002088547, stop=3.1736159325)
-    if first_bucket or filled_1 or filled_2 or filled_3 or filled_4 or filled_5 or filled_6 or filled_7:
+    filled = []
+    results = [[first_val]]
+    for delta, start, stop in stripes[5]:
+        f, res = _transform_striped(value, delta=delta, start=start, stop=stop)
+        filled.append(f)
+        results.append(res)
+    if first_bucket or any(filled):
         left = 0.0
     else:
         left = value
-    return np.concatenate([[first_val], res_1, res_2, res_3, res_4, res_5, res_6, res_7, [left]])
+    results.append([left])
+    return np.concatenate(results)
+
+
+def _transform_06(value):
+    first_bucket = value < -0.655
+    first_val = 1.0 if first_bucket else 0.0
+    filled = []
+    results = [[first_val]]
+    for delta, start, stop in stripes[6]:
+        f, res = _transform_striped(value, delta=delta, start=start, stop=stop)
+        filled.append(f)
+        results.append(res)
+    if first_bucket or any(filled):
+        left = 0.0
+    else:
+        left = value
+    results.append([left])
+    return np.concatenate(results)
+
 
 
 def _transform_35(value):
@@ -83,7 +101,8 @@ sizes = {
     2:  2,
     3:  2,
     4:  2,
-    5: 1 + 60*7 + 1,
+    5:  1 + 60*7 + 1,
+    6:  1 + 60*7 + 1,
     35: 23
 }
 
@@ -94,9 +113,32 @@ transforms = {
     3: _split_bound_func(0.0),
     4: _split_bound_func(0.0),
     5: _transform_05,
+    6: _transform_06,
     35: _transform_35
 }
 
+# stripes are encoded as (delta, start, stop)
+stripes = {
+    5: [
+        (0.0009796993203389846, 0.5622291565, 0.6200314164),
+        (0.0015527878779660980, 1.2752926350, 1.3669071198),
+        (0.0019593986406779692, 1.7812191248, 1.8968236446),
+        (0.0022747920728813553, 2.1736462116, 2.3078589439),
+        (0.0025324861881355978, 2.4942824841, 2.6436991692),
+        (0.0027503644016949168, 2.7653765678, 2.9276480675),
+        (0.0029391030135593197, 3.0002088547, 3.1736159325),
+    ],
+
+    6: [
+        (0.0009572505949152544, 0.5395243168, 0.5960021019),
+        (0.0015172049152542358, 1.2412025928, 1.3307176828),
+        (0.0019144991694915242, 1.7390509844, 1.8520064354),
+        (0.0022226673067796670, 2.1252121925, 2.2563495636),
+        (0.0024744534898305092, 2.4407291412, 2.5867218971),
+        (0.0026873410762711858, 2.7074947357, 2.8660478592),
+        (0.0028717437033898212, 2.9385778904, 3.1080107689),
+    ],
+}
 
 def _transform_striped(value, delta, start, stop):
     """
@@ -163,39 +205,31 @@ def _reverse_05(data):
     assert np.count_nonzero(data) == 1
 
     first = data[0]
-    bound_1 = data[1:1+60]
-    bound_2 = data[1+60:1+60+60]
-    bound_3 = data[1+60*2:1+60*3]
-    bound_4 = data[1+60*3:1+60*4]
-    bound_5 = data[1+60*4:1+60*5]
-    bound_6 = data[1+60*5:1+60*6]
-    bound_7 = data[1+60*6:1+60*7]
-    left = data[1+60*7]
-
     if first > 0.5:
         return -0.6567607522
-    if np.count_nonzero(bound_1) == 1:
-        idx = np.nonzero(bound_1)[0][0]
-        return 0.5622291565 + idx * 0.00097969932033898461
-    if np.count_nonzero(bound_2) == 1:
-        idx = np.nonzero(bound_2)[0][0]
-        return 1.2752926350 + idx * 0.00155278787796609800
-    if np.count_nonzero(bound_3) == 1:
-        idx = np.nonzero(bound_3)[0][0]
-        return 1.7812191248 + idx * 0.00195939864067796920
-    if np.count_nonzero(bound_4) == 1:
-        idx = np.nonzero(bound_4)[0][0]
-        return 2.1736462116 + idx * 0.00227479207288135530
-    if np.count_nonzero(bound_5) == 1:
-        idx = np.nonzero(bound_5)[0][0]
-        return 2.4942824841 + idx * 0.00253248618813559780
-    if np.count_nonzero(bound_6) == 1:
-        idx = np.nonzero(bound_6)[0][0]
-        return 2.7653765678 + idx * 0.00275036440169491680
-    if np.count_nonzero(bound_7) == 1:
-        idx = np.nonzero(bound_7)[0][0]
-        return 3.0002088547 + idx * 0.00293910301355931970
-    return left
+
+    for stripe, (delta, start, _) in enumerate(stripes[5]):
+        bound = data[1+stripe*60:1+(stripe+1)*60]
+        if np.count_nonzero(bound) == 1:
+            idx = np.nonzero(bound)[0][0]
+            return start + idx * delta
+    return data[-1]
+
+
+def _reverse_06(data):
+    assert len(data) == sizes[5]
+    assert np.count_nonzero(data) == 1
+
+    first = data[0]
+    if first > 0.5:
+        return -0.6600022316
+
+    for stripe, (delta, start, _) in enumerate(stripes[6]):
+        bound = data[1+stripe*60:1+(stripe+1)*60]
+        if np.count_nonzero(bound) == 1:
+            idx = np.nonzero(bound)[0][0]
+            return start + idx * delta
+    return data[-1]
 
 
 def _reverse_35(data):

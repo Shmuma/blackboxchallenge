@@ -5,7 +5,7 @@ import features
 
 class TestFeatures(unittest.TestCase):
     def test_final_size(self):
-        self.assertEqual(663, features.transformed_size())
+        self.assertEqual(1084, features.transformed_size())
 
     def test_feature_35(self):
         v = -1.1
