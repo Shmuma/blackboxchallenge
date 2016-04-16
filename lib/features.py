@@ -165,7 +165,12 @@ def _reverse_05(data):
     first = data[0]
     bound_1 = data[1:1+60]
     bound_2 = data[1+60:1+60+60]
-    left = data[1+60+60]
+    bound_3 = data[1+60*2:1+60*3]
+    bound_4 = data[1+60*3:1+60*4]
+    bound_5 = data[1+60*4:1+60*5]
+    bound_6 = data[1+60*5:1+60*6]
+    bound_7 = data[1+60*6:1+60*7]
+    left = data[1+60*7]
 
     if first > 0.5:
         return -0.6567607522
@@ -175,6 +180,21 @@ def _reverse_05(data):
     if np.count_nonzero(bound_2) == 1:
         idx = np.nonzero(bound_2)[0][0]
         return 1.2752926350 + idx * 0.00155278787796609800
+    if np.count_nonzero(bound_3) == 1:
+        idx = np.nonzero(bound_3)[0][0]
+        return 1.7812191248 + idx * 0.00195939864067796920
+    if np.count_nonzero(bound_4) == 1:
+        idx = np.nonzero(bound_4)[0][0]
+        return 2.1736462116 + idx * 0.00227479207288135530
+    if np.count_nonzero(bound_5) == 1:
+        idx = np.nonzero(bound_5)[0][0]
+        return 2.4942824841 + idx * 0.00253248618813559780
+    if np.count_nonzero(bound_6) == 1:
+        idx = np.nonzero(bound_6)[0][0]
+        return 2.7653765678 + idx * 0.00275036440169491680
+    if np.count_nonzero(bound_7) == 1:
+        idx = np.nonzero(bound_7)[0][0]
+        return 3.0002088547 + idx * 0.00293910301355931970
     return left
 
 
