@@ -5,7 +5,7 @@ import features
 
 class TestFeatures(unittest.TestCase):
     def test_final_size(self):
-        self.assertEqual(242, features.transformed_size())
+        self.assertEqual(363, features.transformed_size())
 
     def test_feature_35(self):
         r = features._transform_35(-1.1)
@@ -26,20 +26,35 @@ class TestFeatures(unittest.TestCase):
         self.assertRaises(AssertionError, lambda: features._transform_35(-20))
 
     def test_feature_00(self):
-        r = features._transform_00(-0.7275277972002714)
+        v = -0.7275277972002714
+        r = features._transform_00(v)
         self.assertEqual(len(r), 181)
         self.assertAlmostEqual(r[18], 1.0)
-        r = features._transform_00(-1.5)
+        self.assertAlmostEqual(v, features._reverse_00(r), places=5)
+        v = -1.5
+        r = features._transform_00(v)
         self.assertAlmostEqual(r[0], -1.5)
+        self.assertAlmostEqual(v, features._reverse_00(r), places=5)
 
     def test_feature_01(self):
         r = features._split_bound_func(0.0)(-1.0)
         self.assertAlmostEqual(r[0], -1.0)
         self.assertAlmostEqual(r[1], 0.0)
+        self.assertAlmostEqual(-1.0, features._unsplit_bound(r))
         r = features._split_bound_func(0.0)(1.0)
         self.assertAlmostEqual(r[0], 0.0)
         self.assertAlmostEqual(r[1], 1.0)
+        self.assertAlmostEqual(1.0, features._unsplit_bound(r))
 
+    def test_feature_05(self):
+        r = features._transform_05(-0.65676)
+        self.assertEqual(len(r), 122)
+        self.assertAlmostEqual(r[0], 1.0)
+        self.assertAlmostEqual(sum(r[1:]), 0.0)
+        r = features._transform_05(0.5661479235)  # 5'th entry
+        self.assertAlmostEqual(r[5], 1.0)
+        self.assertAlmostEqual(sum(r[:5]), 0.0)
+        self.assertAlmostEqual(sum(r[6:]), 0.0)
 
     def test_result(self):
         f = features.transform(np.zeros((features.ORIGIN_N_FEATURES, )))
