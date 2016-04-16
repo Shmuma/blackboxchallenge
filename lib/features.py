@@ -42,11 +42,16 @@ def _transform_05(value):
     first_val = 1.0 if first_bucket else 0.0
     filled_1, res_1 = _transform_striped(value, delta=0.00097969932033898461, start=0.5622291565, stop=0.6200314164)
     filled_2, res_2 = _transform_striped(value, delta=0.00155278787796609800, start=1.2752926350, stop=1.3669071198)
-    if first_bucket or filled_1 or filled_2:
+    filled_3, res_3 = _transform_striped(value, delta=0.00195939864067796920, start=1.7812191248, stop=1.8968236446)
+    filled_4, res_4 = _transform_striped(value, delta=0.00227479207288135530, start=2.1736462116, stop=2.3078589439)
+    filled_5, res_5 = _transform_striped(value, delta=0.00253248618813559780, start=2.4942824841, stop=2.6436991692)
+    filled_6, res_6 = _transform_striped(value, delta=0.00275036440169491680, start=2.7653765678, stop=2.9276480675)
+    filled_7, res_7 = _transform_striped(value, delta=0.00293910301355931970, start=3.0002088547, stop=3.1736159325)
+    if first_bucket or filled_1 or filled_2 or filled_3 or filled_4 or filled_5 or filled_6 or filled_7:
         left = 0.0
     else:
         left = value
-    return np.concatenate([[first_val], res_1, res_2, [left]])
+    return np.concatenate([[first_val], res_1, res_2, res_3, res_4, res_5, res_6, res_7, [left]])
 
 
 def _transform_35(value):
@@ -78,7 +83,7 @@ sizes = {
     2:  2,
     3:  2,
     4:  2,
-    5: 1 + 60 + 60 + 1,
+    5: 1 + 60*7 + 1,
     35: 23
 }
 
