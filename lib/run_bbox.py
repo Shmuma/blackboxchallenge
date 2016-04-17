@@ -197,7 +197,6 @@ class ReplayBufferPopulationThread(threading.Thread):
             t = time.time()
             populate_replay_buffer(self.replay_buffer, self.session, self.history, self.state_t, self.qvals_t,
                                    alpha=self.alpha, max_steps=self.max_steps)
-            self.replay_buffer.flush()
             self.replay_buffer.reshuffle()
             log.info("{name}: population done in {duration}".format(
                 name=self.name, duration=timedelta(seconds=time.time()-t)
