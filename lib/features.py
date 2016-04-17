@@ -297,7 +297,9 @@ reverse_transforms = {
 
 
 def to_dense(sparse):
-    res = np.zeros((RESULT_N_FEATURES,))
+    return apply_dense(np.zeros((RESULT_N_FEATURES,)), sparse)
+
+def apply_dense(vector, sparse):
     for idx, val in sparse.iteritems():
-        res[idx] = val
-    return res
+        vector[idx] = val
+    return vector

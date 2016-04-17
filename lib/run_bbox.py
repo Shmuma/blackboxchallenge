@@ -93,7 +93,10 @@ def populate_replay_buffer(replay_buffer, session, states_history, states_t, qva
             qvals_t = our_state['qvals_t']
             states_t = our_state['states_t']
 
-            state = np.apply_along_axis(features.transform, 1, our_state['state'])
+            if our_state['history'] == 1:
+                 state = [features.to_dense(features.transforms(our_state['state'][0]))]
+            else:
+                assert False
             qvals, = sess.run([qvals_t], feed_dict={states_t: [state]})
             action = np.argmax(qvals)
 
@@ -148,8 +151,10 @@ def test_performance(session, states_history, states_t, qvals_t, alpha=0.0, verb
             states_t = our_state['states_t']
 
             # do a features transformation
-
-            state = np.apply_along_axis(features.transform, 1, our_state['state'])
+            if our_state['history'] == 1:
+                 state = [features.to_dense(features.transforms(our_state['state'][0]))]
+            else:
+                assert False
 
             qvals, = sess.run([qvals_t], feed_dict={states_t: [state]})
             action = np.argmax(qvals)

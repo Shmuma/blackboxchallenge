@@ -38,7 +38,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t24r2"
+    TEST_NAME = "t24r3"
     TEST_DESCRIPTION = "Most features decomposed"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
@@ -52,7 +52,7 @@ if __name__ == "__main__":
     infra.prepare_bbox()
 
     n_features = features.transformed_size()
-    replay_buffer = replays.ReplayBuffer(1000000, BATCH_SIZE)
+    replay_buffer = replays.ReplayBuffer(1000000, BATCH_SIZE, STATES_HISTORY)
 
     state_t, rewards_t, next_state_t = net.make_vars_v3(STATES_HISTORY, n_features)
 

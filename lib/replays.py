@@ -52,15 +52,16 @@ def discover_replays(path):
 
 
 class ReplayBuffer:
-    def __init__(self, capacity, batch):
+    def __init__(self, capacity, batch, history):
         self.capacity = capacity
         self.batch = batch
         self.buffer = []
         self.epoches = 0
+        self.history = history
 
     def append(self, state, rewards, next_states):
         # if state_history == 1, we don't need to do anything
-        if len(state) == 1:
+        if self.history == 1:
             tr_state = features.transform(state[0])
             tr_next_states = map(features.transform, next_states)
             self.buffer.append(([tr_state], np.copy(rewards), tr_next_states))
@@ -97,15 +98,19 @@ class ReplayBuffer:
             self.reshuffle()
             self.epoches += 1
 
-        states = []
+        states = np.zeros((self.batch, self.history, features.RESULT_N_FEATURES))
         rewards = []
-        next_states = []
+        next_states = np.zeros((self.batch, 4, self.history, features.RESULT_N_FEATURES))
 
-        for idx in self.shuffle[self.batch_idx*self.batch:(self.batch_idx+1)*self.batch]:
+        for batch_ofs, idx in enumerate(self.shuffle[self.batch_idx*self.batch:(self.batch_idx+1)*self.batch]):
             state, reward, next_4_state = self.buffer[idx]
-            states.append(map(features.to_dense, state))
+            if self.history == 1:
+                features.apply_dense(states[batch_ofs, 0], state[0])
+                for action_id, next_state in enumerate(next_4_state):
+                    features.apply_dense(next_states[batch_ofs, action_id, 0], next_state)
+            else:
+                assert False
             rewards.append(reward)
-            next_states.append(map(lambda ns: [features.to_dense(ns)], next_4_state))
 
         self.batch_idx += 1
         return states, rewards, next_states
