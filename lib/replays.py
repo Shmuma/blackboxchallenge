@@ -103,7 +103,10 @@ class ReplayBuffer:
         Return next batch of data
         :return:
         """
-        if (self.batch_idx + 1) * self.batch > len(self.buffer):
+        if not hasattr(self, "batch_idx"):
+            self.reshuffle()
+
+        if (self.batch_idx + 1) * self.batch > len(self.shuffle):
             self.reshuffle()
             self.epoches += 1
 
@@ -121,6 +124,7 @@ class ReplayBuffer:
                 assert False
             rewards.append(reward)
 
+#        log.info("Batch len = %d, buf=%d, idx=%d", len(rewards), len(self.buffer), (self.batch_idx + 1) * self.batch)
         self.batch_idx += 1
         return states, rewards, next_states
 

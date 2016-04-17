@@ -18,10 +18,12 @@ TEST_PERFORMANCE_ITERS = 50000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
-BATCHES_QUEUE_CAPACITY = 1000
+BATCHES_QUEUE_CAPACITY = 300
 
 #REPLAY_STEPS = 20000
 REPLAY_STEPS = None
+
+
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     feed = {
         summ[name]: value for name, value in vals.iteritems()
@@ -31,13 +33,6 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     writer.add_summary(summ_res, iter_no)
     writer.flush()
 
-
-# TODO:
-
-# Run t22r3
-# 1. try long run with gamma = 0.99
-# 2. increase learning rate to speed up training
-# 3. sync interval decreased to 50k
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
@@ -88,6 +83,10 @@ if __name__ == "__main__":
             replays.make_batches_queue_and_thread(session, BATCHES_QUEUE_CAPACITY, replay_buffer)
         batches_data_t = batches_queue.dequeue()
 
+        replay_population_thread = run_bbox.ReplayBufferPopulationThread(replay_buffer, session, STATES_HISTORY,
+                                                                         state_t, qvals_t, REPLAY_STEPS)
+        replay_population_thread.start()
+
         saver = tf.train.Saver(var_list=dict(net.get_v2_vars(trainable=True)).values(), max_to_keep=20)
         session.run(tf.initialize_all_variables())
 
@@ -124,15 +123,9 @@ if __name__ == "__main__":
                     else:
                         alpha = 0.1
 
-                    log.info("{iter}: populating replay buffer with alpha={alpha}".format(
+                    log.info("{iter}: requesting population of replay buffer with alpha={alpha}".format(
                             iter=iter, alpha=alpha))
-                    t = time()
-                    run_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
-                                                    alpha=alpha, max_steps=REPLAY_STEPS)
-                    replay_buffer.reshuffle()
-                    log.info("{iter}: population done in {duration}".format(
-                        iter=iter, duration=timedelta(seconds=time()-t)
-                    ))
+                    replay_population_thread.populate(alpha)
 
                 if iter % TEST_PERFORMANCE_ITERS == 0 and iter > 0:
                     log.info("{iter}: test performance on train and test levels".format(iter=iter))
@@ -190,6 +183,8 @@ if __name__ == "__main__":
                 iter += 1
         finally:
             batches_producer_thread.stop()
+            replay_population_thread.stop()
             coordinator.request_stop()
             coordinator.join(threads)
             batches_producer_thread.join()
+            replay_population_thread.join()

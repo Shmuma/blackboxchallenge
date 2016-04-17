@@ -1,6 +1,10 @@
 import infra, replays, features
 
 import numpy as np
+import threading
+import logging as log
+import time
+from datetime import timedelta
 
 
 def test_net(session, states_history, states_t, qvals_t, alpha=0.0, verbose=0, save_prefix=None):
@@ -166,3 +170,42 @@ def test_performance(session, states_history, states_t, qvals_t, alpha=0.0, verb
     avg_score = score / infra.bbox.get_time()
     return score, avg_score
 
+
+class ReplayBufferPopulationThread(threading.Thread):
+    def __init__(self, replay_buffer, session, history, state_t, qvals_t, max_steps):
+        threading.Thread.__init__(self)
+        self.replay_buffer = replay_buffer
+        self.session = session
+        self.history = history
+        self.state_t = state_t
+        self.qvals_t = qvals_t
+        self.max_steps = max_steps
+        self.populate_request = False
+        self.stop_request = False
+        self.name = "ReplayBufferPopulationThread"
+        self.alpha = 1.0
+
+    def run(self):
+        log.info("%s: started" % self.name)
+        while not self.stop_request:
+            if not self.populate_request:
+                time.sleep(1)
+                continue
+            log.info("%s: populate request, start processing with alpha=%s", self.name, self.alpha)
+            self.populate_request = False
+
+            t = time.time()
+            populate_replay_buffer(self.replay_buffer, self.session, self.history, self.state_t, self.qvals_t,
+                                   alpha=self.alpha, max_steps=self.max_steps)
+            self.replay_buffer.reshuffle()
+            log.info("{name}: population done in {duration}".format(
+                name=self.name, duration=timedelta(seconds=time.time()-t)
+            ))
+
+    def stop(self):
+        self.stop_request = True
+        log.info("%s: stop request received", self.name)
+
+    def populate(self, alpha):
+        self.populate_request = True
+        self.alpha = alpha
