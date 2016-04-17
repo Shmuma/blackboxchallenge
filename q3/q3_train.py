@@ -20,8 +20,8 @@ TEST_CUSTOM_BBOX_ITERS = 0
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
 BATCHES_QUEUE_CAPACITY = 400
 
-#REPLAY_STEPS = 20000
-REPLAY_STEPS = None
+REPLAY_STEPS = 400000
+#REPLAY_STEPS = None
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     feed = {
         summ[name]: value for name, value in vals.iteritems()
