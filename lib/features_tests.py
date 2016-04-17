@@ -7,22 +7,27 @@ class TestFeatures(unittest.TestCase):
     def test_final_size(self):
         self.assertEqual(1688, features.transformed_size())
 
+    def test_to_dense(self):
+        v = features.to_dense({0: 1, 3: 2}, 4)
+        d = np.subtract(v, [1, 0, 0, 2])
+        self.assertEqual(len(d), 4)
+        self.assertAlmostEqual(0.0, d.sum())
+
     def test_feature_35(self):
         v = -1.1
-        r = features._transform_35(v)
-        self.assertEqual(23, len(r))
-        self.assertAlmostEqual(1, sum(r))
-        self.assertAlmostEqual(1.0, r[0])
-        self.assertAlmostEqual(0, r[1])
-        self.assertAlmostEqual(v, features._reverse_35(r))
+        sparse = features._transform_35(v)
+        dense = features.to_dense(sparse, features.sizes[35])
+        self.assertEqual(23, len(dense))
+        self.assertAlmostEqual(1, sum(dense))
+        self.assertAlmostEqual(1.0, dense[0])
+        self.assertAlmostEqual(0, dense[1])
+        self.assertAlmostEqual(v, features._reverse_35(dense))
 
         v = 0.0
         r = features._transform_35(v)
-        self.assertEqual(23, len(r))
-        self.assertAlmostEqual(1, sum(r))
-        self.assertAlmostEqual(0, r[0])
-        self.assertAlmostEqual(1, r[11])
-        self.assertAlmostEqual(v, features._reverse_35(r))
+        self.assertEqual(1, len(r))
+        self.assertAlmostEqual(r[11], 1.0)
+        self.assertAlmostEqual(v, features._reverse_35(features.to_dense(r, features.sizes[35])))
 
         # bad range is an exception
         self.assertRaises(AssertionError, lambda: features._transform_35(-1.2))
@@ -86,7 +91,7 @@ class TestFeatures(unittest.TestCase):
 
     def test_result(self):
         f = features.transform(np.zeros((features.ORIGIN_N_FEATURES, )))
-        self.assertEqual(features.transformed_size(), len(f))
+        self.assertEqual(features.transformed_size(), f.shape[0])
 
     def test_transform_striped(self):
         opts = {
@@ -95,12 +100,10 @@ class TestFeatures(unittest.TestCase):
             'stop': 0.5
         }
 
-        filled, r = features._transform_striped(0.5, **opts)
-        self.assertTrue(filled)
-        self.assertEqual(len(r), 11)
-        self.assertAlmostEqual(r[0], 0.0)
-        self.assertAlmostEqual(r[-1], 1.0)
+        index, total = features._transform_striped(0.5, **opts)
+        self.assertIsNotNone(index)
+        self.assertEqual(total, 11)
+        self.assertEqual(index, 10)
 
-        filled, r = features._transform_striped(-1, **opts)
-        self.assertFalse(filled)
-        self.assertAlmostEqual(0.0, r.sum())
+        index, total = features._transform_striped(-1, **opts)
+        self.assertIsNone(index)

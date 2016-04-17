@@ -60,11 +60,12 @@ class ReplayBuffer:
 
     def append(self, state, rewards, next_states):
         # if state_history == 1, we don't need to do anything
-        st = np.copy(state)
-
-        if st.shape[0] == 1:
-            next_st = np.expand_dims(next_states, 1)
+        if len(state) == 1:
+            tr_state = features.transform(state[0])
+            tr_next_states = map(features.transform, next_states)
+            self.buffer.append(([tr_state], np.copy(rewards), tr_next_states))
         else:
+            st = np.copy(state)
             # combine state history and next_4_state into full next states history
             top_cur_state = st[:-1, :]
             v = []
@@ -72,11 +73,11 @@ class ReplayBuffer:
                 v.append([np.vstack([next_state, top_cur_state])])
             next_st = np.concatenate(v)
 
-        # transform features
-        st = np.apply_along_axis(features.transform, 1, st)
-        next_st = np.apply_along_axis(features.transform, 2, next_st)
+            # transform features
+            st = np.apply_along_axis(features.transform, 1, st)
+            next_st = np.apply_along_axis(features.transform, 2, next_st)
 
-        self.buffer.append((st, np.copy(rewards), next_st))
+            self.buffer.append((st, np.copy(rewards), next_st))
 
     def reshuffle(self):
         """
@@ -102,9 +103,9 @@ class ReplayBuffer:
 
         for idx in self.shuffle[self.batch_idx*self.batch:(self.batch_idx+1)*self.batch]:
             state, reward, next_4_state = self.buffer[idx]
-            states.append(state)
+            states.append(map(features.to_dense, state))
             rewards.append(reward)
-            next_states.append(next_4_state)
+            next_states.append(map(lambda ns: [features.to_dense(ns)], next_4_state))
 
         self.batch_idx += 1
         return states, rewards, next_states

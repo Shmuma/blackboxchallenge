@@ -1,21 +1,23 @@
 import numpy as np
+from scipy.sparse import csr_matrix
 import math
 
-ORIGIN_N_FEATURES = 36
 
-def transform(state):
-    """
-    Perform transformation of state vector to our representation
-    :param state: numpy array of 36 values from bbox state
-    :return: another numpy array with transformed state
-    """
-    result = []
-    for feat in xrange(ORIGIN_N_FEATURES):
-        if feat in transforms:
-            result.append(transforms[feat](state[feat]))
-        else:
-            result.append([state[feat]])
-    return np.concatenate(result)
+# dictionary with resulting feature sizes
+sizes = {
+    0:  60*3 + 1,
+    1:  2,
+    2:  2,
+    3:  2,
+    4:  2,
+    5:  1 + 60*4 + 1,
+    6:  1 + 60*4 + 1,
+    7:  1 + 60*4 + 1,
+    8:  1 + 60*4 + 1,
+    9:  1 + 60*4 + 1,
+    10: 1 + 60*4 + 1,
+    35: 23
+}
 
 
 def transformed_size():
@@ -25,6 +27,28 @@ def transformed_size():
     """
     return 36 - len(sizes) + sum(sizes.values())
 
+
+ORIGIN_N_FEATURES = 36
+RESULT_N_FEATURES = transformed_size()
+
+
+def transform(state):
+    """
+    Perform transformation of state vector to our representation
+    :param state: numpy array of 36 values from bbox state
+    :return: dict with features
+    """
+    res = {}
+    ofs = 0
+    for feat in xrange(ORIGIN_N_FEATURES):
+        if feat in transforms:
+            for idx, val in transforms[feat](state[feat]).iteritems():
+                res[ofs + idx] = val
+            ofs += sizes[feat]
+        else:
+            res[ofs] = float(state[feat])
+            ofs += 1
+    return res
 
 def _transform_00(value):
     return _transform_bound_and_stripes(value, stripes=stripes[0])
@@ -53,23 +77,25 @@ def _transform_10(value):
 
 
 def _transform_bound_and_stripes(value, stripes, eps=1e-6):
-    results = []
-    filled = []
+    results = {}
+    output_index = 0
     for delta, start, stop in stripes:
         # if delta is none, encode value as single stripe
         if delta is None:
-            f = start - eps <= value <= start + eps
-            res = [float(f)]
+            if start - eps <= value <= start + eps:
+                filled_index = 0
+            else:
+                filled_index = None
+            total_size = 1
         else:
-            f, res = _transform_striped(value, delta=delta, start=start, stop=stop)
-        filled.append(f)
-        results.append(res)
-    if any(filled):
-        left = 0.0
-    else:
-        left = value
-    results.append([left])
-    return np.concatenate(results)
+            filled_index, total_size = _transform_striped(value, delta=delta, start=start, stop=stop)
+        if filled_index is not None:
+            results[filled_index + output_index] = 1.0
+            break
+        output_index += total_size
+    if len(results) == 0:
+        results[output_index] = value
+    return results
 
 
 def _reverse_bound_and_stripes(data, stripes):
@@ -97,38 +123,17 @@ def _transform_35(value):
     int_val = int(value * 10.0)
     assert -12 < int_val < 12
 
-    # perform one-hot encoding
-    result = np.zeros((23,))
-    result[int_val + 11] = 1
-    return result
+    return {int_val + 11: 1.0}
 
 
 def _split_bound_func(bound):
     def fun(value):
-        res = np.zeros((2,))
         if value < bound:
-            res[0] = value
+            return {0: float(value)}
         else:
-            res[1] = value
-        return res
+            return {1: float(value)}
     return fun
 
-
-# dictionary with resulting feature sizes
-sizes = {
-    0:  60*3 + 1,
-    1:  2,
-    2:  2,
-    3:  2,
-    4:  2,
-    5:  1 + 60*4 + 1,
-    6:  1 + 60*4 + 1,
-    7:  1 + 60*4 + 1,
-    8:  1 + 60*4 + 1,
-    9:  1 + 60*4 + 1,
-    10: 1 + 60*4 + 1,
-    35: 23
-}
 
 transforms = {
     0: _transform_00,
@@ -218,20 +223,18 @@ def _transform_striped(value, delta, start, stop):
     :return: tuple from (filled_bool, one-hot array)
     """
     count = int(round((stop-start) / delta + 1))
-    res = np.zeros((count,))
     if value < start - delta/2:
-        return False, res
+        return None, count
+    if value > stop + delta/2:
+        return None, count
     ofs = 0
     bound = start + delta/2
-    filled = False
     while bound < stop + delta:
         if value < bound:
-            res[ofs] = 1.0
-            filled = True
-            break
+            return ofs, count
         ofs += 1
         bound += delta
-    return filled, res
+    return None, count
 
 
 # below code exists only for debugging and testing purposes -- reverse transformation of features back to values
@@ -291,3 +294,10 @@ reverse_transforms = {
     10: _reverse_10,
     35: _reverse_35,
 }
+
+
+def to_dense(sparse):
+    res = np.zeros((RESULT_N_FEATURES,))
+    for idx, val in sparse.iteritems():
+        res[idx] = val
+    return res
