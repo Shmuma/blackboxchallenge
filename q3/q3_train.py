@@ -48,7 +48,7 @@ if __name__ == "__main__":
     infra.prepare_bbox()
 
     n_features = features.transformed_size()
-    replay_buffer = replays.ReplayBuffer(2400000, BATCH_SIZE)
+    replay_buffer = replays.ReplayBuffer(800000, BATCH_SIZE)
 
     state_t, rewards_t, next_state_t = net.make_vars_v3(n_features)
 
