@@ -62,10 +62,11 @@ class ReplayBuffer:
         self.buffer = []
         self.epoches = 0
         self.history = history
-        self.ready_to_generate = False
+        self.reshuffled = False
 
     def append(self, state, rewards, next_states):
         # prevent consumers from accessing our buffer
+        self.reshuffled = False
         # if state_history == 1, we don't need to do anything
         if self.history == 1:
             tr_state = features.transform(state[0])
@@ -85,18 +86,16 @@ class ReplayBuffer:
             next_st = np.apply_along_axis(features.transform, 2, next_st)
 
             self.buffer.append((st, np.copy(rewards), next_st))
-        self.ready_to_generate = len(self.buffer) > self.batch * 10
 
     def reshuffle(self):
         """
         Regenerate shuffled batch. Should be called after batch of appends.
         """
-        self.ready_to_generate = False
         while len(self.buffer) > self.capacity:
             self.buffer.pop(0)
         self.shuffle = np.random.permutation(len(self.buffer))
         self.batch_idx = 0
-        self.ready_to_generate = True
+        self.reshuffled = True
 
     def next_batch(self):
         """
@@ -145,7 +144,7 @@ class ReplayBatchProducer(threading.Thread):
         log.info("ReplayBatchProducer: started")
 
         while not self.stop_requested:
-            if not self.replay_buffer.ready_to_generate:
+            if not self.replay_buffer.reshuffled:
                 time.sleep(1)
                 continue
 
