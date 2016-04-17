@@ -121,7 +121,7 @@ if __name__ == "__main__":
                             iter=iter, alpha=alpha))
                     t = time()
                     run_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
-                                                    alpha=alpha, max_steps=REPLAY_STEPS)
+                                                    alpha=alpha, max_steps=REPLAY_STEPS, verbose=100000)
                     replay_buffer.reshuffle()
                     log.info("{iter}: population done in {duration}".format(
                         iter=iter, duration=timedelta(seconds=time()-t)
