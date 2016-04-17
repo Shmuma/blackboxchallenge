@@ -13,14 +13,14 @@ BATCH_SIZE = 500
 REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 100000
 SYNC_MODELS_ITERS = 30000
-FILL_REPLAY_ITERS = 10000
-TEST_PERFORMANCE_ITERS = 10000
+FILL_REPLAY_ITERS = 100000
+TEST_PERFORMANCE_ITERS = 50000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
 BATCHES_QUEUE_CAPACITY = 1000
 
-REPLAY_STEPS = 20000
+REPLAY_STEPS = 1200000
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     feed = {
@@ -41,8 +41,8 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t24r6"
-    TEST_DESCRIPTION = "Most features decomposed"
+    TEST_NAME = "t25r1"
+    TEST_DESCRIPTION = "Full model!"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
     L2_REG = 0.1
@@ -55,7 +55,7 @@ if __name__ == "__main__":
     infra.prepare_bbox()
 
     n_features = features.transformed_size()
-    replay_buffer = replays.ReplayBuffer(1000000, BATCH_SIZE, STATES_HISTORY)
+    replay_buffer = replays.ReplayBuffer(2400000, BATCH_SIZE, STATES_HISTORY)
 
     state_t, rewards_t, next_state_t = net.make_vars_v3(STATES_HISTORY, n_features)
 
