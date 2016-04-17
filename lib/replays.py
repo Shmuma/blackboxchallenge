@@ -1,7 +1,11 @@
 import array, struct
 import glob
+import threading
 
+import tensorflow as tf
 import numpy as np
+import time
+import logging as log
 
 import features
 
@@ -58,8 +62,11 @@ class ReplayBuffer:
         self.buffer = []
         self.epoches = 0
         self.history = history
+        self.reshuffled = False
 
     def append(self, state, rewards, next_states):
+        # prevent consumers from accessing our buffer
+        self.reshuffled = False
         # if state_history == 1, we don't need to do anything
         if self.history == 1:
             tr_state = features.transform(state[0])
@@ -88,6 +95,7 @@ class ReplayBuffer:
             self.buffer.pop(0)
         self.shuffle = np.random.permutation(len(self.buffer))
         self.batch_idx = 0
+        self.reshuffled = True
 
     def next_batch(self):
         """
@@ -118,3 +126,66 @@ class ReplayBuffer:
     def __str__(self):
         return "ReplayBuffer: size={size}, batch={batch}, epoch={epoch}".format(
                 size=len(self.buffer), batch=self.batch_idx, epoch=self.epoches)
+
+
+class ReplayBatchProducer(threading.Thread):
+    def __init__(self, session, capacity, replay_buffer, qsize_t, enqueue_op, vars):
+        threading.Thread.__init__(self)
+        self.session = session
+        self.capacity = capacity
+        self.replay_buffer = replay_buffer
+        self.qsize_t = qsize_t
+        self.enqueue_op = enqueue_op
+        self.vars = vars
+        self.stop_requested = False
+
+
+    def run(self):
+        log.info("ReplayBatchProducer: started")
+
+        while not self.stop_requested:
+            if not self.replay_buffer.reshuffled:
+                time.sleep(1)
+                continue
+
+            qsize, = self.session.run([self.qsize_t])
+            if qsize > self.capacity / 2:
+                time.sleep(1)
+                continue
+
+            states, rewards, next_states = self.replay_buffer.next_batch()
+            feed = {
+                self.vars[0]: states,
+                self.vars[1]: rewards,
+                self.vars[2]: next_states,
+            }
+            self.session.run([self.enqueue_op], feed_dict=feed)
+
+
+    def stop(self):
+        self.stop_requested = True
+        log.info("ReplayBatchProducer: stop requested")
+
+
+def make_batches_queue_and_thread(session, capacity, replay_buffer):
+    """
+    Create fifo queue and start production thread
+    :param session:
+    :param capacity:
+    :param replay_buffer:
+    :return:
+    """
+    queue = tf.FIFOQueue(capacity, (tf.float32, tf.float32, tf.float32))
+    qsize_t = queue.size()
+
+    # make varibles for data to be placed in the queue
+    states_var_t = tf.placeholder(tf.float32)
+    rewards_var_t = tf.placeholder(tf.float32)
+    next_states_var_t = tf.placeholder(tf.float32)
+    enqueue_op = queue.enqueue([states_var_t, rewards_var_t, next_states_var_t])
+
+    producer_thread = ReplayBatchProducer(session, capacity, replay_buffer,
+                                          qsize_t, enqueue_op, (states_var_t, rewards_var_t, next_states_var_t))
+    producer_thread.start()
+
+    return queue, producer_thread

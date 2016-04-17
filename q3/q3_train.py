@@ -12,10 +12,13 @@ STATES_HISTORY = 1
 BATCH_SIZE = 500
 REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 100000
-SYNC_MODELS_ITERS = 50000
+SYNC_MODELS_ITERS = 30000
 FILL_REPLAY_ITERS = 10000
 TEST_PERFORMANCE_ITERS = 10000
 TEST_CUSTOM_BBOX_ITERS = 0
+
+# size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
+BATCHES_QUEUE_CAPACITY = 1000
 
 REPLAY_STEPS = 20000
 
@@ -37,8 +40,8 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 # 3. sync interval decreased to 50k
 
 if __name__ == "__main__":
-    LEARNING_RATE = 5e-5
-    TEST_NAME = "t24r4"
+    LEARNING_RATE = 1e-4
+    TEST_NAME = "t24r6"
     TEST_DESCRIPTION = "Most features decomposed"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
@@ -81,6 +84,10 @@ if __name__ == "__main__":
     report_t = time()
 
     with tf.Session() as session:
+        batches_queue, batches_producer_thread = \
+            replays.make_batches_queue_and_thread(session, BATCHES_QUEUE_CAPACITY, replay_buffer)
+        batches_data_t = batches_queue.dequeue()
+
         saver = tf.train.Saver(var_list=dict(net.get_v2_vars(trainable=True)).values(), max_to_keep=20)
         session.run(tf.initialize_all_variables())
 
@@ -94,85 +101,95 @@ if __name__ == "__main__":
         report_d = score_train = score_avg_train = 0
         score_test = score_avg_test = 0
 
-        while True:
-            # first iters we use zero-initialised next_qvals_t
-            if iter % SYNC_MODELS_ITERS == 0 and iter > 0:
-                log.info("{iter}: sync nets")
-                session.run([sync_nets_t])
+        coordinator = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
 
-            # estimate speed before potential refill to prevent confusing numbers
-            if iter % REPORT_ITERS == 0 and iter > 0:
-                report_d = time() - report_t
-                speed = (BATCH_SIZE * REPORT_ITERS) / report_d
+        try:
+            while True:
+                # first iters we use zero-initialised next_qvals_t
+                if iter % SYNC_MODELS_ITERS == 0 and iter > 0:
+                    log.info("{iter}: sync nets")
+                    session.run([sync_nets_t])
 
-            if iter % FILL_REPLAY_ITERS == 0:
-                if iter < 200000:
-                    alpha = 1.0
-                elif iter <= 1000000:
-                    alpha = 1.0 - (float(iter) / 1000000) + 0.1
-                else:
-                    alpha = 0.1
+                # estimate speed before potential refill to prevent confusing numbers
+                if iter % REPORT_ITERS == 0 and iter > 0:
+                    report_d = time() - report_t
+                    speed = (BATCH_SIZE * REPORT_ITERS) / report_d
 
-                log.info("{iter}: populating replay buffer with alpha={alpha}".format(
-                        iter=iter, alpha=alpha))
-                t = time()
-                run_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
-                                                alpha=alpha, max_steps=REPLAY_STEPS)
-                replay_buffer.reshuffle()
-                log.info("{iter}: population done in {duration}".format(
-                    iter=iter, duration=timedelta(seconds=time()-t)
-                ))
+                if iter % FILL_REPLAY_ITERS == 0:
+                    if iter < 200000:
+                        alpha = 1.0
+                    elif iter <= 1000000:
+                        alpha = 1.0 - (float(iter) / 1000000) + 0.1
+                    else:
+                        alpha = 0.1
 
-            if iter % TEST_PERFORMANCE_ITERS == 0 and iter > 0:
-                log.info("{iter}: test performance on train and test levels".format(iter=iter))
-                t = time()
-                score_train, score_avg_train = run_bbox.test_performance(session, STATES_HISTORY, state_t,
-                                                                         qvals_t, alpha=0.0, max_steps=REPLAY_STEPS, test_level=False)
-                score_test, score_avg_test = run_bbox.test_performance(session, STATES_HISTORY, state_t,
-                                                                       qvals_t, alpha=0.0, max_steps=REPLAY_STEPS, test_level=True)
-                replay_buffer.reshuffle()
-                log.info("{iter}: test done in {duration}, score_train={score_train}, avg_train={score_avg_train:.3e}, "
-                         "score_test={score_test}, avg_test={score_avg_test:.3e}".format(
-                         iter=iter, duration=timedelta(seconds=time()-t), score_train=score_train,
-                         score_avg_train=score_avg_train, score_test=score_test, score_avg_test=score_avg_test
-                ))
-
-            # get data from input pipeline
-            states_batch, rewards_batch, next_states_batch = replay_buffer.next_batch()
-
-            feed = {
-                state_t: states_batch,
-                rewards_t: rewards_batch,
-                next_state_t: next_states_batch
-            }
-            loss, qvals, next_qvals, qref, _ = session.run([loss_t, qvals_t, next_qvals_t, qref_t, opt_t], feed_dict=feed)
-            loss_batch.append(loss)
-
-            if iter % REPORT_ITERS == 0 and iter > 0:
-                report_t = time()
-                avg_loss = np.median(loss_batch)
-                loss_batch = []
-                log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, replay={replay}".format(
-                        iter=iter, loss=avg_loss, duration=timedelta(seconds=report_d),
-                        speed=speed, replay=replay_buffer
-                ))
-                write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed,
-                                score_train=score_train, score_avg_train=score_avg_train,
-                                score_test=score_test, score_avg_test=score_avg_test)
-
-
-            if TEST_CUSTOM_BBOX_ITERS > 0 and iter % TEST_CUSTOM_BBOX_ITERS == 0 and iter > 0:
-                log.info("{iter} Do custom model states:".format(iter=iter))
-                for state in infra.bbox._all_states():
-                    qvals, = session.run([qvals_t], feed_dict={
-                        state_t: [[state]] * BATCH_SIZE
-                    })
-                    log.info("   {state}: {qvals}".format(
-                            state=infra.bbox._describe_state(state),
-                            qvals=", ".join(map(lambda v: "%7.3f" % v, qvals[0]))
+                    log.info("{iter}: populating replay buffer with alpha={alpha}".format(
+                            iter=iter, alpha=alpha))
+                    t = time()
+                    run_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
+                                                    alpha=alpha, max_steps=REPLAY_STEPS)
+                    replay_buffer.reshuffle()
+                    log.info("{iter}: population done in {duration}".format(
+                        iter=iter, duration=timedelta(seconds=time()-t)
                     ))
 
-            if iter % SAVE_MODEL_ITERS == 0 and iter > 0:
-                saver.save(session, "models/model_" + TEST_NAME, global_step=iter)
+                if iter % TEST_PERFORMANCE_ITERS == 0 and iter > 0:
+                    log.info("{iter}: test performance on train and test levels".format(iter=iter))
+                    t = time()
+                    score_train, score_avg_train = run_bbox.test_performance(session, STATES_HISTORY, state_t,
+                                                                             qvals_t, alpha=0.0, max_steps=REPLAY_STEPS, test_level=False)
+                    score_test, score_avg_test = run_bbox.test_performance(session, STATES_HISTORY, state_t,
+                                                                           qvals_t, alpha=0.0, max_steps=REPLAY_STEPS, test_level=True)
+                    replay_buffer.reshuffle()
+                    log.info("{iter}: test done in {duration}, score_train={score_train}, avg_train={score_avg_train:.3e}, "
+                             "score_test={score_test}, avg_test={score_avg_test:.3e}".format(
+                             iter=iter, duration=timedelta(seconds=time()-t), score_train=score_train,
+                             score_avg_train=score_avg_train, score_test=score_test, score_avg_test=score_avg_test
+                    ))
 
-            iter += 1
+                # get data from input pipeline
+                #states_batch, rewards_batch, next_states_batch = replay_buffer.next_batch()
+                states_batch, rewards_batch, next_states_batch = session.run(batches_data_t)
+
+                feed = {
+                    state_t: states_batch,
+                    rewards_t: rewards_batch,
+                    next_state_t: next_states_batch
+                }
+                loss, qvals, next_qvals, qref, _ = session.run([loss_t, qvals_t, next_qvals_t, qref_t, opt_t], feed_dict=feed)
+                loss_batch.append(loss)
+
+                if iter % REPORT_ITERS == 0 and iter > 0:
+                    report_t = time()
+                    avg_loss = np.median(loss_batch)
+                    loss_batch = []
+                    log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, replay={replay}".format(
+                            iter=iter, loss=avg_loss, duration=timedelta(seconds=report_d),
+                            speed=speed, replay=replay_buffer
+                    ))
+                    write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed,
+                                    score_train=score_train, score_avg_train=score_avg_train,
+                                    score_test=score_test, score_avg_test=score_avg_test)
+
+
+                if TEST_CUSTOM_BBOX_ITERS > 0 and iter % TEST_CUSTOM_BBOX_ITERS == 0 and iter > 0:
+                    log.info("{iter} Do custom model states:".format(iter=iter))
+                    for state in infra.bbox._all_states():
+                        qvals, = session.run([qvals_t], feed_dict={
+                            state_t: [[state]] * BATCH_SIZE
+                        })
+                        log.info("   {state}: {qvals}".format(
+                                state=infra.bbox._describe_state(state),
+                                qvals=", ".join(map(lambda v: "%7.3f" % v, qvals[0]))
+                        ))
+
+                if iter % SAVE_MODEL_ITERS == 0 and iter > 0:
+                    saver.save(session, "models/model_" + TEST_NAME, global_step=iter)
+
+                iter += 1
+        finally:
+            batches_producer_thread.stop()
+            coordinator.request_stop()
+            coordinator.join(threads)
+            batches_producer_thread.join()
