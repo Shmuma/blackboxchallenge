@@ -18,7 +18,7 @@ TEST_PERFORMANCE_ITERS = 50000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
-BATCHES_QUEUE_CAPACITY = 1000
+BATCHES_QUEUE_CAPACITY = 400
 
 #REPLAY_STEPS = 20000
 REPLAY_STEPS = None
@@ -31,13 +31,6 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     writer.add_summary(summ_res, iter_no)
     writer.flush()
 
-
-# TODO:
-
-# Run t22r3
-# 1. try long run with gamma = 0.99
-# 2. increase learning rate to speed up training
-# 3. sync interval decreased to 50k
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
