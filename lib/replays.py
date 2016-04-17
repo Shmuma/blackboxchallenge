@@ -60,6 +60,7 @@ class ReplayBuffer:
         self.capacity = capacity
         self.batch = batch
         self.buffer = []
+        self.prebuffer = []
         self.epoches = 0
         self.history = history
         self.ready_to_generate = False
@@ -70,7 +71,7 @@ class ReplayBuffer:
         if self.history == 1:
             tr_state = features.transform(state[0])
             tr_next_states = map(features.transform, next_states)
-            self.buffer.append(([tr_state], np.copy(rewards), tr_next_states))
+            self.prebuffer.append(([tr_state], np.copy(rewards), tr_next_states))
         else:
             st = np.copy(state)
             # combine state history and next_4_state into full next states history
@@ -84,8 +85,15 @@ class ReplayBuffer:
             st = np.apply_along_axis(features.transform, 1, st)
             next_st = np.apply_along_axis(features.transform, 2, next_st)
 
-            self.buffer.append((st, np.copy(rewards), next_st))
+            self.prebuffer.append((st, np.copy(rewards), next_st))
+        if len(self.prebuffer) == 1000:
+            self.flush()
         self.ready_to_generate = len(self.buffer) > self.batch * 10
+
+    def flush(self):
+        self.buffer += self.prebuffer
+        self.prebuffer = []
+
 
     def reshuffle(self):
         """
@@ -124,7 +132,7 @@ class ReplayBuffer:
                 assert False
             rewards.append(reward)
 
-#        log.info("Batch len = %d, buf=%d, idx=%d", len(rewards), len(self.buffer), (self.batch_idx + 1) * self.batch)
+        log.info("Batch len = %d, buf=%d, idx=%d", len(rewards), len(self.buffer), (self.batch_idx + 1) * self.batch)
         self.batch_idx += 1
         return states, rewards, next_states
 
