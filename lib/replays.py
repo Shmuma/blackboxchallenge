@@ -2,6 +2,7 @@ import array, struct
 import glob
 import threading
 
+import sys
 import tensorflow as tf
 import numpy as np
 import time
@@ -104,8 +105,10 @@ class ReplayBuffer:
         return states, rewards, next_states
 
     def __str__(self):
-        return "ReplayBuffer: size={size}, batch={batch}, epoch={epoch}".format(
-                size=len(self.buffer), batch=self.batch_idx, epoch=self.epoches)
+        return "ReplayBuffer: size={size}, batch={batch}, epoch={epoch}, bytes={bytes}".format(
+            size=len(self.buffer), batch=self.batch_idx, epoch=self.epoches,
+            bytes=sys.getsizeof(self.buffer)
+        )
 
 
 class ReplayBatchProducer(threading.Thread):
