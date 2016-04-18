@@ -3,7 +3,7 @@ sys.path.append("..")
 
 from time import time
 from datetime import timedelta
-from lib import infra, net, run_bbox, replays, features
+from lib import infra, net, replays, features
 import numpy as np
 import tensorflow as tf
 
@@ -12,15 +12,18 @@ BATCH_SIZE = 500
 REPORT_ITERS = 100
 SAVE_MODEL_ITERS = 10000
 SYNC_MODELS_ITERS = 30000
-FILL_REPLAY_ITERS = 30000
 TEST_CUSTOM_BBOX_ITERS = 0
 
-# size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
-BATCHES_QUEUE_CAPACITY = 200
+REPLAY_BUFFER_CAPACITY = 2000000
+REPLAY_STEPS_PER_POLL = 100000
 
-REPLAY_STEPS = 400000
-#REPLAY_STEPS = 400000
-#REPLAY_STEPS = None
+# how many epoches we should show data between fresh replay data requests
+EPOCHES_BETWEEN_POLL = 10
+
+# size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
+BATCHES_QUEUE_CAPACITY = 500
+
+
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     feed = {
         summ[name]: value for name, value in vals.iteritems()
@@ -31,9 +34,18 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     writer.flush()
 
 
+def alpha_from_iter(iter_no):
+    if iter < 200000:
+        return 1.0
+    elif iter <= 1000000:
+        return 1.0 - (float(iter_no) / 1000000) + 0.1
+    else:
+        return 0.1
+
+
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t25r6"
+    TEST_NAME = "t25r8"
     TEST_DESCRIPTION = "Full model!"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
@@ -47,7 +59,6 @@ if __name__ == "__main__":
     infra.prepare_bbox()
 
     n_features = features.transformed_size()
-    replay_buffer = replays.ReplayBuffer(2000000, BATCH_SIZE)
 
     state_t, rewards_t, next_state_t = net.make_vars_v3(n_features)
 
@@ -76,24 +87,24 @@ if __name__ == "__main__":
     report_t = time()
 
     with tf.Session() as session:
+        saver = tf.train.Saver(var_list=dict(net.get_v2_vars(trainable=True)).values(), max_to_keep=200)
+        session.run(tf.initialize_all_variables())
+
+        replay_generator = replays.ReplayGenerator(REPLAY_STEPS_PER_POLL, session, next_state_t, next_qvals_t)
+        replay_buffer = replays.ReplayBuffer(REPLAY_BUFFER_CAPACITY, BATCH_SIZE, replay_generator, EPOCHES_BETWEEN_POLL)
         batches_queue, batches_producer_thread = \
             replays.make_batches_queue_and_thread(session, BATCHES_QUEUE_CAPACITY, replay_buffer)
         batches_data_t = batches_queue.dequeue()
         batches_qsize_t = batches_queue.size()
-
-        saver = tf.train.Saver(var_list=dict(net.get_v2_vars(trainable=True)).values(), max_to_keep=20)
-        session.run(tf.initialize_all_variables())
 
         if RESTORE_MODEL is not None:
             saver.restore(session, RESTORE_MODEL)
 
         summary_writer = tf.train.SummaryWriter("logs/" + TEST_NAME, graph_def=session.graph_def)
         loss_batch = []
-        time_batch = []
 
         iter = 0
-        report_d = score_train = score_avg_train = 0
-        score_test = score_avg_test = 0
+        report_d = 0
 
         coordinator = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
@@ -109,30 +120,11 @@ if __name__ == "__main__":
                 if iter % REPORT_ITERS == 0 and iter > 0:
                     report_d = time() - report_t
                     speed = (BATCH_SIZE * REPORT_ITERS) / report_d
-
-                if iter % FILL_REPLAY_ITERS == 0:
-                    if iter < 200000:
-                        alpha = 1.0
-                    elif iter <= 1000000:
-                        alpha = 1.0 - (float(iter) / 1000000) + 0.1
-                    else:
-                        alpha = 0.1
-
-                    log.info("{iter}: populating replay buffer with alpha={alpha}".format(
-                            iter=iter, alpha=alpha))
-                    t = time()
-                    run_bbox.populate_replay_buffer(replay_buffer, session, state_t, qvals_t,
-                                                    alpha=alpha, max_steps=REPLAY_STEPS, verbose=100000)
-                    replay_buffer.reshuffle()
-                    log.info("{iter}: population done in {duration}".format(
-                        iter=iter, duration=timedelta(seconds=time()-t)
-                    ))
+                    replay_generator.set_alpha(alpha_from_iter(iter))
 
                 # get data from input pipeline
-                #states_batch, rewards_batch, next_states_batch = replay_buffer.next_batch()
                 states_batch, rewards_batch, next_states_batch = session.run(batches_data_t)
 
-                batch_started = time()
                 feed = {
                     state_t: states_batch,
                     rewards_t: rewards_batch,
@@ -140,27 +132,19 @@ if __name__ == "__main__":
                 }
                 loss, _ = session.run([loss_t, opt_t], feed_dict=feed)
                 loss_batch.append(loss)
-                time_batch.append(time() - batch_started)
 
                 if iter % REPORT_ITERS == 0 and iter > 0:
                     batches_qsize, = session.run([batches_qsize_t])
                     report_t = time()
                     avg_loss = np.median(loss_batch)
-                    avg_time = np.median(time_batch)
                     loss_batch = []
-                    time_batch = []
                     log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, "
-                             "replay={replay}, batch_q={batches_qsize} ({batchq_perc:.2f}%), "
-                             "batch_time={batch_time}".format(
+                             "{replay}, batch_q={batches_qsize} ({batchq_perc:.2f}%)".format(
                             iter=iter, loss=avg_loss, duration=timedelta(seconds=report_d),
                             speed=speed, replay=replay_buffer, batches_qsize=batches_qsize,
-                            batchq_perc=100.0 * batches_qsize / BATCHES_QUEUE_CAPACITY,
-                            batch_time=timedelta(seconds=avg_time)
-                    ))
-                    write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed,
-                                    score_train=score_train, score_avg_train=score_avg_train,
-                                    score_test=score_test, score_avg_test=score_avg_test)
-
+                            batchq_perc=100.0 * batches_qsize / BATCHES_QUEUE_CAPACITY)
+                    )
+                    write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed)
 
                 if TEST_CUSTOM_BBOX_ITERS > 0 and iter % TEST_CUSTOM_BBOX_ITERS == 0 and iter > 0:
                     log.info("{iter} Do custom model states:".format(iter=iter))

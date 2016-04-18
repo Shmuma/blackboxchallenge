@@ -185,10 +185,6 @@ def make_sync_nets_v2():
 def make_summaries_v2(loss_t, optimiser):
     res = {
         'loss':             tf.Variable(0.0, trainable=False, name="loss"),
-        'score_train':      tf.Variable(0.0, trainable=False, name="score_train"),
-        'score_test':       tf.Variable(0.0, trainable=False, name="score_test"),
-        'score_avg_train':  tf.Variable(0.0, trainable=False, name="score_avg_train"),
-        'score_avg_test':   tf.Variable(0.0, trainable=False, name="score_avg_test"),
         'speed':            tf.Variable(0.0, trainable=False, name="speed"),
     }
 
@@ -201,9 +197,6 @@ def make_summaries_v2(loss_t, optimiser):
     for grad, var in grads:
         tf.scalar_summary("magnitude_" + var.name, tf.sqrt(tf.nn.l2_loss(var)))
         tf.scalar_summary("magnitudeGrad_" + var.name, tf.sqrt(tf.nn.l2_loss(grad)))
-
-#    tf.contrib.layers.summarize_weights()
-#    tf.contrib.layers.summarize_biases()
 
     res['summary_t'] = tf.merge_all_summaries()
     return res
