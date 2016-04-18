@@ -150,9 +150,9 @@ class ReplayBatchProducer(threading.Thread):
                 time.sleep(1)
                 continue
 
-            t = time.time()
+#            t = time.time()
             states, rewards, next_states = self.replay_buffer.next_batch()
-            log.info("ReplayBatchProducer: batch generated in %s, qsize=%d", timedelta(seconds=time.time() - t), qsize)
+#            log.info("ReplayBatchProducer: batch generated in %s, qsize=%d", timedelta(seconds=time.time() - t), qsize)
             feed = {
                 self.vars[0]: states,
                 self.vars[1]: rewards,
