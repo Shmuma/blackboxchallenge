@@ -104,10 +104,22 @@ class ReplayBuffer:
         self.batch_idx += 1
         return states, rewards, next_states
 
+    def buffer_size(self):
+        """
+        Return size in bytes of all entries
+        :return:
+        """
+        size = 0
+        for state, reward, next_states in self.buffer:
+            size += sys.getsizeof(state)
+            size += reward.nbytes
+            size += sum(map(sys.getsizeof, next_states))
+        return size
+
     def __str__(self):
         return "ReplayBuffer: size={size}, batch={batch}, epoch={epoch}, bytes={bytes}".format(
             size=len(self.buffer), batch=self.batch_idx, epoch=self.epoches,
-            bytes=sys.getsizeof(self.buffer)
+            bytes=self.buffer_size()
         )
 
 
