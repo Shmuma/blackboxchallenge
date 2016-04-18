@@ -92,19 +92,20 @@ class ReplayBuffer:
             self.reshuffle()
             self.epoches += 1
 
-        states = np.zeros((self.batch, features.RESULT_N_FEATURES))
+        states = [] #np.zeros((self.batch, features.RESULT_N_FEATURES))
         rewards = []
         next_states = np.zeros((self.batch, 4, features.RESULT_N_FEATURES))
 
         for batch_ofs, idx in enumerate(self.shuffle[self.batch_idx*self.batch:(self.batch_idx+1)*self.batch]):
             state, reward, next_4_state = self.buffer[idx]
-            features.apply_dense(states[batch_ofs], features.transform(state))
+            states.append(features.to_dense(features.transform(state)))
+#            features.apply_dense(states[batch_ofs], features.transform(state))
             for action_id, next_state in enumerate(next_4_state):
                 features.apply_dense(next_states[batch_ofs, action_id], features.transform(next_state))
             rewards.append(reward)
 
         self.batch_idx += 1
-        return states, rewards, next_states
+        return np.concatenate(states), rewards, next_states
 
     def buffer_size(self):
         """
