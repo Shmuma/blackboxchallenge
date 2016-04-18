@@ -165,9 +165,11 @@ if __name__ == "__main__":
                     loss_batch = []
                     time_batch = []
                     log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, "
-                             "replay={replay}, batch_q={batches_qsize}, batch_time={batch_time}".format(
+                             "replay={replay}, batch_q={batches_qsize} ({batchq_perc:.2f}%), "
+                             "batch_time={batch_time}".format(
                             iter=iter, loss=avg_loss, duration=timedelta(seconds=report_d),
                             speed=speed, replay=replay_buffer, batches_qsize=batches_qsize,
+                            batchq_perc=100.0 * batches_qsize / BATCHES_QUEUE_CAPACITY,
                             batch_time=timedelta(seconds=avg_time)
                     ))
                     write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed,
