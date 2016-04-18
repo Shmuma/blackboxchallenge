@@ -113,9 +113,9 @@ class ReplayBuffer:
         """
         size = 0
         for state, reward, next_states in self.buffer:
-            size += sys.getsizeof(state)
+            size += state[0].nbytes + state[1].nbytes
             size += reward.nbytes
-            size += sum(map(sys.getsizeof, next_states))
+            size += sum(map(lambda s: s[0].nbytes + s[1].nbytes, next_states))
         return size
 
     def __str__(self):
