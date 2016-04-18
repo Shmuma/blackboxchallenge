@@ -145,6 +145,12 @@ class ReplayBatchProducer(threading.Thread):
                 time.sleep(1)
                 continue
 
+            # prevent block on queue
+            qsize, = self.session.run([self.qsize_t])
+            if qsize == self.capacity-1:
+                time.sleep(1)
+                continue
+
             states, rewards, next_states = self.replay_buffer.next_batch()
             feed = {
                 self.vars[0]: states,
