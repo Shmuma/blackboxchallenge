@@ -64,11 +64,9 @@ class ReplayBuffer:
         Populate more data from replay_generator and append it to our buffer. Remove expired entries if neccessary
         :return:
         """
-        log.info("ReplayBuffer: pull more data, before: %s", str(self))
         self.buffer += self.replay_generator.next_batch()
         while len(self.buffer) > self.capacity:
             self.buffer.pop(0)
-        log.info("ReplayBuffer: pulled, after: %s", str(self))
         self.reshuffle()
 
     def buffer_size(self):
