@@ -145,11 +145,6 @@ class ReplayBatchProducer(threading.Thread):
                 time.sleep(1)
                 continue
 
-            qsize, = self.session.run([self.qsize_t])
-            if qsize > self.capacity / 2:
-                time.sleep(1)
-                continue
-
 #            t = time.time()
             states, rewards, next_states = self.replay_buffer.next_batch()
 #            log.info("ReplayBatchProducer: batch generated in %s, qsize=%d", timedelta(seconds=time.time() - t), qsize)

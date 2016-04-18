@@ -9,7 +9,7 @@ import tensorflow as tf
 
 
 BATCH_SIZE = 500
-REPORT_ITERS = 100
+REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 100000
 SYNC_MODELS_ITERS = 30000
 FILL_REPLAY_ITERS = 50000
@@ -34,7 +34,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t25r2"
+    TEST_NAME = "t25r3"
     TEST_DESCRIPTION = "Full model!"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
