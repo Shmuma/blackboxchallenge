@@ -1,4 +1,7 @@
 import sys
+
+import gc
+
 sys.path.append("..")
 
 from time import time
@@ -7,7 +10,6 @@ from lib import infra, net, replays, features
 import numpy as np
 import tensorflow as tf
 
-
 BATCH_SIZE = 500
 REPORT_ITERS = 100
 SAVE_MODEL_ITERS = 10000
@@ -15,13 +17,13 @@ SYNC_MODELS_ITERS = 30000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 2000000
-REPLAY_STEPS_PER_POLL = 100000
+REPLAY_STEPS_PER_POLL = 30000
 
 # how many epoches we should show data between fresh replay data requests
 EPOCHES_BETWEEN_POLL = 10
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
-BATCHES_QUEUE_CAPACITY = 500
+BATCHES_QUEUE_CAPACITY = 1000
 
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
@@ -45,7 +47,7 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t25r8"
+    TEST_NAME = "t26r1"
     TEST_DESCRIPTION = "Full model!"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
@@ -87,8 +89,6 @@ if __name__ == "__main__":
     report_t = time()
 
     with tf.Session() as session:
-        saver = tf.train.Saver(var_list=dict(net.get_v2_vars(trainable=True)).values(), max_to_keep=200)
-        session.run(tf.initialize_all_variables())
 
         replay_generator = replays.ReplayGenerator(REPLAY_STEPS_PER_POLL, session, next_state_t, next_qvals_t)
         replay_buffer = replays.ReplayBuffer(REPLAY_BUFFER_CAPACITY, BATCH_SIZE, replay_generator, EPOCHES_BETWEEN_POLL)
@@ -97,10 +97,14 @@ if __name__ == "__main__":
         batches_data_t = batches_queue.dequeue()
         batches_qsize_t = batches_queue.size()
 
+        saver = tf.train.Saver(var_list=dict(net.get_v2_vars(trainable=True)).values(), max_to_keep=200)
+        session.run(tf.initialize_all_variables())
+        batches_producer_thread.start()
+
         if RESTORE_MODEL is not None:
             saver.restore(session, RESTORE_MODEL)
 
-        summary_writer = tf.train.SummaryWriter("logs/" + TEST_NAME, graph_def=session.graph_def)
+        summary_writer = tf.train.SummaryWriter("logs/" + TEST_NAME, session.graph)
         loss_batch = []
 
         iter = 0

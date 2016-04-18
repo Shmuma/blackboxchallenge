@@ -1,5 +1,6 @@
 import threading
 
+import gc
 import tensorflow as tf
 import numpy as np
 import time
@@ -63,7 +64,8 @@ class ReplayBuffer:
         """
         log.info("ReplayBuffer: pull more data, before: %s", str(self))
         self.buffer += self.replay_generator.next_batch()
-        self.buffer = self.buffer[-self.capacity:]
+        while len(self.buffer) > self.capacity:
+            self.buffer.pop(0)
         log.info("ReplayBuffer: pulled, after: %s", str(self))
         self.reshuffle()
 
@@ -95,7 +97,6 @@ class ReplayBatchProducer(threading.Thread):
         self.enqueue_op = enqueue_op
         self.vars = vars
         self.stop_requested = False
-
 
     def run(self):
         log.info("ReplayBatchProducer: started")
@@ -139,8 +140,6 @@ def make_batches_queue_and_thread(session, capacity, replay_buffer):
 
     producer_thread = ReplayBatchProducer(session, capacity, replay_buffer,
                                           qsize_t, enqueue_op, (states_var_t, rewards_var_t, next_states_var_t))
-    producer_thread.start()
-
     return queue, producer_thread
 
 
