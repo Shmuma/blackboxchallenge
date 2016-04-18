@@ -8,6 +8,8 @@ import numpy as np
 import time
 import logging as log
 
+from datetime import timedelta
+
 import features
 
 def pack_item(item):
@@ -148,7 +150,9 @@ class ReplayBatchProducer(threading.Thread):
                 time.sleep(1)
                 continue
 
+            t = time.time()
             states, rewards, next_states = self.replay_buffer.next_batch()
+            log.info("ReplayBatchProducer: batch generated in %s", timedelta(seconds=time.time() - t))
             feed = {
                 self.vars[0]: states,
                 self.vars[1]: rewards,
