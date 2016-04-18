@@ -10,10 +10,9 @@ import tensorflow as tf
 
 BATCH_SIZE = 500
 REPORT_ITERS = 100
-SAVE_MODEL_ITERS = 100000
+SAVE_MODEL_ITERS = 10000
 SYNC_MODELS_ITERS = 30000
 FILL_REPLAY_ITERS = 30000
-TEST_PERFORMANCE_ITERS = 100000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
@@ -127,20 +126,6 @@ if __name__ == "__main__":
                     replay_buffer.reshuffle()
                     log.info("{iter}: population done in {duration}".format(
                         iter=iter, duration=timedelta(seconds=time()-t)
-                    ))
-
-                if iter % TEST_PERFORMANCE_ITERS == 0 and iter > 0:
-                    log.info("{iter}: test performance on train and test levels".format(iter=iter))
-                    t = time()
-                    score_train, score_avg_train = run_bbox.test_performance(session, state_t, qvals_t, alpha=0.0,
-                                                                             max_steps=REPLAY_STEPS, test_level=False)
-                    score_test, score_avg_test = run_bbox.test_performance(session, state_t, qvals_t, alpha=0.0,
-                                                                           max_steps=REPLAY_STEPS, test_level=True)
-                    replay_buffer.reshuffle()
-                    log.info("{iter}: test done in {duration}, score_train={score_train}, avg_train={score_avg_train:.3e}, "
-                             "score_test={score_test}, avg_test={score_avg_test:.3e}".format(
-                             iter=iter, duration=timedelta(seconds=time()-t), score_train=score_train,
-                             score_avg_train=score_avg_train, score_test=score_test, score_avg_test=score_avg_test
                     ))
 
                 # get data from input pipeline

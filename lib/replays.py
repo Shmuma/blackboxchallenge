@@ -2,15 +2,13 @@ import array, struct
 import glob
 import threading
 
-import sys
 import tensorflow as tf
 import numpy as np
 import time
 import logging as log
 
-from datetime import timedelta
+import features, infra
 
-import features
 
 def pack_item(item):
     bbox_state, action, reward = item
@@ -59,7 +57,7 @@ def discover_replays(path):
 
 
 class ReplayBuffer:
-    def __init__(self, capacity, batch):
+    def __init__(self, capacity, batch, replay_generator, epoches_between_pull):
         self.capacity = capacity
         self.batch = batch
         self.buffer = []
@@ -187,3 +185,50 @@ def make_batches_queue_and_thread(session, capacity, replay_buffer):
     producer_thread.start()
 
     return queue, producer_thread
+
+
+class ReplayGenerator:
+    """
+    Class generates batches of replay data.
+    """
+    def __init__(self, batch_size, session, states_t, qvals_t):
+        self.batch_size = batch_size
+        self.session = session
+        self.states_t = states_t
+        self.qvals_t = qvals_t
+        self.reset_bbox()
+
+
+    def reset_bbox(self):
+        infra.prepare_bbox()
+        self.has_next = True
+        self.score = 0.0
+
+
+    def next_batch(self, alpha):
+        """
+        Generate next batch
+        :param alpha:
+        :return: tuple of lists (states, rewards, next_states)
+        """
+        batch = []
+        while len(batch) < self.batch_size:
+            state = features.transform(infra.bbox.get_state())
+            rewards_states = infra.dig_all_actions(self.score)
+            rewards, next_states = zip(*rewards_states)
+            next_states = map(features.transform, next_states)
+            batch.append((state, rewards, next_states))
+
+            # find an action to take
+            if np.random.random() < alpha:
+                action = np.random.randint(0, infra.n_actions, 1)[0]
+            else:
+                qvals, = self.session.run([self.qvals_t], feed_dict={self.states_t: [features.to_dense(state)]})
+                action = np.argmax(qvals)
+
+            self.has_next = infra.bbox.do_action(action)
+            self.score = infra.bbox.get_score()
+            if not self.has_next:
+                self.reset_bbox()
+
+        return batch
