@@ -143,9 +143,9 @@ if __name__ == "__main__":
 
                 # get data from input pipeline
                 #states_batch, rewards_batch, next_states_batch = replay_buffer.next_batch()
-                consume_time = time()
                 states_batch, rewards_batch, next_states_batch = session.run(batches_data_t)
 
+                consume_time = time()
                 feed = {
                     state_t: states_batch,
                     rewards_t: rewards_batch,
