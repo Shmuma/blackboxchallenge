@@ -80,6 +80,7 @@ if __name__ == "__main__":
         batches_queue, batches_producer_thread = \
             replays.make_batches_queue_and_thread(session, BATCHES_QUEUE_CAPACITY, replay_buffer)
         batches_data_t = batches_queue.dequeue()
+        batches_qsize_t = batches_queue.size()
 
         saver = tf.train.Saver(var_list=dict(net.get_v2_vars(trainable=True)).values(), max_to_keep=20)
         session.run(tf.initialize_all_variables())
@@ -89,6 +90,7 @@ if __name__ == "__main__":
 
         summary_writer = tf.train.SummaryWriter("logs/" + TEST_NAME, graph_def=session.graph_def)
         loss_batch = []
+        time_batch = []
 
         iter = 0
         report_d = score_train = score_avg_train = 0
@@ -145,23 +147,26 @@ if __name__ == "__main__":
                 #states_batch, rewards_batch, next_states_batch = replay_buffer.next_batch()
                 states_batch, rewards_batch, next_states_batch = session.run(batches_data_t)
 
-                consume_time = time()
+                batch_started = time()
                 feed = {
                     state_t: states_batch,
                     rewards_t: rewards_batch,
                     next_state_t: next_states_batch
                 }
-                loss, qvals, next_qvals, qref, _ = session.run([loss_t, qvals_t, next_qvals_t, qref_t, opt_t], feed_dict=feed)
+                loss, _ = session.run([loss_t, opt_t], feed_dict=feed)
                 loss_batch.append(loss)
-                log.info("Batch processed in %s", timedelta(seconds=time()-consume_time))
+                time_batch.append(time() - batch_started)
 
                 if iter % REPORT_ITERS == 0 and iter > 0:
+                    batches_qsize, = session.run([batches_qsize_t])
                     report_t = time()
                     avg_loss = np.median(loss_batch)
                     loss_batch = []
-                    log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, replay={replay}".format(
+                    log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, "
+                             "replay={replay}, batch_q={batch_qsize}, batch_time={batch_time}".format(
                             iter=iter, loss=avg_loss, duration=timedelta(seconds=report_d),
-                            speed=speed, replay=replay_buffer
+                            speed=speed, replay=replay_buffer, batches_qsize=batches_qsize,
+                            batch_time=timedelta(seconds=np.median(time_batch))
                     ))
                     write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed,
                                     score_train=score_train, score_avg_train=score_avg_train,
