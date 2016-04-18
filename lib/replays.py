@@ -69,9 +69,9 @@ class ReplayBuffer:
     def append(self, state, rewards, next_states):
         # prevent consumers from accessing our buffer
         self.reshuffled = False
-#        tr_state = features.transform(state)
-#        tr_next_states = map(features.transform, next_states)
-        self.buffer.append((np.copy(state), np.copy(rewards), np.copy(next_states)))
+        tr_state = features.transform(state)
+        tr_next_states = map(features.transform, next_states)
+        self.buffer.append((tr_state, np.copy(rewards), tr_next_states))
 
     def reshuffle(self):
         """
@@ -98,9 +98,9 @@ class ReplayBuffer:
 
         for batch_ofs, idx in enumerate(self.shuffle[self.batch_idx*self.batch:(self.batch_idx+1)*self.batch]):
             state, reward, next_4_state = self.buffer[idx]
-            features.apply_dense(states[batch_ofs], features.transform(state))
+            features.apply_dense(states[batch_ofs], state)
             for action_id, next_state in enumerate(next_4_state):
-                features.apply_dense(next_states[batch_ofs, action_id], features.transform(next_state))
+                features.apply_dense(next_states[batch_ofs, action_id], next_state)
             rewards.append(reward)
 
         self.batch_idx += 1
