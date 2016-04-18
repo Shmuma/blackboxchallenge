@@ -17,7 +17,7 @@ TEST_PERFORMANCE_ITERS = 5000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
-BATCHES_QUEUE_CAPACITY = 400
+BATCHES_QUEUE_CAPACITY = 200
 
 REPLAY_STEPS = 400000
 #REPLAY_STEPS = 400000
