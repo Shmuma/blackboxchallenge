@@ -143,6 +143,7 @@ if __name__ == "__main__":
 
                 # get data from input pipeline
                 #states_batch, rewards_batch, next_states_batch = replay_buffer.next_batch()
+                consume_time = time()
                 states_batch, rewards_batch, next_states_batch = session.run(batches_data_t)
 
                 feed = {
@@ -152,6 +153,7 @@ if __name__ == "__main__":
                 }
                 loss, qvals, next_qvals, qref, _ = session.run([loss_t, qvals_t, next_qvals_t, qref_t, opt_t], feed_dict=feed)
                 loss_batch.append(loss)
+                log.info("Batch processed in %s", timedelta(seconds=time()-consume_time))
 
                 if iter % REPORT_ITERS == 0 and iter > 0:
                     report_t = time()
