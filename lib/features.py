@@ -300,14 +300,10 @@ reverse_transforms = {
 
 
 def to_dense(sparse):
-    return apply_dense(np.zeros((RESULT_N_FEATURES,)), sparse)
+    res = np.zeros((RESULT_N_FEATURES,))
+    apply_dense(res, sparse)
+    return res
 
 def apply_dense(vector, sparse):
-    for idx, val in sparse.iteritems():
-        vector[idx] = val
-    return vector
-
-def apply_dense_test(vector, sparse_idx, sparse_vals):
-    for idx, val in zip(sparse_idx, sparse_vals):
-        vector[idx] = val
+    vector[sparse[0]] = sparse[1]
     return vector

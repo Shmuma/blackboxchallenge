@@ -98,9 +98,9 @@ class ReplayBuffer:
 
         for batch_ofs, idx in enumerate(self.shuffle[self.batch_idx*self.batch:(self.batch_idx+1)*self.batch]):
             state, reward, next_4_state = self.buffer[idx]
-            features.apply_dense_test(states[batch_ofs], state[0], state[1])
+            states[batch_ofs][state[0]] = state[1]
             for action_id, next_state in enumerate(next_4_state):
-                features.apply_dense_test(next_states[batch_ofs, action_id], next_state[0], next_state[1])
+                next_states[batch_ofs, action_id][next_state[0]] = next_state[1]
             rewards.append(reward)
 
         self.batch_idx += 1
