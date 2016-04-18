@@ -30,12 +30,15 @@ class ReplayBuffer:
         self.batch_idx = 0
         self.epoches += 1
 
+    def time_to_pull(self):
+        return len(self.buffer) == 0 or self.epoches_generated >= self.epoches_between_pull
+
     def next_batch(self):
         """
         Return next batch of data
         :return:
         """
-        if len(self.buffer) == 0 or self.epoches_generated >= self.epoches_between_pull:
+        if self.time_to_pull():
             self.pull_more_data()
             self.epoches_generated = 0
 
@@ -102,9 +105,13 @@ class ReplayBatchProducer(threading.Thread):
         log.info("ReplayBatchProducer: started")
 
         while not self.stop_requested:
-            # prevent block on queue
             qsize, = self.session.run([self.qsize_t])
-            if qsize == self.capacity-1:
+            if qsize >= self.capacity-1:
+                time.sleep(1)
+                continue
+
+            # TODO: prevent memory leak
+            if self.replay_buffer.time_to_pull() and qsize > 0:
                 time.sleep(1)
                 continue
 

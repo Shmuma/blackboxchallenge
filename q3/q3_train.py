@@ -17,13 +17,13 @@ SYNC_MODELS_ITERS = 30000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 2000000
-REPLAY_STEPS_PER_POLL = 30000
+REPLAY_STEPS_PER_POLL = 20000
 
 # how many epoches we should show data between fresh replay data requests
-EPOCHES_BETWEEN_POLL = 10
+EPOCHES_BETWEEN_POLL = 20
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
-BATCHES_QUEUE_CAPACITY = 1000
+BATCHES_QUEUE_CAPACITY = 500
 
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
@@ -47,7 +47,7 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t26r1"
+    TEST_NAME = "t26r2"
     TEST_DESCRIPTION = "Full model!"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
@@ -89,7 +89,6 @@ if __name__ == "__main__":
     report_t = time()
 
     with tf.Session() as session:
-
         replay_generator = replays.ReplayGenerator(REPLAY_STEPS_PER_POLL, session, next_state_t, next_qvals_t)
         replay_buffer = replays.ReplayBuffer(REPLAY_BUFFER_CAPACITY, BATCH_SIZE, replay_generator, EPOCHES_BETWEEN_POLL)
         batches_queue, batches_producer_thread = \
@@ -104,7 +103,7 @@ if __name__ == "__main__":
         if RESTORE_MODEL is not None:
             saver.restore(session, RESTORE_MODEL)
 
-        summary_writer = tf.train.SummaryWriter("logs/" + TEST_NAME, session.graph)
+        summary_writer = tf.train.SummaryWriter("logs/" + TEST_NAME, session.graph_def)
         loss_batch = []
 
         iter = 0
