@@ -161,12 +161,14 @@ if __name__ == "__main__":
                     batches_qsize, = session.run([batches_qsize_t])
                     report_t = time()
                     avg_loss = np.median(loss_batch)
+                    avg_time = np.median(time_batch)
                     loss_batch = []
+                    time_batch = []
                     log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, "
                              "replay={replay}, batch_q={batches_qsize}, batch_time={batch_time}".format(
                             iter=iter, loss=avg_loss, duration=timedelta(seconds=report_d),
                             speed=speed, replay=replay_buffer, batches_qsize=batches_qsize,
-                            batch_time=timedelta(seconds=np.median(time_batch))
+                            batch_time=timedelta(seconds=avg_time)
                     ))
                     write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed,
                                     score_train=score_train, score_avg_train=score_avg_train,
