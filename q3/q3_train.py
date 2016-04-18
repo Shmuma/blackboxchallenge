@@ -17,7 +17,7 @@ TEST_PERFORMANCE_ITERS = 5000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
-BATCHES_QUEUE_CAPACITY = 200
+BATCHES_QUEUE_CAPACITY = 500
 
 REPLAY_STEPS = 400000
 #REPLAY_STEPS = 400000
@@ -34,7 +34,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t25r4"
+    TEST_NAME = "t25r5"
     TEST_DESCRIPTION = "Full model!"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
