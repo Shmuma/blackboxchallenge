@@ -48,7 +48,10 @@ def transform(state):
         else:
             res[ofs] = float(state[feat])
             ofs += 1
-    return res
+
+    # TODO: get rid of dicts completely
+    idx, vals = zip(*res.iteritems())
+    return np.array(idx, dtype=np.int16), np.array(vals, dtype=np.float32)
 
 def _transform_00(value):
     return _transform_bound_and_stripes(value, stripes=stripes[0])
@@ -301,5 +304,10 @@ def to_dense(sparse):
 
 def apply_dense(vector, sparse):
     for idx, val in sparse.iteritems():
+        vector[idx] = val
+    return vector
+
+def apply_dense_test(vector, sparse_idx, sparse_vals):
+    for idx, val in zip(sparse_idx, sparse_vals):
         vector[idx] = val
     return vector

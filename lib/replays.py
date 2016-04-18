@@ -98,9 +98,9 @@ class ReplayBuffer:
 
         for batch_ofs, idx in enumerate(self.shuffle[self.batch_idx*self.batch:(self.batch_idx+1)*self.batch]):
             state, reward, next_4_state = self.buffer[idx]
-            features.apply_dense(states[batch_ofs], state)
+            features.apply_dense_test(states[batch_ofs], state[0], state[1])
             for action_id, next_state in enumerate(next_4_state):
-                features.apply_dense(next_states[batch_ofs, action_id], next_state)
+                features.apply_dense_test(next_states[batch_ofs, action_id], next_state[0], next_state[1])
             rewards.append(reward)
 
         self.batch_idx += 1
@@ -145,9 +145,7 @@ class ReplayBatchProducer(threading.Thread):
                 time.sleep(1)
                 continue
 
-#            t = time.time()
             states, rewards, next_states = self.replay_buffer.next_batch()
-#            log.info("ReplayBatchProducer: batch generated in %s, qsize=%d", timedelta(seconds=time.time() - t), qsize)
             feed = {
                 self.vars[0]: states,
                 self.vars[1]: rewards,
