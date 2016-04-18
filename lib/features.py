@@ -38,36 +38,32 @@ def transform(state):
     :param state: numpy array of 36 values from bbox state
     :return: dict with features
     """
-    res = {}
+    res = []
     ofs = 0
     for feat in xrange(ORIGIN_N_FEATURES):
         if feat in transforms:
-            for idx, val in transforms[feat](state[feat]).iteritems():
-                res[ofs + idx] = val
+            idx, val = transforms[feat](state[feat])
+            res.append((idx + ofs, val))
             ofs += sizes[feat]
         else:
-            res[ofs] = float(state[feat])
+            res.append((ofs, float(state[feat])))
             ofs += 1
 
-    # TODO: get rid of dicts completely
-    idx, vals = zip(*res.iteritems())
+    idx, vals = zip(*res)
     return np.array(idx, dtype=np.int16), np.array(vals, dtype=np.float32)
+
 
 def _transform_00(value):
     return _transform_bound_and_stripes(value, stripes=stripes[0])
 
-
 def _transform_05(value):
     return _transform_bound_and_stripes(value, stripes=stripes[5])
-
 
 def _transform_06(value):
     return _transform_bound_and_stripes(value, stripes=stripes[6])
 
-
 def _transform_07(value):
     return _transform_bound_and_stripes(value, stripes=stripes[7])
-
 
 def _transform_08(value):
     return _transform_bound_and_stripes(value, stripes=stripes[8])
@@ -80,7 +76,6 @@ def _transform_10(value):
 
 
 def _transform_bound_and_stripes(value, stripes, eps=1e-6):
-    results = {}
     output_index = 0
     for delta, start, stop in stripes:
         # if delta is none, encode value as single stripe
@@ -93,51 +88,45 @@ def _transform_bound_and_stripes(value, stripes, eps=1e-6):
         else:
             filled_index, total_size = _transform_striped(value, delta=delta, start=start, stop=stop)
         if filled_index is not None:
-            results[filled_index + output_index] = 1.0
-            break
+            return (filled_index + output_index, 1.0)
         output_index += total_size
-    if len(results) == 0:
-        results[output_index] = value
-    return results
+    return output_index, value
 
 
 def _reverse_bound_and_stripes(data, stripes):
-    assert np.count_nonzero(data) == 1
-
+    idx, val = data
     ofs = 0
     stripe = 0
 
     for delta, start, _ in stripes:
         if delta is None:
-            if data[ofs+stripe*60] > 0.5:
+            if ofs+stripe*60 == idx:
                 return start
             ofs += 1
         else:
-            bound = data[ofs+stripe*60:ofs+(stripe+1)*60]
-            if np.count_nonzero(bound) == 1:
-                idx = np.nonzero(bound)[0][0]
-                return start + idx * delta
+            if ofs+stripe*60 <= idx < ofs+(stripe+1)*60:
+                return start + delta * (idx - ofs+stripe*60)
             stripe += 1
-    return data[-1]
+    return val
 
 
 def _transform_35(value):
     # resulting value is in range [-11..11]
     int_val = int(value * 10.0)
     assert -12 < int_val < 12
-
-    return {int_val + 11: 1.0}
+    return (int_val + 11, 1.0)
 
 
 def _split_bound_func(bound):
     def fun(value):
         if value < bound:
-            return {0: float(value)}
+            return (0, float(value))
         else:
-            return {1: float(value)}
+            return (1, float(value))
     return fun
 
 
+# all of them should return tuple with (idx, value) of sparse representation
 transforms = {
     0: _transform_00,
     1: _split_bound_func(0.0),
@@ -248,13 +237,11 @@ def _reverse_00(data):
 def _unsplit_bound(data):
     """
     Perform reverse of _split_bound_func(bound) application - join two values together.
-    To reverse split, just sum data array
     :param data:
     :return:
     """
     assert len(data) == 2
-    assert np.count_nonzero(data) == 1
-    return data.sum()
+    return data[1]
 
 
 def _reverse_05(data):
@@ -277,9 +264,7 @@ def _reverse_10(data):
 
 
 def _reverse_35(data):
-    assert len(data) == 23
-    assert np.count_nonzero(data) == 1
-    idx = np.nonzero(data)[0][0]
+    idx, _ = data
     return float(idx-11) / 10.0
 
 
