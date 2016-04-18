@@ -13,7 +13,7 @@ REPORT_ITERS = 100
 SAVE_MODEL_ITERS = 100000
 SYNC_MODELS_ITERS = 30000
 FILL_REPLAY_ITERS = 30000
-TEST_PERFORMANCE_ITERS = 5000
+TEST_PERFORMANCE_ITERS = 100000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
@@ -34,7 +34,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t25r5"
+    TEST_NAME = "t25r6"
     TEST_DESCRIPTION = "Full model!"
     RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
     GAMMA = 0.99
