@@ -56,36 +56,19 @@ def discover_replays(path):
 
 
 class ReplayBuffer:
-    def __init__(self, capacity, batch, history):
+    def __init__(self, capacity, batch):
         self.capacity = capacity
         self.batch = batch
         self.buffer = []
         self.epoches = 0
-        self.history = history
         self.reshuffled = False
 
     def append(self, state, rewards, next_states):
         # prevent consumers from accessing our buffer
         self.reshuffled = False
-        # if state_history == 1, we don't need to do anything
-        if self.history == 1:
-            tr_state = features.transform(state[0])
-            tr_next_states = map(features.transform, next_states)
-            self.buffer.append(([tr_state], np.copy(rewards), tr_next_states))
-        else:
-            st = np.copy(state)
-            # combine state history and next_4_state into full next states history
-            top_cur_state = st[:-1, :]
-            v = []
-            for next_state in next_states:
-                v.append([np.vstack([next_state, top_cur_state])])
-            next_st = np.concatenate(v)
-
-            # transform features
-            st = np.apply_along_axis(features.transform, 1, st)
-            next_st = np.apply_along_axis(features.transform, 2, next_st)
-
-            self.buffer.append((st, np.copy(rewards), next_st))
+        tr_state = features.transform(state)
+        tr_next_states = map(features.transform, next_states)
+        self.buffer.append((tr_state, np.copy(rewards), tr_next_states))
 
     def reshuffle(self):
         """
@@ -106,18 +89,15 @@ class ReplayBuffer:
             self.reshuffle()
             self.epoches += 1
 
-        states = np.zeros((self.batch, self.history, features.RESULT_N_FEATURES))
+        states = np.zeros((self.batch, features.RESULT_N_FEATURES))
         rewards = []
-        next_states = np.zeros((self.batch, 4, self.history, features.RESULT_N_FEATURES))
+        next_states = np.zeros((self.batch, 4, features.RESULT_N_FEATURES))
 
         for batch_ofs, idx in enumerate(self.shuffle[self.batch_idx*self.batch:(self.batch_idx+1)*self.batch]):
             state, reward, next_4_state = self.buffer[idx]
-            if self.history == 1:
-                features.apply_dense(states[batch_ofs, 0], state[0])
-                for action_id, next_state in enumerate(next_4_state):
-                    features.apply_dense(next_states[batch_ofs, action_id, 0], next_state)
-            else:
-                assert False
+            features.apply_dense(states[batch_ofs], state)
+            for action_id, next_state in enumerate(next_4_state):
+                features.apply_dense(next_states[batch_ofs, action_id], next_state)
             rewards.append(reward)
 
         self.batch_idx += 1

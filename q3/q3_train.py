@@ -7,20 +7,20 @@ from lib import infra, net, run_bbox, replays, features
 import numpy as np
 import tensorflow as tf
 
-STATES_HISTORY = 1
 
 BATCH_SIZE = 500
 REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 100000
 SYNC_MODELS_ITERS = 30000
 FILL_REPLAY_ITERS = 100000
-TEST_PERFORMANCE_ITERS = 50000
+TEST_PERFORMANCE_ITERS = 5000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
 BATCHES_QUEUE_CAPACITY = 400
 
-REPLAY_STEPS = 400000
+REPLAY_STEPS = 20000
+#REPLAY_STEPS = 400000
 #REPLAY_STEPS = None
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     feed = {
@@ -48,13 +48,13 @@ if __name__ == "__main__":
     infra.prepare_bbox()
 
     n_features = features.transformed_size()
-    replay_buffer = replays.ReplayBuffer(2400000, BATCH_SIZE, STATES_HISTORY)
+    replay_buffer = replays.ReplayBuffer(2400000, BATCH_SIZE)
 
-    state_t, rewards_t, next_state_t = net.make_vars_v3(STATES_HISTORY, n_features)
+    state_t, rewards_t, next_state_t = net.make_vars_v3(n_features)
 
     # make two networks - one is to train, second is periodically cloned from first
-    qvals_t = net.make_forward_net_v3(STATES_HISTORY, state_t, n_features=n_features, is_main_net=True)
-    next_qvals_t = net.make_forward_net_v3(STATES_HISTORY, next_state_t, n_features=n_features, is_main_net=False)
+    qvals_t = net.make_forward_net_v3(state_t, n_features=n_features, is_main_net=True)
+    next_qvals_t = net.make_forward_net_v3(next_state_t, n_features=n_features, is_main_net=False)
 
     # describe qvalues
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(qvals_t, name="qvals"))
@@ -120,7 +120,7 @@ if __name__ == "__main__":
                     log.info("{iter}: populating replay buffer with alpha={alpha}".format(
                             iter=iter, alpha=alpha))
                     t = time()
-                    run_bbox.populate_replay_buffer(replay_buffer, session, STATES_HISTORY, state_t, qvals_t,
+                    run_bbox.populate_replay_buffer(replay_buffer, session, state_t, qvals_t,
                                                     alpha=alpha, max_steps=REPLAY_STEPS, verbose=100000)
                     replay_buffer.reshuffle()
                     log.info("{iter}: population done in {duration}".format(
@@ -130,10 +130,10 @@ if __name__ == "__main__":
                 if iter % TEST_PERFORMANCE_ITERS == 0 and iter > 0:
                     log.info("{iter}: test performance on train and test levels".format(iter=iter))
                     t = time()
-                    score_train, score_avg_train = run_bbox.test_performance(session, STATES_HISTORY, state_t,
-                                                                             qvals_t, alpha=0.0, max_steps=REPLAY_STEPS, test_level=False)
-                    score_test, score_avg_test = run_bbox.test_performance(session, STATES_HISTORY, state_t,
-                                                                           qvals_t, alpha=0.0, max_steps=REPLAY_STEPS, test_level=True)
+                    score_train, score_avg_train = run_bbox.test_performance(session, state_t, qvals_t, alpha=0.0,
+                                                                             max_steps=REPLAY_STEPS, test_level=False)
+                    score_test, score_avg_test = run_bbox.test_performance(session, state_t, qvals_t, alpha=0.0,
+                                                                           max_steps=REPLAY_STEPS, test_level=True)
                     replay_buffer.reshuffle()
                     log.info("{iter}: test done in {duration}, score_train={score_train}, avg_train={score_avg_train:.3e}, "
                              "score_test={score_test}, avg_test={score_avg_test:.3e}".format(
@@ -170,7 +170,7 @@ if __name__ == "__main__":
                     log.info("{iter} Do custom model states:".format(iter=iter))
                     for state in infra.bbox._all_states():
                         qvals, = session.run([qvals_t], feed_dict={
-                            state_t: [[state]] * BATCH_SIZE
+                            state_t: [state] * BATCH_SIZE
                         })
                         log.info("   {state}: {qvals}".format(
                                 state=infra.bbox._describe_state(state),
