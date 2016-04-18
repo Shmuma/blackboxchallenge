@@ -163,7 +163,7 @@ if __name__ == "__main__":
                     avg_loss = np.median(loss_batch)
                     loss_batch = []
                     log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, "
-                             "replay={replay}, batch_q={batch_qsize}, batch_time={batch_time}".format(
+                             "replay={replay}, batch_q={batches_qsize}, batch_time={batch_time}".format(
                             iter=iter, loss=avg_loss, duration=timedelta(seconds=report_d),
                             speed=speed, replay=replay_buffer, batches_qsize=batches_qsize,
                             batch_time=timedelta(seconds=np.median(time_batch))
