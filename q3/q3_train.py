@@ -1,7 +1,5 @@
 import sys
 
-import gc
-
 sys.path.append("..")
 
 from time import time

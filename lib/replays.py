@@ -1,6 +1,5 @@
 import threading
 
-import gc
 import tensorflow as tf
 import numpy as np
 import time
@@ -85,8 +84,8 @@ class ReplayBuffer:
         return size
 
     def __str__(self):
-        return "ReplayBuffer[size={size}, epoch={epoch}]".format(
-            size=len(self.buffer), epoch=self.epoches
+        return "ReplayBuffer[size={size}, epoch={epoch}, e_pull={epull}]".format(
+            size=len(self.buffer), epoch=self.epoches, epull=self.epoches_generated
         )
 
 
