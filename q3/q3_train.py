@@ -100,6 +100,7 @@ if __name__ == "__main__":
 
         if RESTORE_MODEL is not None:
             saver.restore(session, RESTORE_MODEL)
+            session.run([sync_nets_t])
 
         summary_writer = tf.train.SummaryWriter("logs/" + TEST_NAME, session.graph_def)
         loss_batch = []
