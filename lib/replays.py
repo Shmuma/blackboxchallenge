@@ -151,12 +151,12 @@ class ReplayGenerator:
     """
     Class generates batches of replay data.
     """
-    def __init__(self, batch_size, session, states_t, qvals_t):
+    def __init__(self, batch_size, session, states_t, qvals_t, alpha=1.0):
         self.batch_size = batch_size
         self.session = session
         self.states_t = states_t
         self.qvals_t = qvals_t
-        self.alpha = 1.0
+        self.alpha = alpha
         self.reset_bbox()
 
     def reset_bbox(self):

@@ -45,9 +45,9 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t26r2"
+    TEST_NAME = "t26r3"
     TEST_DESCRIPTION = "Full model!"
-    RESTORE_MODEL = None #"models-copy/model_t8r1-2000000"
+    RESTORE_MODEL = "models/model_t26r2-200000"
     GAMMA = 0.99
     L2_REG = 0.1
 
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     report_t = time()
 
     with tf.Session() as session:
-        replay_generator = replays.ReplayGenerator(REPLAY_STEPS_PER_POLL, session, next_state_t, next_qvals_t)
+        replay_generator = replays.ReplayGenerator(REPLAY_STEPS_PER_POLL, session, state_t, qvals_t)
         replay_buffer = replays.ReplayBuffer(REPLAY_BUFFER_CAPACITY, BATCH_SIZE, replay_generator, EPOCHES_BETWEEN_POLL)
         batches_queue, batches_producer_thread = \
             replays.make_batches_queue_and_thread(session, BATCHES_QUEUE_CAPACITY, replay_buffer)
