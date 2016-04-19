@@ -255,7 +255,9 @@ def make_forward_net_v3(states_t, is_main_net, n_features, dropout_prob=0.5):
         v = tf.matmul(l0_out, w) + b
         if dropout:
             v = tf.nn.dropout(v, dropout_prob)
-        l1_out = leaky_relu(v, summary=is_main_net)
+        l1_out = tf.nn.relu(v)
+        if is_main_net:
+            tf.contrib.layers.summarize_activation(l1_out)
 
     with tf.name_scope("L2" + suff):
         w = tf.Variable(init((L2_SIZE, L3_SIZE)), **w_attrs)
@@ -263,7 +265,9 @@ def make_forward_net_v3(states_t, is_main_net, n_features, dropout_prob=0.5):
         v = tf.matmul(l1_out, w) + b
         if dropout:
             v = tf.nn.dropout(v, dropout_prob)
-        l2_out = leaky_relu(v, summary=is_main_net)
+        l2_out = tf.nn.relu(v)
+        if is_main_net:
+            tf.contrib.layers.summarize_activation(l2_out)
 
     with tf.name_scope("L3" + suff):
         w = tf.Variable(init((L3_SIZE, infra.n_actions)), **w_attrs)
