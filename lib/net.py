@@ -210,6 +210,15 @@ def make_vars_v3(n_features):
     return state_t, rewards_t, next_state_t
 
 
+def leaky_relu(x_t, alpha=0.01, summary=True):
+    res_t = tf.maximum(x_t * alpha, x_t)
+    if summary:
+        negatives_t = tf.reduce_mean(tf.to_float(tf.less(res_t, 0.0)))
+        name = "%s/negatives" % x_t.name
+        tf.contrib.layers.summaries._add_scalar_summary(negatives_t, name)
+    return res_t
+
+
 def make_forward_net_v3(states_t, is_main_net, n_features, dropout_prob=0.5):
     if not is_main_net:
         states_t = tf.reshape(states_t, (-1, n_features))
@@ -238,9 +247,7 @@ def make_forward_net_v3(states_t, is_main_net, n_features, dropout_prob=0.5):
         w = tf.Variable(init((n_features, L1_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L1_SIZE,)), **b_attrs)
         v = tf.matmul(states_t, w) + b
-        l0_out = tf.nn.relu(v)
-        if is_main_net:
-            tf.contrib.layers.summarize_activation(l0_out)
+        l0_out = leaky_relu(v, summary=is_main_net)
 
     with tf.name_scope("L1" + suff):
         w = tf.Variable(init((L1_SIZE, L2_SIZE)), **w_attrs)
@@ -248,9 +255,7 @@ def make_forward_net_v3(states_t, is_main_net, n_features, dropout_prob=0.5):
         v = tf.matmul(l0_out, w) + b
         if dropout:
             v = tf.nn.dropout(v, dropout_prob)
-        l1_out = tf.nn.relu(v)
-        if is_main_net:
-            tf.contrib.layers.summarize_activation(l1_out)
+        l1_out = leaky_relu(v, summary=is_main_net)
 
     with tf.name_scope("L2" + suff):
         w = tf.Variable(init((L2_SIZE, L3_SIZE)), **w_attrs)
@@ -258,9 +263,7 @@ def make_forward_net_v3(states_t, is_main_net, n_features, dropout_prob=0.5):
         v = tf.matmul(l1_out, w) + b
         if dropout:
             v = tf.nn.dropout(v, dropout_prob)
-        l2_out = tf.nn.relu(v)
-        if is_main_net:
-            tf.contrib.layers.summarize_activation(l2_out)
+        l2_out = leaky_relu(v, summary=is_main_net)
 
     with tf.name_scope("L3" + suff):
         w = tf.Variable(init((L3_SIZE, infra.n_actions)), **w_attrs)

@@ -45,9 +45,9 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t26r3"
-    TEST_DESCRIPTION = "Full model!"
-    RESTORE_MODEL = "models/model_t26r2-200000"
+    TEST_NAME = "t27r1"
+    TEST_DESCRIPTION = "Leaky ReLU"
+    RESTORE_MODEL = None#"models/model_t26r2-200000"
     GAMMA = 0.99
     L2_REG = 0.1
 
