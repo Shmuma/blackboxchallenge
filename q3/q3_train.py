@@ -20,6 +20,8 @@ REPLAY_STEPS_PER_POLL = 50000
 # how many epoches we should show data between fresh replay data requests
 EPOCHES_BETWEEN_POLL = 20
 
+DECAY_STEPS = 100000
+
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
 BATCHES_QUEUE_CAPACITY = 500
 
@@ -44,10 +46,10 @@ def alpha_from_iter(iter_no):
 
 
 if __name__ == "__main__":
-    LEARNING_RATE = 1e-4
-    TEST_NAME = "t27r1"
+    LEARNING_RATE = 5e-5
+    TEST_NAME = "t27r2"
     TEST_DESCRIPTION = "Leaky ReLU"
-    RESTORE_MODEL = None#"models/model_t26r2-200000"
+    RESTORE_MODEL = "models/model_t27r1-650000"
     GAMMA = 0.99
     L2_REG = 0.1
 
@@ -77,7 +79,7 @@ if __name__ == "__main__":
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(next_qvals_t, 1), name="qworst_next"))
 
     loss_t, qref_t = net.make_loss_v3(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, l2_reg=L2_REG)
-    opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=None)
+    opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=DECAY_STEPS)
 
     sync_nets_t = net.make_sync_nets_v2()
     summ = net.make_summaries_v2(loss_t, optimiser)
@@ -101,6 +103,7 @@ if __name__ == "__main__":
         if RESTORE_MODEL is not None:
             saver.restore(session, RESTORE_MODEL)
             session.run([sync_nets_t])
+            print "Global step: {step}".format(step=session.run([global_step]))
 
         summary_writer = tf.train.SummaryWriter("logs/" + TEST_NAME, session.graph_def)
         loss_batch = []
