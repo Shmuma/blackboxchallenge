@@ -210,11 +210,11 @@ def make_vars_v3(n_features):
     return state_t, rewards_t, next_state_t
 
 
-def leaky_relu(x_t, alpha=0.01, summary=True):
+def leaky_relu(x_t, name, alpha=0.01, summary=True):
     res_t = tf.maximum(x_t * alpha, x_t)
     if summary:
         negatives_t = tf.reduce_mean(tf.to_float(tf.less(res_t, 0.0)))
-        name = "%s/negatives" % x_t.name
+        name = "%s/negatives" % name
         tf.contrib.layers.summaries._add_scalar_summary(negatives_t, name)
     return res_t
 
@@ -247,7 +247,7 @@ def make_forward_net_v3(states_t, is_main_net, n_features, dropout_prob=0.5):
         w = tf.Variable(init((n_features, L1_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L1_SIZE,)), **b_attrs)
         v = tf.matmul(states_t, w) + b
-        l0_out = leaky_relu(v, summary=is_main_net)
+        l0_out = leaky_relu(v, name="L0", summary=is_main_net)
 
     with tf.name_scope("L1" + suff):
         w = tf.Variable(init((L1_SIZE, L2_SIZE)), **w_attrs)
