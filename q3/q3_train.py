@@ -20,7 +20,7 @@ REPLAY_STEPS_PER_POLL = 50000
 # how many epoches we should show data between fresh replay data requests
 EPOCHES_BETWEEN_POLL = 15
 
-DECAY_STEPS = 100000
+DECAY_STEPS = 200000
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
 BATCHES_QUEUE_CAPACITY = 500
