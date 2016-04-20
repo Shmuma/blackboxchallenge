@@ -4,7 +4,7 @@ import infra
 
 L1_SIZE = 512
 L2_SIZE = 512
-L3_SIZE = 128
+L3_SIZE = 256
 
 def make_vars():
     state_t = tf.placeholder(tf.float32, (None, infra.n_features), name="State")
@@ -138,7 +138,7 @@ def make_opt(loss_t, learning_rate, decay_every_steps=10000):
 
 
 def get_v2_vars(trainable, only_weights=False):
-    layers = ["L0", "L1", "L2", "L3"]
+    layers = ["L0", "L2", "L3"]
     l_suffix = "_T" if trainable else "_R"
     names = []
     for l in layers:
@@ -156,8 +156,8 @@ def make_sync_nets_v2():
     sync_vars = [
         ("L0_T/w", "L0_R/w"),
         ("L0_T/b", "L0_R/b"),
-        ("L1_T/w", "L1_R/w"),
-        ("L1_T/b", "L1_R/b"),
+        # ("L1_T/w", "L1_R/w"),
+        # ("L1_T/b", "L1_R/b"),
         ("L2_T/w", "L2_R/w"),
         ("L2_T/b", "L2_R/b"),
         ("L3_T/w", "L3_R/w"),
@@ -249,20 +249,20 @@ def make_forward_net_v3(states_t, is_main_net, n_features, dropout_prob=0.5):
         v = tf.matmul(states_t, w) + b
         l0_out = leaky_relu(v, name="L0", summary=is_main_net)
 
-    with tf.name_scope("L1" + suff):
-        w = tf.Variable(init((L1_SIZE, L2_SIZE)), **w_attrs)
-        b = tf.Variable(tf.zeros((L2_SIZE,)), **b_attrs)
-        v = tf.matmul(l0_out, w) + b
-        if dropout:
-            v = tf.nn.dropout(v, dropout_prob)
-        l1_out = tf.nn.relu(v)
-        if is_main_net:
-            tf.contrib.layers.summarize_activation(l1_out)
+    # with tf.name_scope("L1" + suff):
+    #     w = tf.Variable(init((L1_SIZE, L2_SIZE)), **w_attrs)
+    #     b = tf.Variable(tf.zeros((L2_SIZE,)), **b_attrs)
+    #     v = tf.matmul(l0_out, w) + b
+    #     if dropout:
+    #         v = tf.nn.dropout(v, dropout_prob)
+    #     l1_out = tf.nn.relu(v)
+    #     if is_main_net:
+    #         tf.contrib.layers.summarize_activation(l1_out)
 
     with tf.name_scope("L2" + suff):
         w = tf.Variable(init((L2_SIZE, L3_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L3_SIZE,)), **b_attrs)
-        v = tf.matmul(l1_out, w) + b
+        v = tf.matmul(l0_out, w) + b
         if dropout:
             v = tf.nn.dropout(v, dropout_prob)
         l2_out = tf.nn.relu(v)
