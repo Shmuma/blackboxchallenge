@@ -23,7 +23,7 @@ EPOCHES_BETWEEN_POLL = 15
 DECAY_STEPS = 200000
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
-BATCHES_QUEUE_CAPACITY = 500
+BATCHES_QUEUE_CAPACITY = 100
 
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
@@ -47,9 +47,9 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t28r1"
+    TEST_NAME = "t28r2"
     TEST_DESCRIPTION = "Leaky ReLU"
-    RESTORE_MODEL = None #"models/model_t27r4-450000"
+    RESTORE_MODEL = "models/model_t28r1-450000"
     GAMMA = 0.99
     L2_REG = 0.1
 
