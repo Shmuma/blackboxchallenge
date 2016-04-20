@@ -151,8 +151,9 @@ class ReplayGenerator:
     """
     Class generates batches of replay data.
     """
-    def __init__(self, batch_size, session, states_t, qvals_t, alpha=1.0):
+    def __init__(self, batch_size, session, states_t, qvals_t, alpha=1.0, initial=None):
         self.batch_size = batch_size
+        self.initial = initial
         self.session = session
         self.states_t = states_t
         self.qvals_t = qvals_t
@@ -171,11 +172,14 @@ class ReplayGenerator:
         :param alpha:
         :return: tuple of lists (states, rewards, next_states)
         """
-        log.info("ReplayGenerator: generate next batch of %d with alpha=%.3f",
-                 self.batch_size, self.alpha)
+        size = self.batch_size
+        if self.initial is not None:
+            size = self.initial
+            self.initial = None
+        log.info("ReplayGenerator: generate next batch of %d with alpha=%.3f", size, self.alpha)
         t = time.time()
         batch = []
-        while len(batch) < self.batch_size:
+        while len(batch) < size:
             state = features.transform(infra.bbox.get_state())
             rewards_states = infra.dig_all_actions(self.score)
             rewards, next_states = zip(*rewards_states)

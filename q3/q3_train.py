@@ -15,6 +15,7 @@ SYNC_MODELS_ITERS = 50000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 2000000
+REPLAY_STEPS_INITIAL = 1200000
 REPLAY_STEPS_PER_POLL = 50000
 
 # how many epoches we should show data between fresh replay data requests
@@ -37,10 +38,10 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 
 def alpha_from_iter(iter_no):
-    if iter < 200000:
+    if iter < 400000:
         return 1.0
-    elif iter <= 1000000:
-        return 1.0 - (float(iter_no) / 1000000) + 0.1
+    elif iter <= 2000000:
+        return 1.0 - (float(iter_no) / 2000000) + 0.1
     else:
         return 0.1
 
@@ -89,7 +90,7 @@ if __name__ == "__main__":
     report_t = time()
 
     with tf.Session() as session:
-        replay_generator = replays.ReplayGenerator(REPLAY_STEPS_PER_POLL, session, state_t, qvals_t)
+        replay_generator = replays.ReplayGenerator(REPLAY_STEPS_PER_POLL, session, state_t, qvals_t, initial=REPLAY_STEPS_INITIAL)
         replay_buffer = replays.ReplayBuffer(REPLAY_BUFFER_CAPACITY, BATCH_SIZE, replay_generator, EPOCHES_BETWEEN_POLL)
         batches_queue, batches_producer_thread = \
             replays.make_batches_queue_and_thread(session, BATCHES_QUEUE_CAPACITY, replay_buffer)
