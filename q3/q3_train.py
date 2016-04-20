@@ -8,19 +8,19 @@ from lib import infra, net, replays, features
 import numpy as np
 import tensorflow as tf
 
-BATCH_SIZE = 500
+BATCH_SIZE = 1000
 REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 50000
-SYNC_MODELS_ITERS = 100000
+SYNC_MODELS_ITERS = 50000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 2000000
 REPLAY_STEPS_PER_POLL = 50000
 
 # how many epoches we should show data between fresh replay data requests
-EPOCHES_BETWEEN_POLL = 40
+EPOCHES_BETWEEN_POLL = 15
 
-DECAY_STEPS = 300000
+DECAY_STEPS = 100000
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
 BATCHES_QUEUE_CAPACITY = 500
@@ -47,9 +47,9 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t27r4"
+    TEST_NAME = "t27r5"
     TEST_DESCRIPTION = "Leaky ReLU"
-    RESTORE_MODEL = "models/model_t27r2-50000"
+    RESTORE_MODEL = "models/model_t27r4-450000"
     GAMMA = 0.99
     L2_REG = 0.1
 
