@@ -21,7 +21,7 @@ REPLAY_STEPS_PER_POLL = 50000
 # how many epoches we should show data between fresh replay data requests
 EPOCHES_BETWEEN_POLL = 15
 
-DECAY_STEPS = 200000
+DECAY_STEPS = None #200000
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
 BATCHES_QUEUE_CAPACITY = 100
@@ -48,9 +48,9 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t28r2"
+    TEST_NAME = "t28r3"
     TEST_DESCRIPTION = "Leaky ReLU"
-    RESTORE_MODEL = "models/model_t28r1-450000"
+    RESTORE_MODEL = "models/model_t28r2-1300000" #"models/model_t28r1-450000"
     GAMMA = 0.99
     L2_REG = 0.1
 
