@@ -15,8 +15,9 @@ SYNC_MODELS_ITERS = 50000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 2000000
-REPLAY_STEPS_INITIAL = 1200000
+REPLAY_STEPS_INITIAL = 200000
 REPLAY_STEPS_PER_POLL = 50000
+REPLAY_RESET_AFTER_STEPS = 20000
 
 # how many epoches we should show data between fresh replay data requests
 EPOCHES_BETWEEN_POLL = 15
@@ -48,9 +49,9 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t28r3"
-    TEST_DESCRIPTION = "Leaky ReLU"
-    RESTORE_MODEL = "models/model_t28r2-1300000" #"models/model_t28r1-450000"
+    TEST_NAME = "t29r1"
+    TEST_DESCRIPTION = "Experiment before prioritised replay"
+    RESTORE_MODEL = None # "models/model_t28r2-1300000"
     GAMMA = 0.99
     L2_REG = 0.1
 
@@ -90,7 +91,9 @@ if __name__ == "__main__":
     report_t = time()
 
     with tf.Session() as session:
-        replay_generator = replays.ReplayGenerator(REPLAY_STEPS_PER_POLL, session, state_t, qvals_t, initial=REPLAY_STEPS_INITIAL)
+        replay_generator = replays.ReplayGenerator(REPLAY_STEPS_PER_POLL, session, state_t,
+                                                   qvals_t, initial=REPLAY_STEPS_INITIAL,
+                                                   reset_after_steps=REPLAY_RESET_AFTER_STEPS)
         replay_buffer = replays.ReplayBuffer(REPLAY_BUFFER_CAPACITY, BATCH_SIZE, replay_generator, EPOCHES_BETWEEN_POLL)
         batches_queue, batches_producer_thread = \
             replays.make_batches_queue_and_thread(session, BATCHES_QUEUE_CAPACITY, replay_buffer)

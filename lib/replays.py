@@ -151,20 +151,21 @@ class ReplayGenerator:
     """
     Class generates batches of replay data.
     """
-    def __init__(self, batch_size, session, states_t, qvals_t, alpha=1.0, initial=None):
+    def __init__(self, batch_size, session, states_t, qvals_t, alpha=1.0, initial=None, reset_after_steps=None):
         self.batch_size = batch_size
         self.initial = initial
         self.session = session
         self.states_t = states_t
         self.qvals_t = qvals_t
         self.alpha = alpha
+        self.reset_after_steps = None
         self.reset_bbox()
 
     def reset_bbox(self):
+        log.info("ReplayGenerator: bbox resetted at time step %d" % infra.bbox.get_time())
         infra.prepare_bbox()
         self.has_next = True
         self.score = 0.0
-        log.info("ReplayGenerator: bbox resetted")
 
     def next_batch(self):
         """
@@ -195,10 +196,18 @@ class ReplayGenerator:
 
             self.has_next = infra.bbox.do_action(action)
             self.score = infra.bbox.get_score()
-            if not self.has_next:
+            if self.time_to_reset():
                 self.reset_bbox()
         log.info("ReplayGenerator: generated in %s", timedelta(seconds=time.time() - t))
         return batch
+
+    def time_to_reset(self):
+        if not self.has_next:
+            return True
+        if self.reset_after_steps is not None:
+            if infra.bbox.get_time() > self.reset_after_steps:
+                return True
+        return False
 
     def set_alpha(self, alpha):
         self.alpha = alpha
