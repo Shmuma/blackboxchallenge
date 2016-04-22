@@ -158,7 +158,7 @@ class ReplayGenerator:
         self.states_t = states_t
         self.qvals_t = qvals_t
         self.alpha = alpha
-        self.reset_after_steps = None
+        self.reset_after_steps = reset_after_steps
         self.reset_bbox()
 
     def reset_bbox(self):

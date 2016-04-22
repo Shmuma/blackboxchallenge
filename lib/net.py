@@ -2,9 +2,9 @@ import tensorflow as tf
 
 import infra
 
-L1_SIZE = 1024
-L2_SIZE = 512
-L3_SIZE = 256
+L1_SIZE = 256
+L2_SIZE = 256
+L3_SIZE = 128
 
 def make_vars():
     state_t = tf.placeholder(tf.float32, (None, infra.n_features), name="State")
