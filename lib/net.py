@@ -219,7 +219,7 @@ def leaky_relu(x_t, name, alpha=0.01, summary=True):
     return res_t
 
 
-def make_forward_net_v3(states_t, is_main_net, n_features, dropout_prob=0.5):
+def make_forward_net_v3(states_t, is_main_net, n_features, dropout_keep_prob=0.5):
     if not is_main_net:
         states_t = tf.reshape(states_t, (-1, n_features))
 
@@ -254,7 +254,7 @@ def make_forward_net_v3(states_t, is_main_net, n_features, dropout_prob=0.5):
         b = tf.Variable(tf.zeros((L2_SIZE,)), **b_attrs)
         v = tf.matmul(l0_out, w) + b
         if dropout:
-            v = tf.nn.dropout(v, dropout_prob)
+            v = tf.nn.dropout(v, dropout_keep_prob)
         l1_out = tf.nn.relu(v)
         if is_main_net:
             tf.contrib.layers.summarize_activation(l1_out)
@@ -264,7 +264,7 @@ def make_forward_net_v3(states_t, is_main_net, n_features, dropout_prob=0.5):
         b = tf.Variable(tf.zeros((L3_SIZE,)), **b_attrs)
         v = tf.matmul(l1_out, w) + b
         if dropout:
-            v = tf.nn.dropout(v, dropout_prob)
+            v = tf.nn.dropout(v, dropout_keep_prob)
         l2_out = tf.nn.relu(v)
         if is_main_net:
             tf.contrib.layers.summarize_activation(l2_out)

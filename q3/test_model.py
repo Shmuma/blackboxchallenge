@@ -2,14 +2,13 @@ import sys
 sys.path.append("..")
 import argparse
 
-from lib import infra, net, run_bbox
+from lib import infra, net, run_bbox, features
 
 import tensorflow as tf
 import numpy as np
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--history", type=int, default=10, help="Amount of states to keep in history")
     parser.add_argument("--model", required=True, help="File with model to restore")
     parser.add_argument("--alpha", type=float, default=0.05, help="Alpha value for testing, default=0.05")
     parser.add_argument("--steps", type=int, default=None, help="Limit amount of steps, default=no limit")
@@ -22,8 +21,9 @@ if __name__ == "__main__":
     log = infra.setup_logging()
     infra.prepare_bbox()
 
-    state_t = tf.placeholder(tf.float32, (None, args.history, infra.n_features), name="state")
-    qvals_t = net.make_forward_net_v3(args.history, state_t, is_trainable=True)
+    n_features = features.transformed_size()
+    state_t = tf.placeholder(tf.float32, (None, n_features), name="state")
+    qvals_t = net.make_forward_net_v3(state_t, True, n_features, dropout_keep_prob=1.0)
 
     saver = tf.train.Saver(var_list=dict(net.get_v2_vars(trainable=True)).values())
 
@@ -38,7 +38,7 @@ if __name__ == "__main__":
         scores = []
 
         for round in xrange(args.rounds):
-            score, _ = run_bbox.test_performance(session, args.history, state_t, qvals_t,
+            score, _ = run_bbox.test_performance(session, state_t, qvals_t,
                                                  alpha=args.alpha, max_steps=args.steps,
                                                  verbose=args.verbose, test_level=args.test)
             if not args.quiet:
