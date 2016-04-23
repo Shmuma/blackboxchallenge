@@ -36,20 +36,20 @@ def discover_new_steps(start, run_name):
 
 def make_summaries():
     res = {
-        'train_mean': tf.Variable(0.0),
-        'train_max': tf.Variable(0.0),
-        'train_min': tf.Variable(0.0),
-        'train_std': tf.Variable(0.0),
-        'test_mean': tf.Variable(0.0),
-        'test_max': tf.Variable(0.0),
-        'test_min': tf.Variable(0.0),
-        'test_std': tf.Variable(0.0),
+        'train_mean': tf.Variable(0.0, name='train_mean'),
+        'train_max': tf.Variable(0.0, name='train_max'),
+        'train_min': tf.Variable(0.0, name='train_min'),
+        'train_std': tf.Variable(0.0, name='train_std'),
+        'test_mean': tf.Variable(0.0, name='test_mean'),
+        'test_max': tf.Variable(0.0, name='test_max'),
+        'test_min': tf.Variable(0.0, name='test_min'),
+        'test_std': tf.Variable(0.0, name='test_std'),
     }
 
     for name, v in res.iteritems():
-        tf.scalar_summary(name, v)
+        tf.scalar_summary(name, v, collections=["train_test"])
 
-    res['all'] = tf.merge_all_summaries()
+    res['all'] = tf.merge_all_summaries(key="train_test")
     return res
 
 
