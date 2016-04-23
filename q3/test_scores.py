@@ -78,6 +78,7 @@ if __name__ == "__main__":
     parser.add_argument("--rounds", type=int, default=10, help="Amount of rounds to perform")
     parser.add_argument("--alpha", type=float, default=0.05, help="Alpha value for testing")
     parser.add_argument("--start", type=int, default=0, help="Global step to start processing")
+    parser.add_argument("--once", action="store_true", default=False, help="Loop over model files once and exit")
     args = parser.parse_args()
 
     log = infra.setup_logging()
@@ -116,7 +117,7 @@ if __name__ == "__main__":
 #                    log.info("Round {round}: score={score}".format(round=round+1, score=score))
                     train_scores.append(score)
                 log.info("Test done, averaged score={score}, min={min_score}, max={max_score}, std={std}".format(
-                    score=np.mean(train_scores), min_score=min(train_scores), max_score=max(train_scores), std=np.sqrt(np.std(train_scores))
+                    score=np.mean(train_scores), min_score=min(train_scores), max_score=max(train_scores), std=np.std(train_scores)
                 ))
 
                 log.info("Run %d rounds on test data", args.rounds)
@@ -128,10 +129,12 @@ if __name__ == "__main__":
 #                    log.info("Round {round}: score={score}".format(round=round+1, score=score))
                     test_scores.append(score)
                 log.info("Test done, averaged score={score}, min={min_score}, max={max_score}, std={std}".format(
-                    score=np.mean(test_scores), min_score=min(test_scores), max_score=max(test_scores), std=np.sqrt(np.std(test_scores))
+                    score=np.mean(test_scores), min_score=min(test_scores), max_score=max(test_scores), std=np.std(test_scores)
                 ))
 
                 log.info("Test done in %s, write to log", timedelta(seconds=time() - t))
                 write_summaries(summary_writer, step, session, summs, train_scores, test_scores)
                 start = step
+            if args.once:
+                break
             sleep(60)
