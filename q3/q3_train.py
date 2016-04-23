@@ -15,7 +15,7 @@ SYNC_MODELS_ITERS = 20000
 TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 2000000
-REPLAY_STEPS_INITIAL = 200000
+REPLAY_STEPS_INITIAL = 400000
 REPLAY_STEPS_PER_POLL = 50000
 REPLAY_RESET_AFTER_STEPS = 20000
 
@@ -49,13 +49,12 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t29r1"
-    TEST_DESCRIPTION = "Experiment before prioritised replay"
-    RESTORE_MODEL = None # "models/model_t28r2-1300000"
+    TEST_NAME = "t29r2"
+    TEST_DESCRIPTION = "Adaptive sync"
+    RESTORE_MODEL = "models/model_t29r1-750000"
     GAMMA = 0.99
     L2_REG = 0.1
 
-#    infra.init("grid_2x2")
     log = infra.setup_logging(logfile="q3_" + TEST_NAME + ".log")
     np.random.seed(42)
 
@@ -114,16 +113,24 @@ if __name__ == "__main__":
 
         iter = 0
         report_d = 0
+        syncs = 0
 
         coordinator = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
 
+        # if loss falls below this level, we sync networks
+        sync_threshold = 1000
+        time_to_sync = False
+
         try:
             while True:
                 # first iters we use zero-initialised next_qvals_t
-                if iter % SYNC_MODELS_ITERS == 0 and iter > 0:
-                    log.info("{iter}: sync nets")
+#                if iter % SYNC_MODELS_ITERS == 0 and iter > 0:
+                if time_to_sync:
+                    syncs += 1
+                    log.info("{iter}: sync nets #{sync}".format(iter=iter, sync=syncs))
                     session.run([sync_nets_t])
+                    time_to_sync = False
 
                 # estimate speed before potential refill to prevent confusing numbers
                 if iter % REPORT_ITERS == 0 and iter > 0:
@@ -146,6 +153,8 @@ if __name__ == "__main__":
                     batches_qsize, = session.run([batches_qsize_t])
                     report_t = time()
                     avg_loss = np.median(loss_batch)
+                    if avg_loss < sync_threshold:
+                        time_to_sync = True
                     loss_batch = []
                     log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, "
                              "{replay}, batch_q={batches_qsize} ({batchq_perc:.2f}%)".format(
