@@ -48,5 +48,5 @@ if __name__ == "__main__":
 
         if args.rounds > 1:
             log.info("Test done, averaged score={score}, min={min_score}, max={max_score}, std={std}".format(
-                score=np.mean(scores), min_score=min(scores), max_score=max(scores), std=np.sqrt(np.std(scores))
+                score=np.mean(scores), min_score=min(scores), max_score=max(scores), std=np.std(scores)
             ))

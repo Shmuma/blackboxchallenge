@@ -58,12 +58,12 @@ def write_summaries(writer, step, session, summ, train_scores, test_scores):
         summ['train_mean']: np.mean(train_scores),
         summ['train_min']: float(min(train_scores)),
         summ['train_max']: float(max(train_scores)),
-        summ['train_std']: np.sqrt(np.std(train_scores)),
+        summ['train_std']: np.std(train_scores),
 
         summ['test_mean']: np.mean(test_scores),
         summ['test_min']: float(min(test_scores)),
         summ['test_max']: float(max(test_scores)),
-        summ['test_std']: np.sqrt(np.std(test_scores)),
+        summ['test_std']: np.std(test_scores),
     }
 
     summ_res, = session.run([summ['all']], feed_dict=feed)
