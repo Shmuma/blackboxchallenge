@@ -11,7 +11,11 @@ import tensorflow as tf
 BATCH_SIZE = 1000
 REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 20000
-SYNC_MODELS_ITERS = 20000
+
+# if set to None, SYNC_LOSS_THRESHOLD will be used which syncs nets when mean loss for a batch falls below threshold
+SYNC_MODELS_ITERS = None #20000
+SYNC_LOSS_THRESHOLD = 1000.0
+
 TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 2000000
@@ -114,18 +118,18 @@ if __name__ == "__main__":
         iter = 0
         report_d = 0
         syncs = 0
+        last_batch_mean_loss = 2*SYNC_LOSS_THRESHOLD
 
         coordinator = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
 
-        # if loss falls below this level, we sync networks
-        sync_threshold = 1000
-        time_to_sync = False
-
         try:
             while True:
                 # first iters we use zero-initialised next_qvals_t
-#                if iter % SYNC_MODELS_ITERS == 0 and iter > 0:
+                if SYNC_MODELS_ITERS is None:
+                    time_to_sync = last_batch_mean_loss < SYNC_LOSS_THRESHOLD
+                else:
+                    time_to_sync = iter % SYNC_MODELS_ITERS == 0 and iter > 0
                 if time_to_sync:
                     syncs += 1
                     log.info("{iter}: sync nets #{sync}".format(iter=iter, sync=syncs))
@@ -153,8 +157,6 @@ if __name__ == "__main__":
                     batches_qsize, = session.run([batches_qsize_t])
                     report_t = time()
                     avg_loss = np.median(loss_batch)
-                    if avg_loss < sync_threshold:
-                        time_to_sync = True
                     loss_batch = []
                     log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, "
                              "{replay}, batch_q={batches_qsize} ({batchq_perc:.2f}%)".format(
