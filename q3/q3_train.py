@@ -118,7 +118,7 @@ if __name__ == "__main__":
         iter = 0
         report_d = 0
         syncs = 0
-        last_batch_mean_loss = 2*SYNC_LOSS_THRESHOLD
+        time_to_sync = False
 
         coordinator = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
@@ -126,10 +126,6 @@ if __name__ == "__main__":
         try:
             while True:
                 # first iters we use zero-initialised next_qvals_t
-                if SYNC_MODELS_ITERS is None:
-                    time_to_sync = last_batch_mean_loss < SYNC_LOSS_THRESHOLD
-                else:
-                    time_to_sync = iter % SYNC_MODELS_ITERS == 0 and iter > 0
                 if time_to_sync:
                     syncs += 1
                     log.info("{iter}: sync nets #{sync}".format(iter=iter, sync=syncs))
@@ -157,6 +153,10 @@ if __name__ == "__main__":
                     batches_qsize, = session.run([batches_qsize_t])
                     report_t = time()
                     avg_loss = np.median(loss_batch)
+                    if SYNC_MODELS_ITERS is None:
+                        time_to_sync = avg_loss < SYNC_LOSS_THRESHOLD
+                    else:
+                        time_to_sync = iter % SYNC_MODELS_ITERS == 0 and iter > 0
                     loss_batch = []
                     log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, "
                              "{replay}, batch_q={batches_qsize} ({batchq_perc:.2f}%)".format(
