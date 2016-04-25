@@ -162,8 +162,8 @@ if __name__ == "__main__":
 
         log.info("Initialisation done, running test '{test}', rounds={rounds}, steps={steps}".format(
                 test=args.test, rounds=args.rounds, steps=args.steps))
-#        res_baseline = run_step(ctx, name="baseline (no features tweaking)")
-        res_baseline = None
+        res_baseline = run_step(ctx, name="baseline (no features tweaking)")
+
         if args.test == "blank_one":
             run_test_blank_one(ctx, res_baseline)
         elif args.test == "blank_stripe":
