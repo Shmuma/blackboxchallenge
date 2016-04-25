@@ -116,9 +116,13 @@ def populate_replay_buffer(replay_buffer, session, states_t, qvals_t, alpha=0.0,
     return score, avg_score
 
 
-def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps=None, test_level=False):
+def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps=None, test_level=False,
+                     feats_tr_post=None):
     """
     Perform test of neural network using bbox interpreter
+
+    args:
+    - feats_tr_post: features transformation applied after main transformation
     """
     infra.prepare_bbox(test_level=test_level)
     state = {
@@ -143,6 +147,8 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
 
             # do a features transformation
             state = features.to_dense(features.transform(our_state['state']))
+            if feats_tr_post is not None:
+                state = feats_tr_post(state)
             qvals, = sess.run([qvals_t], feed_dict={states_t: [state]})
             action = np.argmax(qvals)
 
