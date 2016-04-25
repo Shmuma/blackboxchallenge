@@ -12,7 +12,7 @@ REPORT_ITERS = 1000
 SAVE_MODEL_ITERS = 20000
 
 # if set to None, SYNC_LOSS_THRESHOLD will be used which syncs nets when mean loss for a batch falls below threshold
-SYNC_MODELS_ITERS = None # 20000
+SYNC_MODELS_ITERS = 10000
 SYNC_LOSS_THRESHOLD = 900.0
 
 TEST_CUSTOM_BBOX_ITERS = 0
@@ -52,9 +52,9 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t29r4" # TODO: Next is t31, not t30!
-    TEST_DESCRIPTION = "4 stripes are better that 2"
-    RESTORE_MODEL = "models/model_t29r3-100000"
+    TEST_NAME = "t31r1" # TODO: Next is t31, not t30!
+    TEST_DESCRIPTION = "Priority replay"
+    RESTORE_MODEL = None #"models/model_t29r3-100000"
     GAMMA = 0.99
     L2_REG = 0.1
 
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(qvals_t, 1), name="qworst"))
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(next_qvals_t, 1), name="qworst_next"))
 
-    loss_t, qref_t = net.make_loss_v3(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, l2_reg=L2_REG)
+    loss_t, loss_vec_t = net.make_loss_v3(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, l2_reg=L2_REG)
     opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=DECAY_STEPS)
 
     sync_nets_t = net.make_sync_nets_v2()
@@ -138,15 +138,17 @@ if __name__ == "__main__":
                     replay_generator.set_alpha(alpha_from_iter(iter))
 
                 # get data from input pipeline
-                states_batch, rewards_batch, next_states_batch = session.run(batches_data_t)
+                index_batch, states_batch, rewards_batch, next_states_batch = session.run(batches_data_t)
 
                 feed = {
                     state_t: states_batch,
                     rewards_t: rewards_batch,
                     next_state_t: next_states_batch
                 }
-                loss, _ = session.run([loss_t, opt_t], feed_dict=feed)
+                loss, loss_vec, _ = session.run([loss_t, loss_vec_t, opt_t], feed_dict=feed)
                 loss_batch.append(loss)
+                # feed losses back to replay buffer to reflect priority replay
+                replay_buffer.set_losses(index_batch, loss_vec)
 
                 if iter % REPORT_ITERS == 0 and iter > 0:
                     batches_qsize, = session.run([batches_qsize_t])
@@ -157,7 +159,7 @@ if __name__ == "__main__":
                     else:
                         time_to_sync = iter % SYNC_MODELS_ITERS == 0 and iter > 0
                     loss_batch = []
-                    log.info("{iter}: loss={loss} in {duration}, speed={speed:.2f} s/sec, "
+                    log.info("{iter}: loss={loss:.3f} in {duration}, speed={speed:.2f} s/sec, "
                              "{replay}, batch_q={batches_qsize} ({batchq_perc:.2f}%)".format(
                             iter=iter, loss=avg_loss, duration=timedelta(seconds=report_d),
                             speed=speed, replay=replay_buffer, batches_qsize=batches_qsize,

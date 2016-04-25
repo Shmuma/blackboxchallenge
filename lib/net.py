@@ -280,6 +280,7 @@ def make_forward_net_v3(states_t, is_main_net, n_features, dropout_keep_prob=0.5
 def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=4, l2_reg=0.0):
     max_qvals = tf.reduce_max(next_qvals_t, 1) * gamma
     q_ref = tf.add(rewards_t, tf.reshape(max_qvals, (batch_size, n_actions)), name="q_ref")
+    loss_vec = tf.reduce_sum(tf.abs(qvals_t - q_ref), 1)
     error = tf.nn.l2_loss(qvals_t - q_ref, name="loss_err")
 
     regularize = tf.contrib.layers.l2_regularizer(l2_reg)
@@ -289,4 +290,4 @@ def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=
 
     tf.contrib.layers.summarize_tensors([l2_error, error])
 
-    return error + l2_error, q_ref
+    return error + l2_error, loss_vec

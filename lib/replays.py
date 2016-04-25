@@ -19,18 +19,23 @@ class ReplayBuffer:
         self.replay_generator = replay_generator
         self.epoches = 0
         self.epoches_between_pull = epoches_between_pull
-        self.epoches_generated = 0
+        self.batches_to_pull = 0
+        # priority replay stuff
+        self.losses = []                # array with errors for every sample
+        self.max_loss = 1.0             # initial value for max_loss
+        self.EPS = 1e-5
+        self.probabs_lock = threading.Lock()
 
-    def reshuffle(self):
-        """
-        Regenerate shuffled batch. Should be called after batch of appends.
-        """
-        self.shuffle = np.random.permutation(len(self.buffer))
-        self.batch_idx = 0
-        self.epoches += 1
+    def calc_probabs(self):
+        # calculate priorities array
+        self.max_loss = max(self.losses)
+        self.probabs_lock.acquire()
+        self.probabs = np.array(self.losses) + self.EPS
+        self.probabs /= self.probabs.sum()
+        self.probabs_lock.release()
 
     def time_to_pull(self):
-        return len(self.buffer) == 0 or self.epoches_generated >= self.epoches_between_pull
+        return len(self.buffer) == 0 or self.batches_to_pull <= 0
 
     def next_batch(self):
         """
@@ -39,35 +44,40 @@ class ReplayBuffer:
         """
         if self.time_to_pull():
             self.pull_more_data()
-            self.epoches_generated = 0
+            self.batches_to_pull = self.epoches_between_pull * len(self.buffer) / self.batch
 
-        if (self.batch_idx + 1) * self.batch > len(self.shuffle):
-            self.reshuffle()
-            self.epoches_generated += 1
+        self.probabs_lock.acquire()
+        index = np.random.choice(len(self.buffer), size=self.batch, replace=False, p=self.probabs)
+        self.probabs_lock.release()
 
         states = np.zeros((self.batch, features.RESULT_N_FEATURES))
         rewards = []
         next_states = np.zeros((self.batch, 4, features.RESULT_N_FEATURES))
 
-        for batch_ofs, idx in enumerate(self.shuffle[self.batch_idx*self.batch:(self.batch_idx+1)*self.batch]):
+        for batch_ofs, idx in enumerate(index):
             state, reward, next_4_state = self.buffer[idx]
             states[batch_ofs][state[0]] = state[1]
             for action_id, next_state in enumerate(next_4_state):
                 next_states[batch_ofs, action_id][next_state[0]] = next_state[1]
             rewards.append(reward)
 
-        self.batch_idx += 1
-        return states, rewards, next_states
+        self.batches_to_pull -= 1
+        return index, states, rewards, next_states
 
     def pull_more_data(self):
         """
         Populate more data from replay_generator and append it to our buffer. Remove expired entries if neccessary
         :return:
         """
-        self.buffer += self.replay_generator.next_batch()
+        next_batch = self.replay_generator.next_batch()
+        self.buffer += next_batch
+        # new entries populated with max_loss to ensure they'll be shown at least once
+        self.losses += [self.max_loss] * len(next_batch)
+        # TODO: maybe, we can pop values more effectively
         while len(self.buffer) > self.capacity:
             self.buffer.pop(0)
-        self.reshuffle()
+            self.losses.pop(0)
+        self.calc_probabs()
 
     def buffer_size(self):
         """
@@ -82,9 +92,14 @@ class ReplayBuffer:
         return size
 
     def __str__(self):
-        return "ReplayBuffer[size={size}, epoch={epoch}, e_pull={epull}]".format(
-            size=len(self.buffer), epoch=self.epoches, epull=self.epoches_generated
+        return "ReplayBuffer[size={size}, epoch={epoch}, to_pull={to_pull}, max_loss={max_loss:.4e}]".format(
+            size=len(self.buffer), epoch=self.epoches, to_pull=self.batches_to_pull, max_loss=self.max_loss
         )
+
+    def set_losses(self, index, losses):
+        for idx, loss in zip(index, losses):
+            self.losses[idx] = loss
+        self.calc_probabs()
 
 
 class ReplayBatchProducer(threading.Thread):
@@ -112,11 +127,12 @@ class ReplayBatchProducer(threading.Thread):
                 time.sleep(1)
                 continue
 
-            states, rewards, next_states = self.replay_buffer.next_batch()
+            index, states, rewards, next_states = self.replay_buffer.next_batch()
             feed = {
-                self.vars[0]: states,
-                self.vars[1]: rewards,
-                self.vars[2]: next_states,
+                self.vars[0]: index,
+                self.vars[1]: states,
+                self.vars[2]: rewards,
+                self.vars[3]: next_states,
             }
             self.session.run([self.enqueue_op], feed_dict=feed)
 
@@ -133,17 +149,19 @@ def make_batches_queue_and_thread(session, capacity, replay_buffer):
     :param replay_buffer:
     :return:
     """
-    queue = tf.FIFOQueue(capacity, (tf.float32, tf.float32, tf.float32))
+    queue = tf.FIFOQueue(capacity, (tf.int32, tf.float32, tf.float32, tf.float32))
     qsize_t = queue.size()
 
     # make varibles for data to be placed in the queue
+    index_var_t = tf.placeholder(tf.int32)
     states_var_t = tf.placeholder(tf.float32)
     rewards_var_t = tf.placeholder(tf.float32)
     next_states_var_t = tf.placeholder(tf.float32)
-    enqueue_op = queue.enqueue([states_var_t, rewards_var_t, next_states_var_t])
+    vars = [index_var_t, states_var_t, rewards_var_t, next_states_var_t]
+    enqueue_op = queue.enqueue(vars)
 
     producer_thread = ReplayBatchProducer(session, capacity, replay_buffer,
-                                          qsize_t, enqueue_op, (states_var_t, rewards_var_t, next_states_var_t))
+                                          qsize_t, enqueue_op, vars)
     return queue, producer_thread
 
 

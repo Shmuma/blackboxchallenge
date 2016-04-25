@@ -34,7 +34,7 @@ def transform(state):
     """
     Perform transformation of state vector to our representation
     :param state: numpy array of 36 values from bbox state
-    :return: dict with features
+    :return: pair with indices and values (sparse representation)
     """
     res = []
     ofs = 0
