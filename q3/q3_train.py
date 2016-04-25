@@ -1,5 +1,4 @@
 import sys
-
 sys.path.append("..")
 
 from time import time
@@ -53,9 +52,9 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t30r2"
-    TEST_DESCRIPTION = "Two stripes in features"
-    RESTORE_MODEL = "models/model_t30r1-980000"
+    TEST_NAME = "t29r3" # TODO: Next is t31, not t30!
+    TEST_DESCRIPTION = "4 stripes are better that 2"
+    RESTORE_MODEL = "models/model_t29r2-540000"
     GAMMA = 0.99
     L2_REG = 0.1
 
