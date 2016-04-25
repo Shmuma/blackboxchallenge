@@ -40,6 +40,18 @@ def run_step(ctx, name, transformer=None):
     return res
 
 
+def write_blank_results(ctx, res_baseline, res):
+    if ctx['csv'] is not None:
+        with open(ctx['csv'], "w+") as fd:
+            writer = csv.writer(fd)
+            writer.writerow(["Blanked", "Mean", "Max", "Min", "StdDev"])
+            writer.writerow([-1, res_baseline['mean'], res_baseline['max'], res_baseline['min'], res_baseline['std']])
+
+            for feat in sorted(res.keys()):
+                writer.writerow([feat, res[feat]['mean'], res[feat]['max'], res[feat]['min'], res[feat]['std']])
+
+
+
 def run_test_blank_one(context, res_baseline):
     """
     Perform test by blanking each of 36 features and check result
@@ -68,26 +80,59 @@ def run_test_blank_one(context, res_baseline):
         return _blanker
 
     res = {}
-
     for blank_feat in xrange(features.ORIGIN_N_FEATURES):
         res[blank_feat] = run_step(context, "Blank feature {feature}".format(feature=blank_feat),
                  transformer=get_feat_blanker(blank_feat))
 
-    if context['csv'] is not None:
-        with open(context['csv'], "w+") as fd:
-            writer = csv.writer(fd)
-            writer.writerow(["Blanked feature", "Mean", "Max", "Min", "StdDev"])
-            writer.writerow([-1, res_baseline['mean'], res_baseline['max'], res_baseline['min'], res_baseline['std']])
-
-            for feat in sorted(res.keys()):
-                writer.writerow([feat, res[feat]['mean'], res[feat]['max'], res[feat]['min'], res[feat]['std']])
-
+    write_blank_results(context, res_baseline, res)
     return res
+
+
+def run_test_blank_stripe(context, res_baseline):
+    def get_stripe_blanker(feat_idx, stripe_idx):
+        """
+        Return function which blanks single stripe for this feature
+        :param feat_idx:
+        :return: function
+        """
+        from_idx = 0
+        for f in range(feat_idx):
+            from_idx += features.sizes.get(f, 1)
+        for s_idx, (step, start, stop) in enumerate(features.stripes[feat_idx]):
+            if step is None:
+                width = 1
+            else:
+                width = int(round((stop-start) / step + 1))
+            if s_idx < stripe_idx:
+                from_idx += width
+            else:
+                to_idx = from_idx + width
+                break
+
+        def _blanker(features):
+#            log.info("Blanker from={from_idx}, to={to_idx}".format(from_idx=from_idx, to_idx=to_idx))
+#            log.info("Before: " + str(features.nonzero()))
+            features[from_idx:to_idx] = 0.0
+#            log.info("After: " + str(features.nonzero()))
+            return features
+
+        return _blanker
+
+    res = {}
+    for blank_feat in sorted(features.stripes.keys()):
+        for blank_stripe in xrange(len(features.stripes[blank_feat])):
+            name = "feat=%d_stripe=%d" % (blank_feat, blank_stripe)
+            msg = "Blank feat={feature}, stripe={stripe}".format(feature=blank_feat, stripe=blank_stripe)
+            res[name] = run_step(context, msg, transformer=get_stripe_blanker(blank_feat, blank_stripe))
+
+    write_blank_results(context, res_baseline, res)
+    return res
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True, help="Model file name to load")
-    parser.add_argument("--test", required=True, choices=['blank_one'], help="Type of test to perform")
+    parser.add_argument("--test", required=True, choices=['blank_one', 'blank_stripe'], help="Type of test to perform")
     parser.add_argument("--steps", type=int, default=20000, help="Count of steps")
     parser.add_argument("--rounds", type=int, default=10, help="Count of rounds for every test")
     parser.add_argument("--csv", type=str, help="Report file to be created, default=no file")
@@ -106,7 +151,7 @@ if __name__ == "__main__":
         log.info("Loading model from %s", args.model)
         saver.restore(session, args.model)
 
-        context = {
+        ctx = {
             'session': session,
             'state_t': state_t,
             'qvals_t': qvals_t,
@@ -117,7 +162,9 @@ if __name__ == "__main__":
 
         log.info("Initialisation done, running test '{test}', rounds={rounds}, steps={steps}".format(
                 test=args.test, rounds=args.rounds, steps=args.steps))
-        res_baseline = run_step(context, name="baseline (no features tweaking)")
-
+#        res_baseline = run_step(ctx, name="baseline (no features tweaking)")
+        res_baseline = None
         if args.test == "blank_one":
-            run_test_blank_one(context, res_baseline)
+            run_test_blank_one(ctx, res_baseline)
+        elif args.test == "blank_stripe":
+            run_test_blank_stripe(ctx, res_baseline)
