@@ -13,7 +13,7 @@ SAVE_MODEL_ITERS = 20000
 
 # if set to None, SYNC_LOSS_THRESHOLD will be used which syncs nets when mean loss for a batch falls below threshold
 SYNC_MODELS_ITERS = None # 20000
-SYNC_LOSS_THRESHOLD = 1000.0
+SYNC_LOSS_THRESHOLD = 900.0
 
 TEST_CUSTOM_BBOX_ITERS = 0
 
@@ -52,9 +52,9 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t29r3" # TODO: Next is t31, not t30!
+    TEST_NAME = "t29r4" # TODO: Next is t31, not t30!
     TEST_DESCRIPTION = "4 stripes are better that 2"
-    RESTORE_MODEL = "models/model_t29r2-540000"
+    RESTORE_MODEL = "models/model_t29r3-100000"
     GAMMA = 0.99
     L2_REG = 0.1
 
