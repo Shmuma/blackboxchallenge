@@ -66,11 +66,11 @@ if __name__ == "__main__":
 
     n_features = features.transformed_size()
 
-    state_t, rewards_t, next_state_t = net.make_vars_v3(n_features)
+    state_t, rewards_t, next_state_t = net.make_vars(n_features)
 
     # make two networks - one is to train, second is periodically cloned from first
-    qvals_t = net.make_forward_net_v3(state_t, n_features=n_features, is_main_net=True)
-    next_qvals_t = net.make_forward_net_v3(next_state_t, n_features=n_features, is_main_net=False)
+    qvals_t = net.make_forward_net(state_t, n_features=n_features, is_main_net=True)
+    next_qvals_t = net.make_forward_net(next_state_t, n_features=n_features, is_main_net=False)
 
     # describe qvalues
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(qvals_t, name="qvals"))
@@ -82,11 +82,11 @@ if __name__ == "__main__":
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(qvals_t, 1), name="qworst"))
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(next_qvals_t, 1), name="qworst_next"))
 
-    loss_t, loss_vec_t = net.make_loss_v3(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, l2_reg=L2_REG)
+    loss_t, loss_vec_t = net.make_loss(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, l2_reg=L2_REG)
     opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=DECAY_STEPS)
 
-    sync_nets_t = net.make_sync_nets_v2()
-    summ = net.make_summaries_v2(loss_t, optimiser)
+    sync_nets_t = net.make_sync_nets()
+    summ = net.make_summaries(loss_t, optimiser)
 
     log.info("Staring session {name} with features len {n_features}. Description: {descr}".format(
             name=TEST_NAME, n_features=n_features, descr=TEST_DESCRIPTION))
@@ -102,7 +102,7 @@ if __name__ == "__main__":
         batches_data_t = batches_queue.dequeue()
         batches_qsize_t = batches_queue.size()
 
-        saver = tf.train.Saver(var_list=dict(net.get_v2_vars(trainable=True)).values(), max_to_keep=200)
+        saver = tf.train.Saver(var_list=dict(net.get_vars(trainable=True)).values(), max_to_keep=200)
         session.run(tf.initialize_all_variables())
         batches_producer_thread.start()
 

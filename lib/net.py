@@ -6,121 +6,6 @@ L1_SIZE = 256
 L2_SIZE = 256
 L3_SIZE = 128
 
-def make_vars():
-    state_t = tf.placeholder(tf.float32, (None, infra.n_features), name="State")
-    q_vals_t = tf.placeholder(tf.float32, (None, infra.n_actions), name="QVals")
-
-    return state_t, q_vals_t
-
-
-def make_forward_net(state_t):
-    """
-    Create forward network which maps state into Q-value for all actions
-    :param state_t:
-    :return:
-    """
-    with tf.name_scope("L0"):
-        w = tf.Variable(tf.random_normal((infra.n_features, L1_SIZE), mean=0.0, stddev=0.1))
-        b = tf.Variable(tf.zeros((L1_SIZE,)))
-        l0_out = tf.nn.relu(tf.matmul(state_t, w) + b)
-
-    with tf.name_scope("L1"):
-        w = tf.Variable(tf.random_normal((L1_SIZE, L2_SIZE), mean=0.0, stddev=0.1))
-        b = tf.Variable(tf.zeros((L2_SIZE,)))
-        l1_out = tf.nn.relu(tf.matmul(l0_out, w) + b)
-
-    with tf.name_scope("L2"):
-        w = tf.Variable(tf.random_normal((L2_SIZE, L3_SIZE), mean=0.0, stddev=0.1))
-        b = tf.Variable(tf.zeros((L3_SIZE,)))
-        l2_out = tf.nn.relu(tf.matmul(l1_out, w) + b)
-
-    with tf.name_scope("L3"):
-        w = tf.Variable(tf.random_normal((L3_SIZE, infra.n_actions), mean=0.0, stddev=0.1))
-        b = tf.Variable(tf.zeros((infra.n_actions,)))
-        output = tf.matmul(l2_out, w) + b
-        output = tf.squeeze(output)
-
-    return output
-
-
-def make_loss_and_optimiser(learning_rate, state_t, q_vals_t, forward_t):
-    with tf.name_scope("Opt"):
-        loss_t = tf.nn.l2_loss(forward_t - q_vals_t)
-        optimiser = tf.train.AdamOptimizer(learning_rate=learning_rate)
-        opt_t = optimiser.minimize(loss_t)
-
-    return loss_t, opt_t
-
-
-def make_summaries():
-    res = {
-        'loss': tf.Variable(0.0, trainable=False, name="loss"),
-        'score': tf.Variable(0.0, trainable=False, name="score"),
-    }
-
-    for name, var in res.iteritems():
-        tf.scalar_summary(name, var)
-
-    res['summary_t'] = tf.merge_all_summaries()
-    return res
-
-
-def make_vars_v2(states_history):
-    state_t = tf.placeholder(tf.float32, (None, infra.n_features * states_history), name="state")
-    action_t = tf.placeholder(tf.int32, (None, 1), name="action")
-    reward_t = tf.placeholder(tf.float32, (None, 1), name="reward")
-    next_state_t = tf.placeholder(tf.float32, (None, infra.n_features * states_history), name="next_state")
-
-    return state_t, action_t, reward_t, next_state_t
-
-
-def make_forward_net_v2(states_history, states_t, is_trainable):
-    suff = "_T" if is_trainable else "_R"
-    with tf.name_scope("L0" + suff):
-        w = tf.Variable(tf.random_normal((infra.n_features * states_history, L1_SIZE),
-                                         mean=0.0, stddev=0.1),
-                        trainable=is_trainable, name="w")
-        b = tf.Variable(tf.zeros((L1_SIZE,)), trainable=is_trainable, name="b")
-        l0_out = tf.nn.relu(tf.matmul(states_t, w) + b)
-
-    with tf.name_scope("L1" + suff):
-        w = tf.Variable(tf.random_normal((L1_SIZE, L2_SIZE),
-                                         mean=0.0, stddev=0.1),
-                        trainable=is_trainable, name="w")
-        b = tf.Variable(tf.zeros((L2_SIZE,)), trainable=is_trainable, name="b")
-        l1_out = tf.nn.relu(tf.matmul(l0_out, w) + b)
-
-    with tf.name_scope("L2" + suff):
-        w = tf.Variable(tf.random_normal((L2_SIZE, L3_SIZE), mean=0.0, stddev=0.1),
-                        trainable=is_trainable, name="w")
-        b = tf.Variable(tf.zeros((L3_SIZE,)), trainable=is_trainable, name="b")
-        l2_out = tf.nn.relu(tf.matmul(l1_out, w) + b)
-
-    with tf.name_scope("L3" + suff):
-        w = tf.Variable(tf.random_normal((L3_SIZE, infra.n_actions),
-                                         mean=0.0, stddev=0.1),
-                        trainable=is_trainable, name="w")
-        b = tf.Variable(tf.zeros((infra.n_actions,)), trainable=is_trainable, name="b")
-        output = tf.matmul(l2_out, w) + b
-        output = tf.squeeze(output)
-
-    return output
-
-
-def make_loss_v2(batch_size, gamma, qvals_t, actions_t, rewards_t, next_qvals_t, n_actions=4):
-    # extract qvalues using actions as index.
-    # To do this, flatten qvalues into single vector
-    q_flat = tf.reshape(qvals_t, (batch_size * n_actions, ))
-    act_idx = tf.range(batch_size) * n_actions + actions_t
-    # vector with qvalues from taken actions
-    q_actions = tf.gather(q_flat, act_idx, name="q_actions")
-    # reference q_values from Bellman's equation
-    q_ref = tf.add(rewards_t, gamma * tf.reduce_max(next_qvals_t, 1), name="q_ref")
-    # error
-    error = tf.reduce_mean(tf.pow(q_actions - q_ref, 2), name="error")
-    tf.contrib.layers.summarize_tensors([q_actions, q_ref, error])
-    return error
-
 
 def make_opt(loss_t, learning_rate, decay_every_steps=10000):
     global_step = tf.Variable(0, trainable=False, name="global_step")
@@ -137,7 +22,7 @@ def make_opt(loss_t, learning_rate, decay_every_steps=10000):
     return opt_t, optimiser, global_step
 
 
-def get_v2_vars(trainable, only_weights=False):
+def get_vars(trainable, only_weights=False):
     layers = ["L0", "L1", "L2", "L3"]
     l_suffix = "_T" if trainable else "_R"
     names = []
@@ -152,7 +37,7 @@ def get_v2_vars(trainable, only_weights=False):
     return [(name, vars[name]) for name in names]
 
 
-def make_sync_nets_v2():
+def make_sync_nets():
     sync_vars = [
         ("L0_T/w", "L0_R/w"),
         ("L0_T/b", "L0_R/b"),
@@ -182,7 +67,7 @@ def make_sync_nets_v2():
     return tf.group(*ops)
 
 
-def make_summaries_v2(loss_t, optimiser):
+def make_summaries(loss_t, optimiser):
     res = {
         'loss':             tf.Variable(0.0, trainable=False, name="loss"),
         'speed':            tf.Variable(0.0, trainable=False, name="speed"),
@@ -192,7 +77,7 @@ def make_summaries_v2(loss_t, optimiser):
         tf.scalar_summary(name, var)
 
     # weights and gradients summary
-    _, v2_vars = zip(*get_v2_vars(trainable=True))
+    _, v2_vars = zip(*get_vars(trainable=True))
     grads = optimiser.compute_gradients(loss_t, v2_vars)
     for grad, var in grads:
         tf.scalar_summary("magnitude_" + var.name, tf.sqrt(tf.nn.l2_loss(var)))
@@ -202,7 +87,7 @@ def make_summaries_v2(loss_t, optimiser):
     return res
 
 
-def make_vars_v3(n_features):
+def make_vars(n_features):
     state_t = tf.placeholder(tf.float32, (None, n_features), name="state")
     rewards_t = tf.placeholder(tf.float32, (None, infra.n_actions), name="reward")
     next_state_t = tf.placeholder(tf.float32, (None, infra.n_actions, n_features), name="next_state")
@@ -219,7 +104,7 @@ def leaky_relu(x_t, name, alpha=0.01, summary=True):
     return res_t
 
 
-def make_forward_net_v3(states_t, is_main_net, n_features, dropout_keep_prob=0.5):
+def make_forward_net(states_t, is_main_net, n_features, dropout_keep_prob=0.5):
     if not is_main_net:
         states_t = tf.reshape(states_t, (-1, n_features))
 
@@ -277,7 +162,7 @@ def make_forward_net_v3(states_t, is_main_net, n_features, dropout_keep_prob=0.5
     return output
 
 
-def make_loss_v3(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=4, l2_reg=0.0):
+def make_loss(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=4, l2_reg=0.0):
     max_qvals = tf.reduce_max(next_qvals_t, 1) * gamma
     q_ref = tf.add(rewards_t, tf.reshape(max_qvals, (batch_size, n_actions)), name="q_ref")
     loss_vec = tf.reduce_sum(tf.abs(qvals_t - q_ref), 1)
