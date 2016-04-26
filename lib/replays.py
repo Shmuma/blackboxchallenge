@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
 import time
 import logging as log
+import Queue as queue
 
 from datetime import timedelta
 
@@ -24,7 +25,7 @@ class ReplayBuffer:
         self.losses = []                # array with errors for every sample
         self.max_loss = 1.0             # initial value for max_loss
         self.EPS = 1e-5
-        self.recalc_probabs = False
+        self.losses_updates_queue = queue.Queue()
 
     def time_to_pull(self):
         return len(self.buffer) == 0 or self.batches_to_pull <= 0
@@ -34,12 +35,12 @@ class ReplayBuffer:
         Return next batch of data
         :return:
         """
+        # apply losses before pulling more data to decrease chance to get outdated loss updates
+        self.apply_loss_updates()
         if self.time_to_pull():
             self.pull_more_data()
             self.batches_to_pull = self.epoches_between_pull * len(self.buffer) / self.batch
 
-        if self.recalc_probabs:
-            self.calc_probabs()
         index = np.random.choice(len(self.buffer), size=self.batch, replace=False, p=self.probabs)
 
         states_idx = []
@@ -74,14 +75,13 @@ class ReplayBuffer:
         while len(self.buffer) > self.capacity:
             self.buffer.pop(0)
             self.losses.pop(0)
-        self.recalc_probabs = True
+        self.calc_probabs()
 
     def calc_probabs(self):
         # calculate priorities array
         self.max_loss = max(self.losses)
         self.probabs = np.array(self.losses) + self.EPS
         self.probabs /= self.probabs.sum()
-        self.recalc_probabs = False
 
     def buffer_size(self):
         """
@@ -100,11 +100,32 @@ class ReplayBuffer:
             size=len(self.buffer), to_pull=self.batches_to_pull, max_loss=self.max_loss
         )
 
-    def set_losses(self, index, losses):
-        for idx, loss in zip(index, losses):
-            self.losses[idx] = loss
-        if self.batches % 10 == 0:
-            self.recalc_probabs = True
+    def enqueue_loss_update(self, index, losses):
+        """
+        Supposed to be called from main thread -- enqueue data for losses update
+        :param index:
+        :param losses:
+        :return:
+        """
+        self.losses_updates_queue.put((index, losses))
+
+    def apply_loss_updates(self):
+        """
+        Clean up loss update queue and recalc probabilities
+        :return:
+        """
+        any_changes = False
+        try:
+            while True:
+                index, losses = self.losses_updates_queue.get_nowait()
+                for idx, loss in zip(index, losses):
+                    self.losses[idx] = loss
+                any_changes = True
+        except queue.Empty:
+            pass
+        if any_changes:
+            self.calc_probabs()
+
 
 class ReplayBatchProducer(threading.Thread):
     def __init__(self, session, capacity, replay_buffer, qsize_t, enqueue_op, vars):

@@ -151,7 +151,7 @@ if __name__ == "__main__":
                 loss, loss_vec, _ = session.run([loss_t, loss_vec_t, opt_t], feed_dict=feed)
                 loss_batch.append(loss)
                 # feed losses back to replay buffer to reflect priority replay
-                replay_buffer.set_losses(index_batch, loss_vec)
+                replay_buffer.enqueue_loss_update(index_batch, loss_vec)
 
                 if iter % REPORT_ITERS == 0 and iter > 0:
                     batches_qsize, = session.run([batches_qsize_t])
