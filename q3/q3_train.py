@@ -166,7 +166,7 @@ if __name__ == "__main__":
                 if iter % REPORT_ITERS == 0 and iter > 0:
                     print "Loss update queue size: %d, q_wait = %f, b_wait = %f, o_wait = %f" % (
                         replay_buffer.losses_updates_queue.qsize(), q_wait, b_wait, o_wait)
-                    q_wait = 0.0
+                    b_wait = o_wait = q_wait = 0.0
                     batches_qsize, = session.run([batches_qsize_t])
                     report_t = time()
                     avg_loss = np.median(loss_batch)
