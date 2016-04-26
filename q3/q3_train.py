@@ -12,13 +12,13 @@ REPORT_ITERS = 100
 SAVE_MODEL_ITERS = 5000
 
 # if set to None, SYNC_LOSS_THRESHOLD will be used which syncs nets when mean loss for a batch falls below threshold
-SYNC_MODELS_ITERS = 5000
+SYNC_MODELS_ITERS = 10000
 SYNC_LOSS_THRESHOLD = 900.0
 
 TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 2000000
-REPLAY_STEPS_INITIAL = 200000 #400000
+REPLAY_STEPS_INITIAL = 400000
 REPLAY_STEPS_PER_POLL = 50000
 REPLAY_RESET_AFTER_STEPS = 20000
 
@@ -52,8 +52,8 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t32r6"
-    TEST_DESCRIPTION = "Sparse data"
+    TEST_NAME = "t33r1"
+    TEST_DESCRIPTION = "Fast priority replay"
     RESTORE_MODEL = None #"models/model_t29r3-100000"
     GAMMA = 0.99
     L2_REG = 0.1
