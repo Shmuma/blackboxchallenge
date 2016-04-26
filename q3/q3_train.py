@@ -52,7 +52,7 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t32r3"
+    TEST_NAME = "t32r4"
     TEST_DESCRIPTION = "Sparse data"
     RESTORE_MODEL = None #"models/model_t29r3-100000"
     GAMMA = 0.99
@@ -122,6 +122,8 @@ if __name__ == "__main__":
         coordinator = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
 
+        b_wait = 0.0
+        o_wait = 0.0
         q_wait = 0.0
 
         try:
@@ -140,8 +142,10 @@ if __name__ == "__main__":
                     replay_generator.set_alpha(alpha_from_iter(iter))
 
                 # get data from input pipeline
+                t1 = time()
                 index_batch, states_idx_batch, states_val_batch, rewards_batch, \
                 next_states_idx_batch, next_states_val_batch = session.run(batches_data_t)
+                b_wait += time()-t1
 
                 feed = {
                     state_idx_t: states_idx_batch,
@@ -150,7 +154,9 @@ if __name__ == "__main__":
                     next_state_idx_t: next_states_idx_batch,
                     next_state_val_t: next_states_val_batch
                 }
+                t1 = time()
                 loss, loss_vec, _ = session.run([loss_t, loss_vec_t, opt_t], feed_dict=feed)
+                o_wait += time() - t1
                 loss_batch.append(loss)
                 # feed losses back to replay buffer to reflect priority replay
                 t1 = time()
@@ -158,7 +164,8 @@ if __name__ == "__main__":
                 q_wait += time() - t1
 
                 if iter % REPORT_ITERS == 0 and iter > 0:
-                    print "Loss update queue size: %d, q_wait = %f" % (replay_buffer.losses_updates_queue.qsize(), q_wait)
+                    print "Loss update queue size: %d, q_wait = %f, b_wait = %f, o_wait = %f" % (
+                        replay_buffer.losses_updates_queue.qsize(), q_wait, b_wait, o_wait)
                     q_wait = 0.0
                     batches_qsize, = session.run([batches_qsize_t])
                     report_t = time()
