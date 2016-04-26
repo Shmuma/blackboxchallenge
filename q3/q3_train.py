@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 BATCH_SIZE = 1000
-REPORT_ITERS = 1000
+REPORT_ITERS = 100
 SAVE_MODEL_ITERS = 20000
 
 # if set to None, SYNC_LOSS_THRESHOLD will be used which syncs nets when mean loss for a batch falls below threshold
@@ -18,7 +18,7 @@ SYNC_LOSS_THRESHOLD = 900.0
 TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 2000000
-REPLAY_STEPS_INITIAL = 400000
+REPLAY_STEPS_INITIAL = 100000 #400000
 REPLAY_STEPS_PER_POLL = 50000
 REPLAY_RESET_AFTER_STEPS = 20000
 
@@ -52,7 +52,7 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t31r1" # TODO: Next is t31, not t30!
+    TEST_NAME = "t31r3"
     TEST_DESCRIPTION = "Priority replay"
     RESTORE_MODEL = None #"models/model_t29r3-100000"
     GAMMA = 0.99
