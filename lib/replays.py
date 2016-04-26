@@ -99,7 +99,7 @@ class ReplayBuffer:
     def set_losses(self, index, losses):
         for idx, loss in zip(index, losses):
             self.losses[idx] = loss
-        if self.batches % 100 == 0:
+        if self.batches % 10 == 0:
             self.recalc_probabs = True
 
 class ReplayBatchProducer(threading.Thread):
