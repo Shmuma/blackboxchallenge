@@ -86,9 +86,9 @@ if __name__ == "__main__":
     n_features = features.transformed_size()
 
     state_t = tf.placeholder(tf.float32, (None, n_features))
-    qvals_t = net.make_forward_net_v3(state_t, True, n_features, dropout_keep_prob=1.0)
+    qvals_t = net.make_forward_net(state_t, True, n_features, dropout_keep_prob=1.0)
 
-    saver = tf.train.Saver(var_list=dict(net.get_v2_vars(trainable=True)).values())
+    saver = tf.train.Saver(var_list=dict(net.get_vars(trainable=True)).values())
     start = args.start
 
     with tf.Session() as session:
