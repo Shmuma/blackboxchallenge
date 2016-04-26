@@ -18,12 +18,12 @@ SYNC_LOSS_THRESHOLD = 900.0
 TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 2000000
-REPLAY_STEPS_INITIAL = 200000 #400000
+REPLAY_STEPS_INITIAL = 20000 #400000
 REPLAY_STEPS_PER_POLL = 50000
 REPLAY_RESET_AFTER_STEPS = 20000
 
 # how many epoches we should show data between fresh replay data requests
-EPOCHES_BETWEEN_POLL = 15
+EPOCHES_BETWEEN_POLL = 150
 
 DECAY_STEPS = None #200000
 
@@ -52,8 +52,8 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t31r3"
-    TEST_DESCRIPTION = "Priority replay"
+    TEST_NAME = "t32r1"
+    TEST_DESCRIPTION = "Sparse data"
     RESTORE_MODEL = None #"models/model_t29r3-100000"
     GAMMA = 0.99
     L2_REG = 0.1
@@ -64,23 +64,23 @@ if __name__ == "__main__":
     started = last_t = time()
     infra.prepare_bbox()
 
-    n_features = features.transformed_size()
+    n_features = features.RESULT_N_FEATURES
 
-    state_t, rewards_t, next_state_t = net.make_vars(n_features)
+    # create variables:
+    # - state_idx_t, state_val_t -- sparse representation of transformed state
+    # - state_t = tf.sparse_to_dense
+    # - rewards_t
+    state_idx_t, state_val_t, state_t, rewards_t, \
+    next_state_idx_t, next_state_val_t, next_state_t = \
+        net.make_vars(features.ORIGIN_N_FEATURES, features.RESULT_N_FEATURES, BATCH_SIZE)
 
     # make two networks - one is to train, second is periodically cloned from first
     qvals_t = net.make_forward_net(state_t, n_features=n_features, is_main_net=True)
     next_qvals_t = net.make_forward_net(next_state_t, n_features=n_features, is_main_net=False)
 
     # describe qvalues
-    tf.contrib.layers.summarize_tensor(tf.reduce_mean(qvals_t, name="qvals"))
-    tf.contrib.layers.summarize_tensor(tf.reduce_mean(next_qvals_t, name="qvals_next"))
-
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(qvals_t, 1), name="qbest"))
     tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(next_qvals_t, 1), name="qbest_next"))
-
-    tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(qvals_t, 1), name="qworst"))
-    tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_min(next_qvals_t, 1), name="qworst_next"))
 
     loss_t, loss_vec_t = net.make_loss(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, l2_reg=L2_REG)
     opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=DECAY_STEPS)
@@ -138,12 +138,15 @@ if __name__ == "__main__":
                     replay_generator.set_alpha(alpha_from_iter(iter))
 
                 # get data from input pipeline
-                index_batch, states_batch, rewards_batch, next_states_batch = session.run(batches_data_t)
+                index_batch, states_idx_batch, states_val_batch, rewards_batch, \
+                next_states_idx_batch, next_states_val_batch = session.run(batches_data_t)
 
                 feed = {
-                    state_t: states_batch,
+                    state_idx_t: states_idx_batch,
+                    state_val_t: states_val_batch,
                     rewards_t: rewards_batch,
-                    next_state_t: next_states_batch
+                    next_state_idx_t: next_states_idx_batch,
+                    next_state_val_t: next_states_val_batch
                 }
                 loss, loss_vec, _ = session.run([loss_t, loss_vec_t, opt_t], feed_dict=feed)
                 loss_batch.append(loss)
