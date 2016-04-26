@@ -52,7 +52,7 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t32r5"
+    TEST_NAME = "t32r6"
     TEST_DESCRIPTION = "Sparse data"
     RESTORE_MODEL = None #"models/model_t29r3-100000"
     GAMMA = 0.99
@@ -66,48 +66,55 @@ if __name__ == "__main__":
 
     n_features = features.RESULT_N_FEATURES
 
-    # create variables:
-    # - state_idx_t, state_val_t -- sparse representation of transformed state
-    # - state_t = tf.sparse_to_dense
-    # - rewards_t
-    state_idx_t, state_val_t, state_t, rewards_t, \
-    next_state_idx_t, next_state_val_t, next_state_t = \
-        net.make_vars(features.ORIGIN_N_FEATURES, features.RESULT_N_FEATURES, BATCH_SIZE)
-
-    # make two networks - one is to train, second is periodically cloned from first
-    qvals_t = net.make_forward_net(state_t, n_features=n_features, is_main_net=True)
-    next_qvals_t = net.make_forward_net(next_state_t, n_features=n_features, is_main_net=False)
-
-    # describe qvalues
-    tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(qvals_t, 1), name="qbest"))
-    tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(next_qvals_t, 1), name="qbest_next"))
-
-    loss_t, loss_vec_t = net.make_loss(BATCH_SIZE, GAMMA, qvals_t, rewards_t, next_qvals_t, l2_reg=L2_REG)
-    opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=DECAY_STEPS)
-
-    sync_nets_t = net.make_sync_nets()
-    summ = net.make_summaries(loss_t, optimiser)
-
-    log.info("Staring session {name} with features len {n_features}. Description: {descr}".format(
-            name=TEST_NAME, n_features=n_features, descr=TEST_DESCRIPTION))
-    report_t = time()
-
     with tf.Session() as session:
+        batches_queue = tf.FIFOQueue(BATCHES_QUEUE_CAPACITY, (
+            tf.int32,           # batch index -- offsets within replay buffer
+            tf.int32,           # state sparse index vector
+            tf.float32,         # state sparse values vector
+            tf.float32,         # rewards
+            tf.int32,           # next state sparse index vector
+            tf.float32))        # next state sparse values vector
+        batches_qsize_t = batches_queue.size()
+
+        # batch
+        (index_batch_t, states_idx_batch_t, states_val_batch_t, rewards_batch_t,
+            next_states_idx_batch_t, next_states_val_batch_t) = batches_queue.dequeue()
+
+        # create variables:
+        # - state_idx_t, state_val_t -- sparse representation of transformed state
+        # - state_t = tf.sparse_to_dense
+        # - rewards_t
+        state_t = net.sparse_batch_to_dense(states_idx_batch_t, states_val_batch_t, BATCH_SIZE,
+                                            features.ORIGIN_N_FEATURES, features.RESULT_N_FEATURES, name="state")
+        next_state_t = net.sparse_batch_to_dense(next_states_idx_batch_t, next_states_val_batch_t,
+                                                 BATCH_SIZE * infra.n_actions, features.ORIGIN_N_FEATURES,
+                                                 features.RESULT_N_FEATURES, name="next")
+
+        # make two networks - one is to train, second is periodically cloned from first
+        qvals_t = net.make_forward_net(state_t, n_features=n_features, is_main_net=True)
+        next_qvals_t = net.make_forward_net(next_state_t, n_features=n_features, is_main_net=False)
+
+        # describe qvalues
+        tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(qvals_t, 1), name="qbest"))
+        tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(next_qvals_t, 1), name="qbest_next"))
+
+        loss_t, loss_vec_t = net.make_loss(BATCH_SIZE, GAMMA, qvals_t, rewards_batch_t, next_qvals_t, l2_reg=L2_REG)
+        opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=DECAY_STEPS)
+
+        sync_nets_t = net.make_sync_nets()
+        summ = net.make_summaries(loss_t, optimiser)
+
+        log.info("Staring session {name} with features len {n_features}. Description: {descr}".format(
+                name=TEST_NAME, n_features=n_features, descr=TEST_DESCRIPTION))
+        report_t = time()
+
         replay_generator = replays.ReplayGenerator(REPLAY_STEPS_PER_POLL, session, state_t,
                                                    qvals_t, initial=REPLAY_STEPS_INITIAL,
                                                    reset_after_steps=REPLAY_RESET_AFTER_STEPS)
         replay_buffer = replays.ReplayBuffer(session, REPLAY_BUFFER_CAPACITY, BATCH_SIZE, replay_generator, EPOCHES_BETWEEN_POLL)
-        batches_queue, batches_producer_thread = \
-            replays.make_batches_queue_and_thread(session, BATCHES_QUEUE_CAPACITY, replay_buffer)
+        batches_producer_thread = replays.make_batches_thread(session, batches_queue, BATCHES_QUEUE_CAPACITY, replay_buffer)
 
-        batches_qsize_t = batches_queue.size()
-
-        # batch
-        batches_data_t = batches_queue.dequeue()
-#        index_batch_t, states_idx_batch_t, states_val_batch_t, rewards_batch_t, next_states_idx_batch_t, next_states_val_batch_t = batches_data_t
-
-        batch_index_t = tf.placeholder(tf.int32, (BATCH_SIZE, ))
-        loss_enqueue_t = replay_buffer.losses_updates_queue.enqueue([batch_index_t, loss_vec_t])
+        loss_enqueue_t = replay_buffer.losses_updates_queue.enqueue([index_batch_t, loss_vec_t])
 
         saver = tf.train.Saver(var_list=dict(net.get_vars(trainable=True)).values(), max_to_keep=200)
         session.run(tf.initialize_all_variables())
@@ -129,9 +136,6 @@ if __name__ == "__main__":
         coordinator = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
 
-        b_wait = 0.0
-        o_wait = 0.0
-
         try:
             while True:
                 # first iters we use zero-initialised next_qvals_t
@@ -147,29 +151,10 @@ if __name__ == "__main__":
                     speed = (BATCH_SIZE * REPORT_ITERS) / report_d
                     replay_generator.set_alpha(alpha_from_iter(iter))
 
-                # get data from input pipeline
-                t1 = time()
-                index_batch, states_idx_batch, states_val_batch, rewards_batch, \
-                next_states_idx_batch, next_states_val_batch = session.run(batches_data_t)
-                b_wait += time()-t1
-
-                feed = {
-                    batch_index_t: index_batch,
-                    state_idx_t: states_idx_batch,
-                    state_val_t: states_val_batch,
-                    rewards_t: rewards_batch,
-                    next_state_idx_t: next_states_idx_batch,
-                    next_state_val_t: next_states_val_batch
-                }
-                t1 = time()
-                loss, _, _ = session.run([loss_t, loss_enqueue_t, opt_t], feed_dict=feed)
-                o_wait += time() - t1
+                loss, _, _ = session.run([loss_t, loss_enqueue_t, opt_t])
                 loss_batch.append(loss)
 
                 if iter % REPORT_ITERS == 0 and iter > 0:
-                    print "b_wait = %f, o_wait = %f" % (b_wait, o_wait)
-                    b_wait = 0.0
-                    o_wait = 0.0
                     batches_qsize, = session.run([batches_qsize_t])
                     report_t = time()
                     avg_loss = np.median(loss_batch)
@@ -184,7 +169,7 @@ if __name__ == "__main__":
                             speed=speed, replay=replay_buffer, batches_qsize=batches_qsize,
                             batchq_perc=100.0 * batches_qsize / BATCHES_QUEUE_CAPACITY)
                     )
-                    write_summaries(session, summ, summary_writer, iter, feed, loss=avg_loss, speed=speed)
+                    write_summaries(session, summ, summary_writer, iter, {}, loss=avg_loss, speed=speed)
 
                 if TEST_CUSTOM_BBOX_ITERS > 0 and iter % TEST_CUSTOM_BBOX_ITERS == 0 and iter > 0:
                     log.info("{iter} Do custom model states:".format(iter=iter))

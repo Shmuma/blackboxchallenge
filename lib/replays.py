@@ -163,7 +163,7 @@ class ReplayBatchProducer(threading.Thread):
         log.info("ReplayBatchProducer: stop requested")
 
 
-def make_batches_queue_and_thread(session, capacity, replay_buffer):
+def make_batches_thread(session, queue, capacity, replay_buffer):
     """
     Create fifo queue and start production thread
     :param session:
@@ -171,7 +171,6 @@ def make_batches_queue_and_thread(session, capacity, replay_buffer):
     :param replay_buffer:
     :return:
     """
-    queue = tf.FIFOQueue(capacity, (tf.int32, tf.int32, tf.float32, tf.float32, tf.int32, tf.float32))
     qsize_t = queue.size()
 
     # make varibles for data to be placed in the queue
@@ -186,7 +185,7 @@ def make_batches_queue_and_thread(session, capacity, replay_buffer):
 
     producer_thread = ReplayBatchProducer(session, capacity, replay_buffer,
                                           qsize_t, enqueue_op, vars)
-    return queue, producer_thread
+    return producer_thread
 
 
 class ReplayGenerator:
