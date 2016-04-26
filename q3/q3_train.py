@@ -18,7 +18,7 @@ SYNC_LOSS_THRESHOLD = 900.0
 TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 2000000
-REPLAY_STEPS_INITIAL = 200000 #400000
+REPLAY_STEPS_INITIAL = 20000 #400000
 REPLAY_STEPS_PER_POLL = 50000
 REPLAY_RESET_AFTER_STEPS = 20000
 
@@ -52,7 +52,7 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t32r1"
+    TEST_NAME = "t32r2"
     TEST_DESCRIPTION = "Sparse data"
     RESTORE_MODEL = None #"models/model_t29r3-100000"
     GAMMA = 0.99
@@ -122,6 +122,8 @@ if __name__ == "__main__":
         coordinator = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=session, coord=coordinator)
 
+        q_wait = 0.0
+
         try:
             while True:
                 # first iters we use zero-initialised next_qvals_t
@@ -151,9 +153,13 @@ if __name__ == "__main__":
                 loss, loss_vec, _ = session.run([loss_t, loss_vec_t, opt_t], feed_dict=feed)
                 loss_batch.append(loss)
                 # feed losses back to replay buffer to reflect priority replay
+                t1 = time()
                 replay_buffer.enqueue_loss_update(index_batch, loss_vec)
+                q_wait += time() - t1
 
                 if iter % REPORT_ITERS == 0 and iter > 0:
+                    print "Loss update queue size: %d, q_wait = %f" % (replay_buffer.losses_updates_queue.qsize(), q_wait)
+                    q_wait = 0.0
                     batches_qsize, = session.run([batches_qsize_t])
                     report_t = time()
                     avg_loss = np.median(loss_batch)
