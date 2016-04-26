@@ -52,7 +52,7 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t32r4"
+    TEST_NAME = "t32r5"
     TEST_DESCRIPTION = "Sparse data"
     RESTORE_MODEL = None #"models/model_t29r3-100000"
     GAMMA = 0.99
@@ -96,11 +96,18 @@ if __name__ == "__main__":
         replay_generator = replays.ReplayGenerator(REPLAY_STEPS_PER_POLL, session, state_t,
                                                    qvals_t, initial=REPLAY_STEPS_INITIAL,
                                                    reset_after_steps=REPLAY_RESET_AFTER_STEPS)
-        replay_buffer = replays.ReplayBuffer(REPLAY_BUFFER_CAPACITY, BATCH_SIZE, replay_generator, EPOCHES_BETWEEN_POLL)
+        replay_buffer = replays.ReplayBuffer(session, REPLAY_BUFFER_CAPACITY, BATCH_SIZE, replay_generator, EPOCHES_BETWEEN_POLL)
         batches_queue, batches_producer_thread = \
             replays.make_batches_queue_and_thread(session, BATCHES_QUEUE_CAPACITY, replay_buffer)
-        batches_data_t = batches_queue.dequeue()
+
         batches_qsize_t = batches_queue.size()
+
+        # batch
+        batches_data_t = batches_queue.dequeue()
+#        index_batch_t, states_idx_batch_t, states_val_batch_t, rewards_batch_t, next_states_idx_batch_t, next_states_val_batch_t = batches_data_t
+
+        batch_index_t = tf.placeholder(tf.int32, (BATCH_SIZE, ))
+        loss_enqueue_t = replay_buffer.losses_updates_queue.enqueue([batch_index_t, loss_vec_t])
 
         saver = tf.train.Saver(var_list=dict(net.get_vars(trainable=True)).values(), max_to_keep=200)
         session.run(tf.initialize_all_variables())
@@ -124,7 +131,6 @@ if __name__ == "__main__":
 
         b_wait = 0.0
         o_wait = 0.0
-        q_wait = 0.0
 
         try:
             while True:
@@ -148,6 +154,7 @@ if __name__ == "__main__":
                 b_wait += time()-t1
 
                 feed = {
+                    batch_index_t: index_batch,
                     state_idx_t: states_idx_batch,
                     state_val_t: states_val_batch,
                     rewards_t: rewards_batch,
@@ -155,20 +162,14 @@ if __name__ == "__main__":
                     next_state_val_t: next_states_val_batch
                 }
                 t1 = time()
-                loss, loss_vec, _ = session.run([loss_t, loss_vec_t, opt_t], feed_dict=feed)
+                loss, _, _ = session.run([loss_t, loss_enqueue_t, opt_t], feed_dict=feed)
                 o_wait += time() - t1
                 loss_batch.append(loss)
-                # feed losses back to replay buffer to reflect priority replay
-                t1 = time()
-                replay_buffer.enqueue_loss_update(index_batch, loss_vec)
-                q_wait += time() - t1
 
                 if iter % REPORT_ITERS == 0 and iter > 0:
-                    print "Loss update queue size: %d, q_wait = %f, b_wait = %f, o_wait = %f" % (
-                        replay_buffer.losses_updates_queue.qsize(), q_wait, b_wait, o_wait)
+                    print "b_wait = %f, o_wait = %f" % (b_wait, o_wait)
                     b_wait = 0.0
                     o_wait = 0.0
-                    q_wait = 0.0
                     batches_qsize, = session.run([batches_qsize_t])
                     report_t = time()
                     avg_loss = np.median(loss_batch)

@@ -12,8 +12,12 @@ import features
 import infra
 
 
+LOSSES_QUEUE_CAPACITY = 1000
+
+
 class ReplayBuffer:
-    def __init__(self, capacity, batch, replay_generator, epoches_between_pull):
+    def __init__(self, session, capacity, batch, replay_generator, epoches_between_pull):
+        self.session = session
         self.capacity = capacity
         self.batch = batch
         self.buffer = []
@@ -25,7 +29,10 @@ class ReplayBuffer:
         self.losses = []                # array with errors for every sample
         self.max_loss = 1.0             # initial value for max_loss
         self.EPS = 1e-5
-        self.losses_updates_queue = queue.Queue()
+        self.losses_updates_queue = tf.FIFOQueue(LOSSES_QUEUE_CAPACITY, (tf.int32, tf.float32))
+        self.losses_updates_qsize = self.losses_updates_queue.size()
+        self.losses_updates_dequeue = self.losses_updates_queue.dequeue()
+
 
     def time_to_pull(self):
         return len(self.buffer) == 0 or self.batches_to_pull <= 0
@@ -100,29 +107,24 @@ class ReplayBuffer:
             size=len(self.buffer), to_pull=self.batches_to_pull, max_loss=self.max_loss
         )
 
-    def enqueue_loss_update(self, index, losses):
-        """
-        Supposed to be called from main thread -- enqueue data for losses update
-        :param index:
-        :param losses:
-        :return:
-        """
-        self.losses_updates_queue.put((index, losses))
-
     def apply_loss_updates(self):
         """
         Clean up loss update queue and recalc probabilities
         :return:
         """
         any_changes = False
-        try:
-            while True:
-                index, losses = self.losses_updates_queue.get_nowait()
+
+        while True:
+            qsize, = self.session.run([self.losses_updates_qsize])
+            if qsize == 0:
+                break
+            while qsize > 0:
+                index, losses = self.session.run(self.losses_updates_dequeue)
                 for idx, loss in zip(index, losses):
                     self.losses[idx] = loss
-                any_changes = True
-        except queue.Empty:
-            pass
+                qsize -= 1
+            any_changes = True
+
         if any_changes:
             self.calc_probabs()
 
