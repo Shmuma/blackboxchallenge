@@ -1,0 +1,2 @@
+humanize
+tensorflow > 0.6.0
