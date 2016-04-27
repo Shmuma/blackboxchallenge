@@ -135,7 +135,7 @@ class ReplayBuffer:
         return size
 
     def __str__(self):
-        return "ReplayBuffer[size={size}, to_pull={to_pull}, max_loss={max_loss:.4e}, size={bytes}]".format(
+        return "ReplayBuffer[size={size}({bytes}), to_pull={to_pull}, max_loss={max_loss:.4e}]".format(
                 size=len(self.buffer), to_pull=self.batches_to_pull,
                 max_loss=self.max_loss, bytes=naturalsize(self.buffer_size(), format="%.3f")
         )
