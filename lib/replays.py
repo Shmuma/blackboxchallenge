@@ -4,6 +4,7 @@ import tensorflow as tf
 import numpy as np
 import time
 import logging as log
+from humanize import naturalsize
 
 from datetime import timedelta
 
@@ -20,6 +21,7 @@ class ReplayBuffer:
         self.capacity = capacity
         self.batch = batch
         self.buffer = []
+        self.buffer_bytes = None
         self.replay_generator = replay_generator
         self.epoches_between_pull = epoches_between_pull
         # how many batches need to be generated before pull
@@ -106,6 +108,7 @@ class ReplayBuffer:
             self.buffer = self.buffer[-self.capacity:]
 
         self.calc_probabs()
+        self.buffer_bytes = None
 
     def calc_probabs(self):
         # calculate priorities array
@@ -118,17 +121,23 @@ class ReplayBuffer:
         Return size in bytes of all entries
         :return:
         """
+        if self.buffer_bytes is not None:
+            return self.buffer_bytes
+
         size = 0
         for state, reward, next_states in self.buffer:
             size += state[0].nbytes + state[1].nbytes
             size += reward.nbytes
             size += sum(map(lambda s: s[0].nbytes + s[1].nbytes, next_states))
+        size += self.losses.nbytes
+        size += self.probabs.nbytes
+        self.buffer_bytes = size
         return size
 
     def __str__(self):
-        return "ReplayBuffer[size={size}, to_pull={to_pull}, since_pull={since_pull}, max_loss={max_loss:.4e}]".format(
+        return "ReplayBuffer[size={size}, to_pull={to_pull}, max_loss={max_loss:.4e}, size={bytes}]".format(
                 size=len(self.buffer), to_pull=self.batches_to_pull,
-                since_pull=self.batches_since_pull, max_loss=self.max_loss
+                max_loss=self.max_loss, bytes=naturalsize(self.buffer_size(), format="%.3f")
         )
 
     def apply_loss_updates(self):
