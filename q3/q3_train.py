@@ -7,20 +7,22 @@ from lib import infra, net, replays, features
 import numpy as np
 import tensorflow as tf
 
-BATCH_SIZE = 1000
+BATCH_SIZE = 2000
 REPORT_ITERS = 100
 SAVE_MODEL_ITERS = 5000
 
-# if set to None, SYNC_LOSS_THRESHOLD will be used which syncs nets when mean loss for a batch falls below threshold
+# If we did at least 10000 iterations since last sync or average loss fall below threshold we do sync.
+# To avoid unneeded sync after new replay buffer pull, we wait for 1000 iterations after fresh pull
 SYNC_MODELS_ITERS = 10000
-SYNC_LOSS_THRESHOLD = 900.0
+SYNC_LOSS_THRESHOLD = 2000.0
+BATCHES_AFTER_PULL_TO_SYNC = 1000
 
 TEST_CUSTOM_BBOX_ITERS = 0
 
-REPLAY_BUFFER_CAPACITY = 2000000
-REPLAY_STEPS_INITIAL = 400000
+REPLAY_BUFFER_CAPACITY = 500000
+REPLAY_STEPS_INITIAL = 250000
 REPLAY_STEPS_PER_POLL = 50000
-REPLAY_RESET_AFTER_STEPS = 20000
+REPLAY_RESET_AFTER_STEPS = 50000
 
 # how many epoches we should show data between fresh replay data requests
 EPOCHES_BETWEEN_POLL = 15
@@ -52,8 +54,8 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t33r4"
-    TEST_DESCRIPTION = "Performance experiments (faster loss application)"
+    TEST_NAME = "t34r1"
+    TEST_DESCRIPTION = "Train on 50k steps"
     RESTORE_MODEL = None #"models/model_t29r3-100000"
     GAMMA = 0.99
     L2_REG = 0.1
@@ -131,6 +133,7 @@ if __name__ == "__main__":
         iter = 0
         report_d = 0
         syncs = 0
+        iter_last_synced = 0
         time_to_sync = False
 
         coordinator = tf.train.Coordinator()
@@ -144,6 +147,7 @@ if __name__ == "__main__":
                     log.info("{iter}: sync nets #{sync}".format(iter=iter, sync=syncs))
                     session.run([sync_nets_t])
                     time_to_sync = False
+                    iter_last_synced = iter
 
                 # estimate speed before potential refill to prevent confusing numbers
                 if iter % REPORT_ITERS == 0 and iter > 0:
@@ -158,10 +162,11 @@ if __name__ == "__main__":
                     batches_qsize, = session.run([batches_qsize_t])
                     report_t = time()
                     avg_loss = np.median(loss_batch)
-                    if SYNC_MODELS_ITERS is None:
-                        time_to_sync = avg_loss < SYNC_LOSS_THRESHOLD
-                    else:
-                        time_to_sync = iter % SYNC_MODELS_ITERS == 0 and iter > 0
+
+                    # decide about sync time
+                    if replay_buffer.batches_since_pull >= BATCHES_AFTER_PULL_TO_SYNC:
+                        if avg_loss < SYNC_LOSS_THRESHOLD or iter - iter_last_synced > SYNC_MODELS_ITERS:
+                            time_to_sync = True
                     loss_batch = []
                     log.info("{iter}: loss={loss:.3f} in {duration}, speed={speed:.2f} s/sec, "
                              "{replay}, batch_q={batches_qsize} ({batchq_perc:.2f}%)".format(

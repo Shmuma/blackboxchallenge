@@ -21,9 +21,12 @@ class ReplayBuffer:
         self.batch = batch
         self.buffer = []
         self.replay_generator = replay_generator
-        self.batches = 0
         self.epoches_between_pull = epoches_between_pull
+        # how many batches need to be generated before pull
         self.batches_to_pull = 0
+        # amount of batches generated after last pull
+        self.batches_since_pull = 0
+
         # priority replay stuff
         self.max_loss = 1.0               # initial value for max_loss
         # array with errors for every sample
@@ -63,6 +66,7 @@ class ReplayBuffer:
         if self.time_to_pull():
             self.pull_more_data()
             self.batches_to_pull = self.epoches_between_pull * len(self.buffer) / self.batch
+            self.batches_since_pull = 0
             self.index = None
 
         index = self.shuffle()
@@ -83,7 +87,7 @@ class ReplayBuffer:
                 next_states_val.append(next_val)
 
         self.batches_to_pull -= 1
-        self.batches += 1
+        self.batches_since_pull += 1
         return index, states_idx, states_val, rewards, next_states_idx, next_states_val
 
     def pull_more_data(self):
@@ -122,8 +126,9 @@ class ReplayBuffer:
         return size
 
     def __str__(self):
-        return "ReplayBuffer[size={size}, to_pull={to_pull}, max_loss={max_loss:.4e}]".format(
-            size=len(self.buffer), to_pull=self.batches_to_pull, max_loss=self.max_loss
+        return "ReplayBuffer[size={size}, to_pull={to_pull}, since_pull={since_pull}, max_loss={max_loss:.4e}]".format(
+                size=len(self.buffer), to_pull=self.batches_to_pull,
+                since_pull=self.batches_since_pull, max_loss=self.max_loss
         )
 
     def apply_loss_updates(self):
