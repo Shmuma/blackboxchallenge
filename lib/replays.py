@@ -4,7 +4,6 @@ import tensorflow as tf
 import numpy as np
 import time
 import logging as log
-import Queue as queue
 
 from datetime import timedelta
 
