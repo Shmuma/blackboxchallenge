@@ -26,16 +26,33 @@ class ReplayBuffer:
         self.epoches_between_pull = epoches_between_pull
         self.batches_to_pull = 0
         # priority replay stuff
-        self.losses = []                # array with errors for every sample
-        self.max_loss = 1.0             # initial value for max_loss
+        self.max_loss = 1.0               # initial value for max_loss
+        # array with errors for every sample
+        self.losses = np.full(shape=(0,), fill_value=self.max_loss, dtype=np.float32)
         self.EPS = 1e-5
         self.losses_updates_queue = tf.FIFOQueue(LOSSES_QUEUE_CAPACITY, (tf.int32, tf.float32))
         self.losses_updates_qsize = self.losses_updates_queue.size()
         self.losses_updates_dequeue = self.losses_updates_queue.dequeue()
 
+        self.index = None
+        self.index_ofs = 0
 
     def time_to_pull(self):
         return len(self.buffer) == 0 or self.batches_to_pull <= 0
+
+
+    def shuffle(self, pregen_batches=10):
+        """
+        Generate index of next batch
+        :return: array of batch with entries
+        """
+        if self.index is None or self.index_ofs >= pregen_batches:
+            self.index = np.random.choice(len(self.buffer), size=self.batch*pregen_batches, replace=False, p=self.probabs)
+            self.index_ofs = 0
+        res = self.index[self.index_ofs*self.batch:(self.index_ofs+1)*self.batch]
+        self.index_ofs += 1
+        return res
+
 
     def next_batch(self):
         """
@@ -47,8 +64,9 @@ class ReplayBuffer:
         if self.time_to_pull():
             self.pull_more_data()
             self.batches_to_pull = self.epoches_between_pull * len(self.buffer) / self.batch
+            self.index = None
 
-        index = np.random.choice(len(self.buffer), size=self.batch, replace=False, p=self.probabs)
+        index = self.shuffle()
 
         states_idx = []
         states_val = []
@@ -77,17 +95,19 @@ class ReplayBuffer:
         next_batch = self.replay_generator.next_batch()
         self.buffer += next_batch
         # new entries populated with max_loss to ensure they'll be shown at least once
-        self.losses += [self.max_loss] * len(next_batch)
-        # TODO: maybe, we can pop values more effectively
-        while len(self.buffer) > self.capacity:
-            self.buffer.pop(0)
-            self.losses.pop(0)
+        new_losses = np.full((len(next_batch),), fill_value=self.max_loss, dtype=np.float32)
+        self.losses = np.concatenate([self.losses, new_losses])
+
+        if self.losses.shape[0] > self.capacity:
+            self.losses = self.losses[-self.capacity:]
+            self.buffer = self.buffer[-self.capacity:]
+
         self.calc_probabs()
 
     def calc_probabs(self):
         # calculate priorities array
-        self.max_loss = max(self.losses)
-        self.probabs = np.array(self.losses) + self.EPS
+        self.max_loss = self.losses.max()
+        self.probabs = self.losses + self.EPS
         self.probabs /= self.probabs.sum()
 
     def buffer_size(self):
@@ -120,8 +140,7 @@ class ReplayBuffer:
                 break
             while qsize > 0:
                 index, losses = self.session.run(self.losses_updates_dequeue)
-                for idx, loss in zip(index, losses):
-                    self.losses[idx] = loss
+                np.put(self.losses, index, losses)
                 qsize -= 1
             any_changes = True
 

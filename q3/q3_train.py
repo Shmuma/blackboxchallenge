@@ -52,8 +52,8 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t33r1"
-    TEST_DESCRIPTION = "Fast priority replay"
+    TEST_NAME = "t33r4"
+    TEST_DESCRIPTION = "Performance experiments (faster loss application)"
     RESTORE_MODEL = None #"models/model_t29r3-100000"
     GAMMA = 0.99
     L2_REG = 0.1
