@@ -13,8 +13,9 @@ from lib import infra
 EPSILON = 1e-5
 
 # feature 25: Looks strange
-#EXCLUDE_FEATURES = {1, 2, 3, 4, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, }
-EXCLUDE_FEATURES = {}
+# definetely striped features: 0, 5-12, 23, 24, 35 (
+EXCLUDE_FEATURES = {1, 2, 3, 4, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, }
+INCLUDE_FEATURES = {0, 5, 6, 7, 8, 9, 10, 11, 12, 23, 24, 35}
 
 def lookup_stripe(stripes, value, eps=EPSILON):
     """
@@ -92,6 +93,20 @@ def try_stripes(start, delta, stripes_counts, up_levels, eps=EPSILON, count=60):
     return matched, missed
 
 
+def guess_delta(levels, eps=EPSILON):
+    d = np.diff(levels)
+    d.sort()
+    vals = []
+
+    for v in d:
+        if len(vals) == 0 or abs(np.mean(vals) - v) < eps:
+            vals.append(v)
+        else:
+            break
+
+    return np.mean(vals)
+
+
 def group_stripes(stripes_dict, eps=EPSILON, count=60):
     """
     Try to find stripes placement for existing levels. I know that usual stripes count is 60 or 1, so I check
@@ -105,8 +120,9 @@ def group_stripes(stripes_dict, eps=EPSILON, count=60):
     for idx, start_val in enumerate(levels):
         if len(levels) - idx < 3:
             break
-        delta = levels[idx+1] - start_val
-        explained, missed = try_stripes(start_val, delta, stripes_dict, levels[idx:idx+count], eps=eps, count=count)
+        part_levels = levels[idx:idx+count]
+        delta = guess_delta(part_levels, eps=eps)
+        explained, missed = try_stripes(start_val, delta, stripes_dict, part_levels, eps=eps, count=count)
         log.info("idx=%d, start=%.5f, delta=%.5f: explained=%d, missed=%d", idx, start_val, delta, explained, missed)
 
 
@@ -121,9 +137,9 @@ def bbox_action_hook(st, state, rewards, next_states):
         log.info("{step}: states={states}".format(
                 step=st['step'], states=st['states'].shape[0]))
 
-    if st['step'] % 500000 == 0:
+    if st['step'] % 100000 == 0:
         for feat in range(infra.n_features):
-            if feat in EXCLUDE_FEATURES:
+            if feat not in INCLUDE_FEATURES:
                 log.info("Feature %d excluded", feat)
                 continue
             log.info("Process feature %d", feat)
