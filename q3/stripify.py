@@ -13,8 +13,8 @@ from lib import infra
 EPSILON = 1e-5
 
 # feature 25: Looks strange
-# definetely striped features: 0, 5-12, 23, 24, 35 (
-EXCLUDE_FEATURES = {1, 2, 3, 4, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, }
+# definetely striped features: 0, 5-12, 23, 24, 35
+#EXCLUDE_FEATURES = {1, 2, 3, 4, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, }
 INCLUDE_FEATURES = {0, 5, 6, 7, 8, 9, 10, 11, 12, 23, 24, 35}
 
 def lookup_stripe(stripes, value, eps=EPSILON):
@@ -117,13 +117,35 @@ def group_stripes(stripes_dict, eps=EPSILON, count=60):
     levels = list(stripes_dict.keys())
     levels.sort()
 
+    skip = None
     for idx, start_val in enumerate(levels):
         if len(levels) - idx < 3:
             break
+        if skip is not None and start_val < skip:
+            continue
+
         part_levels = levels[idx:idx+count]
         delta = guess_delta(part_levels, eps=eps)
-        explained, missed = try_stripes(start_val, delta, stripes_dict, part_levels, eps=eps, count=count)
-        log.info("idx=%d, start=%.5f, delta=%.5f: explained=%d, missed=%d", idx, start_val, delta, explained, missed)
+
+        # simple check for stripe with one value
+        next_delta = part_levels[1] - part_levels[0]
+        if next_delta / delta > 50:
+            log.info("idx={idx}, level={level:.10f}: explained={explained}".format(
+                idx=idx, level=start_val, explained=stripes_dict[start_val]
+            ))
+        else:
+            explained, missed = try_stripes(start_val, delta, stripes_dict, part_levels, eps=eps, count=count)
+            if missed == 0:
+                skip = start_val + delta*count
+                log.info("idx={idx}, start={level:.10f}, stop={stop:.10f}, delta={delta:.10f}: explained={explained}, missed={missed}".format(
+                         idx=idx, level=start_val, stop=start_val + delta*(count-1),
+                         delta=delta, explained=explained, missed=missed
+                ))
+            else:
+                skip = None
+                log.info("* idx={idx}, level={level:.10f}, delta={delta:.10f}: explained={explained}, missed={missed}".format(
+                    idx=idx, level=start_val, delta=delta, explained=explained, missed=missed
+                ))
 
 
 def bbox_action_hook(st, state, rewards, next_states):
