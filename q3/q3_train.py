@@ -13,19 +13,19 @@ SAVE_MODEL_ITERS = 5000
 
 # If we did at least 10000 iterations since last sync or average loss fall below threshold we do sync.
 # To avoid unneeded sync after new replay buffer pull, we wait for 1000 iterations after fresh pull
-SYNC_MODELS_ITERS = 20000
+SYNC_MODELS_ITERS = 10000
 SYNC_LOSS_THRESHOLD = 2000.0
 BATCHES_AFTER_PULL_TO_SYNC = 2000
 
 TEST_CUSTOM_BBOX_ITERS = 0
 
-REPLAY_BUFFER_CAPACITY = 500000
-REPLAY_STEPS_INITIAL = 250000
+REPLAY_BUFFER_CAPACITY = 1000000
+REPLAY_STEPS_INITIAL = 400000
 REPLAY_STEPS_PER_POLL = 50000
-REPLAY_RESET_AFTER_STEPS = 50000
+REPLAY_RESET_AFTER_STEPS = 20000
 
 # how many epoches we should show data between fresh replay data requests
-EPOCHES_BETWEEN_POLL = 15
+EPOCHES_BETWEEN_POLL = 10
 
 DECAY_STEPS = None #200000
 
@@ -54,8 +54,8 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t34r1"
-    TEST_DESCRIPTION = "Train on 50k steps"
+    TEST_NAME = "t35r1"
+    TEST_DESCRIPTION = "Train on 20k steps with priority replay"
     RESTORE_MODEL = None #"models/model_t29r3-100000"
     GAMMA = 0.99
     L2_REG = 0.1
