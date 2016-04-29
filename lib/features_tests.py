@@ -6,7 +6,7 @@ import features
 
 class TestFeatures(unittest.TestCase):
     def test_final_size(self):
-        self.assertEqual(4510, features.transformed_size())
+        self.assertEqual(2410, features.transformed_size())
 
     def test_to_dense(self):
         idx = np.array([0, 3])
