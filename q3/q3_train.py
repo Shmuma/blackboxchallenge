@@ -14,7 +14,7 @@ SAVE_MODEL_ITERS = 5000
 # If we did at least 10000 iterations since last sync or average loss fall below threshold we do sync.
 # To avoid unneeded sync after new replay buffer pull, we wait for 1000 iterations after fresh pull
 SYNC_MODELS_ITERS = 10000
-SYNC_LOSS_THRESHOLD = 2000.0
+SYNC_LOSS_THRESHOLD = 2300.0
 BATCHES_AFTER_PULL_TO_SYNC = 2000
 
 TEST_CUSTOM_BBOX_ITERS = 0
@@ -54,7 +54,7 @@ def alpha_from_iter(iter_no):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t36r1"
+    TEST_NAME = "t36r2"
     TEST_DESCRIPTION = "More stripes"
     RESTORE_MODEL = None #"models/model_t29r3-100000"
     GAMMA = 0.99
