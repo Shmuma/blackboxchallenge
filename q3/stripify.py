@@ -8,7 +8,7 @@ import argparse
 import numpy as np
 import logging as log
 
-from lib import infra
+from lib import infra, features
 
 EPSILON = 1e-5
 
@@ -148,11 +148,10 @@ def group_stripes(stripes_dict, eps=EPSILON, count=60):
                 ))
 
 
-def bbox_action_hook(st, state, rewards, next_states):
+def bbox_action_hook_detect(st, state, rewards, next_states):
     action = np.random.randint(0, infra.n_actions, 1)[0]
 
     st['states'] = np.concatenate([st['states'], [state], next_states])
-#    st['stripes'] = np.concatenate([st['stripes'], [[None] * infra.n_features] * 5])
 
     st['step'] += 1
     if st['step'] % 1000 == 0:
@@ -173,19 +172,139 @@ def bbox_action_hook(st, state, rewards, next_states):
     return action
 
 
+def start_detect():
+    state = {
+        'step': 0,
+        'states': np.zeros((0, infra.n_features)),
+    }
+
+    infra.bbox_checkpoints_loop(state, bbox_action_hook_detect)
+
+
+def features_index_to_stripes(index):
+    """
+    Transforms sparse features index into stripes index
+    :param index:
+    :return:
+    """
+    res = []
+    ofs = 0
+    for feat_idx, idx in enumerate(index):
+        if feat_idx not in features.sizes:
+            res.append(-1)
+            ofs += 1
+            continue
+
+        if feat_idx not in features.stripes:
+            res.append(idx - ofs)
+        else:
+            s_ofs = ofs
+            added = False
+            for s_idx, stripe in enumerate(features.stripes[feat_idx]):
+                delta, start, stop = stripe
+                if delta is None:
+                    if s_ofs == idx:
+                        res.append(s_idx)
+                        added = True
+                        break
+                    s_ofs += 1
+                else:
+                    count = int(round((stop-start) / delta + 1))
+                    if s_ofs + count > idx:
+                        res.append(s_idx)
+                        added = True
+                        break
+                    s_ofs += count
+            if not added:
+                res.append(-1)
+
+        ofs += features.sizes[feat_idx]
+
+    return tuple(res)
+
+
+def feat_stripes_count(feat_idx):
+    if feat_idx not in features.sizes:
+        return 1
+    if feat_idx not in features.stripes:
+        return features.sizes[feat_idx]
+    return len(features.stripes[feat_idx]) + 1
+
+
+def bbox_action_hook_pairs(st, state, rewards, next_states):
+    action = np.random.randint(0, infra.n_actions, 1)[0]
+
+    # decode features
+    index, _ = features.transform(state)
+    new_idx = {features_index_to_stripes(index)}
+    for n_st in next_states:
+        index, _ = features.transform(n_st)
+        new_idx.add(features_index_to_stripes(index))
+
+    st['index'] = np.concatenate([st['index'], list(new_idx)])
+
+    st['step'] += 1
+    if st['step'] % 1000 == 0:
+        log.info("{step}: states={states}".format(
+                step=st['step'], states=st['index'].shape[0]))
+
+        # show stats about all pairs of striped features
+        for feat1 in sorted(features.sizes.keys()):
+            for feat2 in sorted(features.sizes.keys()):
+                if feat1 >= feat2:
+                    continue
+
+                k = (feat1, feat2)
+                if k in st['counts']:
+                    d = st['counts'][k]
+                else:
+                    d = {}
+                    st['counts'][k] = d
+
+                total = 0
+                for r in st['index'][:,[feat1, feat2]]:
+                    t = tuple(r)
+                    d[t] = d.get(t, 0) + 1
+                    total += 1
+
+                st['totals'][k] = st['totals'].get(k, 0) + total
+
+        st['index'] = np.zeros((0, infra.n_features), dtype=np.int32)
+
+    if st['step'] % 10000 == 0:
+        for (feat1, feat2), counts in sorted(st['counts'].iteritems()):
+            log.info("Features {feat1} + {feat2} combinations:".format(feat1=feat1, feat2=feat2))
+            for f1 in range(feat_stripes_count(feat1)):
+                for f2 in range(feat_stripes_count(feat2)):
+                    if (f1, f2) not in counts:
+                        counts[(f1, f2)] = 0
+            for p, count in sorted(counts.iteritems()):
+                log.info("  * {pair}: {count}".format(pair=p, count=count))
+
+    return action
+
+
+def start_pairs():
+    state = {
+        'step': 0,
+        'index': np.zeros((0, infra.n_features), dtype=np.int32),
+        'totals': {},
+        'counts': {},
+    }
+
+    infra.bbox_checkpoints_loop(state, bbox_action_hook_pairs)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--test", action="store_true", help="Use test levels")
+    parser.add_argument("--mode", required=True, choices=['detect', 'pairs'], help="Mode of operation")
     args = parser.parse_args()
 
     infra.setup_logging()
     infra.prepare_bbox()
 
-    state = {
-        'step': 0,
-        'states': np.zeros((0, infra.n_features)),
-        'stripes': np.zeros((0, infra.n_features)),
-    }
-
-    infra.bbox_checkpoints_loop(state, bbox_action_hook)
-
+    if args.mode == "detect":
+        start_detect()
+    elif args.mode == "pairs":
+        start_pairs()
