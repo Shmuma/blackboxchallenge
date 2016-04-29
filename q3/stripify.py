@@ -315,7 +315,7 @@ def bbox_action_hook_double(st, state, rewards, next_states):
         log.info("Step {step} done, {duration} passed".format(
                 step=st['step'], duration=datetime.timedelta(seconds=time.time() - st['t'])))
         st['t'] = time.time()
-        
+
     action = np.random.randint(0, infra.n_actions, 1)[0]
 
     # perform feature encoding and decoding back

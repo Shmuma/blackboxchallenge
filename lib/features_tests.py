@@ -107,10 +107,9 @@ class TestFeatures(unittest.TestCase):
             'stop': 0.5
         }
 
-        index, total = features._transform_striped(0.5, **opts)
+        index = features._transform_striped(0.5, **opts)
         self.assertIsNotNone(index)
-        self.assertEqual(total, 11)
         self.assertEqual(index, 10)
 
-        index, total = features._transform_striped(-1, **opts)
+        index = features._transform_striped(-1, **opts)
         self.assertIsNone(index)

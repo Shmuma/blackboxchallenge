@@ -176,19 +176,20 @@ def transform(state):
     :param state: numpy array of 36 values from bbox state
     :return: pair with indices and values (sparse representation)
     """
-    res = []
+    res_idx = []
+    res_val = []
     ofs = 0
-    for feat in xrange(ORIGIN_N_FEATURES):
+    for feat, value in enumerate(state):
         if feat in transforms:
-            idx, val = transforms[feat](state[feat])
-            res.append((idx + ofs, val))
+            idx, val = transforms[feat](value)
+            res_idx.append(idx + ofs)
+            res_val.append(val)
             ofs += sizes[feat]
         else:
-            res.append((ofs, float(state[feat])))
+            res_idx.append(ofs)
+            res_val.append(value)
             ofs += 1
-
-    idx, vals = zip(*res)
-    return np.array(idx, dtype=np.int16), np.array(vals, dtype=np.float32)
+    return np.array(res_idx, dtype=np.int16), np.array(res_val, dtype=np.float32)
 
 
 def _transform_stripes_func(feature):
@@ -199,36 +200,40 @@ def _transform_stripes_func(feature):
 
 def _transform_bound_and_stripes(value, stripes, eps=1e-6):
     output_index = 0
-    for delta, start, stop in stripes:
+    for stripe in stripes:
+        delta, start, stop = stripe
+
         # if delta is none, encode value as single stripe
         if delta is None:
             if start - eps <= value <= start + eps:
                 filled_index = 0
             else:
                 filled_index = None
-            total_size = 1
         else:
-            filled_index, total_size = _transform_striped(value, delta=delta, start=start, stop=stop)
+            filled_index = _transform_striped(value, delta=delta, start=start, stop=stop)
+
         if filled_index is not None:
             return (filled_index + output_index, 1.0)
-        output_index += total_size
+
+        output_index += _stripe_lines(stripe)
+
     return output_index, value
 
 
 def _reverse_bound_and_stripes(data, stripes):
     idx, val = data
     ofs = 0
-    stripe = 0
 
-    for delta, start, _ in stripes:
+    for stripe in stripes:
+        count = _stripe_lines(stripe)
+        delta, start, stop = stripe
         if delta is None:
-            if ofs+stripe*60 == idx:
+            if ofs == idx:
                 return start
-            ofs += 1
         else:
-            if ofs+stripe*60 <= idx < ofs+(stripe+1)*60:
-                return start + delta * (idx - (ofs+stripe*60))
-            stripe += 1
+            if ofs <= idx < ofs+count:
+                return start + delta * (idx - ofs)
+        ofs += count
     return val
 
 
@@ -276,22 +281,21 @@ def _transform_striped(value, delta, start, stop):
     :param delta: delta step for stripe
     :param start: first stripe
     :param stop: last stripe
-    :return: tuple from (filled_bool, one-hot array)
+    :return: None of one-hot index
     """
-    count = _stripe_lines((delta, start, stop))
-
-    if value < start - delta/2:
-        return None, count
-    if value > stop + delta/2:
-        return None, count
+    h_d = delta / 2.0
+    if value < start - h_d:
+        return None
+    if value > stop + h_d:
+        return None
     ofs = 0
-    bound = start + delta/2
+    bound = start + h_d
     while bound < stop + delta:
         if value < bound:
-            return ofs, count
+            return ofs
         ofs += 1
         bound += delta
-    return None, count
+    return None
 
 
 # below code exists only for debugging and testing purposes -- reverse transformation of features back to values
