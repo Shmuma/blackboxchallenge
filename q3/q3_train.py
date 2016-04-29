@@ -56,7 +56,7 @@ if __name__ == "__main__":
     LEARNING_RATE = 1e-4
     TEST_NAME = "t36r2"
     TEST_DESCRIPTION = "More stripes"
-    RESTORE_MODEL = None #"models/model_t29r3-100000"
+    RESTORE_MODEL = "models/model_t36r1-50000"
     GAMMA = 0.99
     L2_REG = 0.1
 
