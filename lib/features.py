@@ -1,175 +1,21 @@
 import numpy as np
 
 
-# dictionary with resulting feature sizes
-sizes = {
-    0:  60*3 + 1,
-    1:  2,
-    2:  2,
-    3:  2,
-    4:  2,
-    5:  1 + 60*7 + 1,
-    6:  1 + 60*8 + 1,
-    7:  1 + 60*8 + 1,
-    8:  1 + 60*8 + 1,
-    9:  1 + 60*4 + 1,
-    10: 1 + 60*4 + 1,
-    11: 60*8 + 1,
-    12: 60*8 + 1,
-    23: 1 + 60*8 + 1,
-    24: 1 + 60*8 + 1,
-    35: 23
-}
+def _stripe_size(feature):
+    res = 1
+    for stripe in stripes[feature]:
+        res += _stripe_lines(stripe)
+    return res
 
 
-def transformed_size():
-    """
-    Return final length of vector
-    :return:
-    """
-    return 36 - len(sizes) + sum(sizes.values())
+def _stripe_lines(stripe):
+    delta, start, stop = stripe
+    if delta is None:
+        return 1
+    else:
+        return int(round((stop-start) / delta + 1))
 
 
-ORIGIN_N_FEATURES = 36
-RESULT_N_FEATURES = transformed_size()
-
-
-def transform(state):
-    """
-    Perform transformation of state vector to our representation
-    :param state: numpy array of 36 values from bbox state
-    :return: pair with indices and values (sparse representation)
-    """
-    res = []
-    ofs = 0
-    for feat in xrange(ORIGIN_N_FEATURES):
-        if feat in transforms:
-            idx, val = transforms[feat](state[feat])
-            res.append((idx + ofs, val))
-            ofs += sizes[feat]
-        else:
-            res.append((ofs, float(state[feat])))
-            ofs += 1
-
-    idx, vals = zip(*res)
-    return np.array(idx, dtype=np.int16), np.array(vals, dtype=np.float32)
-
-
-
-def _transform_00(value):
-    return _transform_bound_and_stripes(value, stripes=stripes[0])
-
-
-def _transform_05(value):
-    return _transform_bound_and_stripes(value, stripes=stripes[5])
-
-
-def _transform_06(value):
-    return _transform_bound_and_stripes(value, stripes=stripes[6])
-
-
-def _transform_07(value):
-    return _transform_bound_and_stripes(value, stripes=stripes[7])
-
-
-def _transform_08(value):
-    return _transform_bound_and_stripes(value, stripes=stripes[8])
-
-
-def _transform_09(value):
-    return _transform_bound_and_stripes(value, stripes=stripes[9])
-
-
-def _transform_10(value):
-    return _transform_bound_and_stripes(value, stripes=stripes[10])
-
-
-def _transform_11(value):
-    return _transform_bound_and_stripes(value, stripes=stripes[11])
-
-
-def _transform_12(value):
-    return _transform_bound_and_stripes(value, stripes=stripes[12])
-
-
-def _transform_23(value):
-    return _transform_bound_and_stripes(value, stripes=stripes[23])
-
-
-def _transform_24(value):
-    return _transform_bound_and_stripes(value, stripes=stripes[24])
-
-
-def _transform_bound_and_stripes(value, stripes, eps=1e-6):
-    output_index = 0
-    for delta, start, stop in stripes:
-        # if delta is none, encode value as single stripe
-        if delta is None:
-            if start - eps <= value <= start + eps:
-                filled_index = 0
-            else:
-                filled_index = None
-            total_size = 1
-        else:
-            filled_index, total_size = _transform_striped(value, delta=delta, start=start, stop=stop)
-        if filled_index is not None:
-            return (filled_index + output_index, 1.0)
-        output_index += total_size
-    return output_index, value
-
-
-def _reverse_bound_and_stripes(data, stripes):
-    idx, val = data
-    ofs = 0
-    stripe = 0
-
-    for delta, start, _ in stripes:
-        if delta is None:
-            if ofs+stripe*60 == idx:
-                return start
-            ofs += 1
-        else:
-            if ofs+stripe*60 <= idx < ofs+(stripe+1)*60:
-                return start + delta * (idx - ofs+stripe*60)
-            stripe += 1
-    return val
-
-
-def _transform_35(value):
-    # resulting value is in range [-11..11]
-    int_val = int(value * 10.0)
-    assert -12 < int_val < 12
-    return (int_val + 11, 1.0)
-
-
-def _split_bound_func(bound):
-    def fun(value):
-        if value < bound:
-            return (0, float(value))
-        else:
-            return (1, float(value))
-    return fun
-
-
-# all of them should return tuple with (idx, value) of sparse representation
-transforms = {
-    0: _transform_00,
-    1: _split_bound_func(0.0),
-    2: _split_bound_func(0.0),
-    3: _split_bound_func(0.0),
-    4: _split_bound_func(0.0),
-    5: _transform_05,
-    6: _transform_06,
-    7: _transform_07,
-    8: _transform_08,
-    9: _transform_09,
-    10: _transform_10,
-    11: _transform_11,
-    12: _transform_12,
-    23: _transform_23,
-    24: _transform_24,
-    35: _transform_35
-}
 stripes = {
     0: [
         (0.0029091158169317999, -0.7769826651, -0.6053448319),
@@ -291,8 +137,139 @@ stripes = {
 }
 
 
+# dictionary with resulting feature sizes
+sizes = {
+    0:  _stripe_size(0),
+    1:  2,
+    2:  2,
+    3:  2,
+    4:  2,
+    5:  _stripe_size(5),
+    6:  _stripe_size(6),
+    7:  _stripe_size(7),
+    8:  _stripe_size(8),
+    9:  _stripe_size(9),
+    10: _stripe_size(10),
+    11: _stripe_size(11),
+    12: _stripe_size(12),
+    23: _stripe_size(23),
+    24: _stripe_size(24),
+    35: 23
+}
+
+
+def transformed_size():
+    """
+    Return final length of vector
+    :return:
+    """
+    return 36 - len(sizes) + sum(sizes.values())
+
+
+ORIGIN_N_FEATURES = 36
+RESULT_N_FEATURES = transformed_size()
+
+
+def transform(state):
+    """
+    Perform transformation of state vector to our representation
+    :param state: numpy array of 36 values from bbox state
+    :return: pair with indices and values (sparse representation)
+    """
+    res = []
+    ofs = 0
+    for feat in xrange(ORIGIN_N_FEATURES):
+        if feat in transforms:
+            idx, val = transforms[feat](state[feat])
+            res.append((idx + ofs, val))
+            ofs += sizes[feat]
+        else:
+            res.append((ofs, float(state[feat])))
+            ofs += 1
+
+    idx, vals = zip(*res)
+    return np.array(idx, dtype=np.int16), np.array(vals, dtype=np.float32)
+
+
+def _transform_stripes_func(feature):
+    def _transform(data):
+        return _transform_bound_and_stripes(data, stripes=stripes[feature])
+    return _transform
+
+
+def _transform_bound_and_stripes(value, stripes, eps=1e-6):
+    output_index = 0
+    for delta, start, stop in stripes:
+        # if delta is none, encode value as single stripe
+        if delta is None:
+            if start - eps <= value <= start + eps:
+                filled_index = 0
+            else:
+                filled_index = None
+            total_size = 1
+        else:
+            filled_index, total_size = _transform_striped(value, delta=delta, start=start, stop=stop)
+        if filled_index is not None:
+            return (filled_index + output_index, 1.0)
+        output_index += total_size
+    return output_index, value
+
+
+def _reverse_bound_and_stripes(data, stripes):
+    idx, val = data
+    ofs = 0
+    stripe = 0
+
+    for delta, start, _ in stripes:
+        if delta is None:
+            if ofs+stripe*60 == idx:
+                return start
+            ofs += 1
+        else:
+            if ofs+stripe*60 <= idx < ofs+(stripe+1)*60:
+                return start + delta * (idx - (ofs+stripe*60))
+            stripe += 1
+    return val
+
+
+def _transform_35(value):
+    # resulting value is in range [-11..11]
+    int_val = np.round(value * 10.0)
+    assert -12 < int_val < 12
+    return (int_val + 11, 1.0)
+
+
+def _split_bound_func(bound):
+    def fun(value):
+        if value < bound:
+            return (0, float(value))
+        else:
+            return (1, float(value))
+    return fun
+
+
+# all of them should return tuple with (idx, value) of sparse representation
+transforms = {
+    0: _transform_stripes_func(0),
+    1: _split_bound_func(0.0),
+    2: _split_bound_func(0.0),
+    3: _split_bound_func(0.0),
+    4: _split_bound_func(0.0),
+    5: _transform_stripes_func(5),
+    6: _transform_stripes_func(6),
+    7: _transform_stripes_func(7),
+    8: _transform_stripes_func(8),
+    9: _transform_stripes_func(9),
+    10: _transform_stripes_func(10),
+    11: _transform_stripes_func(11),
+    12: _transform_stripes_func(12),
+    23: _transform_stripes_func(23),
+    24: _transform_stripes_func(24),
+    35: _transform_35
+}
+
+
 def _transform_striped(value, delta, start, stop):
-    count = int(round((stop-start) / delta + 1))
     """
     Perform striped decoding of value
     :param value: value to decode
@@ -301,7 +278,7 @@ def _transform_striped(value, delta, start, stop):
     :param stop: last stripe
     :return: tuple from (filled_bool, one-hot array)
     """
-# stripes are encoded as (delta, start, stop)
+    count = _stripe_lines((delta, start, stop))
 
     if value < start - delta/2:
         return None, count
@@ -332,42 +309,33 @@ def _unsplit_bound(data):
     return data[1]
 
 
-def _reverse_05(data):
-    return _reverse_bound_and_stripes(data, stripes=stripes[5])
-
-def _reverse_06(data):
-    return _reverse_bound_and_stripes(data, stripes=stripes[6])
-
-def _reverse_07(data):
-    return _reverse_bound_and_stripes(data, stripes=stripes[7])
-
-def _reverse_08(data):
-    return _reverse_bound_and_stripes(data, stripes=stripes[8])
-
-def _reverse_09(data):
-    return _reverse_bound_and_stripes(data, stripes=stripes[9])
-
-def _reverse_10(data):
-    return _reverse_bound_and_stripes(data, stripes=stripes[10])
-
-
 def _reverse_35(data):
     idx, _ = data
     return float(idx-11) / 10.0
 
 
+def _reverse_stripe_func(feature):
+    def _reverse(data):
+        return _reverse_bound_and_stripes(data, stripes=stripes[feature])
+    return _reverse
+
+
 reverse_transforms = {
-    0: _reverse_00,
+    0: _reverse_stripe_func(0),
     1: _unsplit_bound,
     2: _unsplit_bound,
     3: _unsplit_bound,
     4: _unsplit_bound,
-    5: _reverse_05,
-    6: _reverse_06,
-    7: _reverse_07,
-    8: _reverse_08,
-    9: _reverse_09,
-    10: _reverse_10,
+    5: _reverse_stripe_func(5),
+    6: _reverse_stripe_func(6),
+    7: _reverse_stripe_func(7),
+    8: _reverse_stripe_func(8),
+    9: _reverse_stripe_func(9),
+    10: _reverse_stripe_func(10),
+    11: _reverse_stripe_func(11),
+    12: _reverse_stripe_func(12),
+    23: _reverse_stripe_func(23),
+    24: _reverse_stripe_func(24),
     35: _reverse_35,
 }
 
@@ -380,3 +348,18 @@ def to_dense(sparse):
 def apply_dense(vector, sparse):
     vector[sparse[0]] = sparse[1]
     return vector
+
+
+def reverse(index, values):
+    res = []
+    ofs = 0
+
+    for idx, data in enumerate(zip(index, values)):
+        if idx in reverse_transforms:
+            res.append(reverse_transforms[idx]((data[0]-ofs, data[1])))
+            ofs += sizes[idx]
+        else:
+            res.append(data[1])
+            ofs += 1
+
+    return res

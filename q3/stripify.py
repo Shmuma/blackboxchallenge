@@ -2,6 +2,11 @@
 Tool does automatical detection of stripes in input features
 """
 import sys
+
+import time
+
+import datetime
+
 sys.path.append("..")
 import argparse
 
@@ -295,10 +300,40 @@ def start_pairs():
     infra.bbox_checkpoints_loop(state, bbox_action_hook_pairs)
 
 
+def bbox_action_hook_double(st, state, rewards, next_states):
+    def check(s):
+        index, values = features.transform(s)
+        reversed_state = features.reverse(index, values)
+
+        if not np.allclose(s, reversed_state):
+            delta = s - reversed_state
+            log.info("State %s reversed into %s", s, reversed_state)
+            log.info("Delta %s", delta)
+
+    st['step'] += 1
+    if st['step'] % 1000 == 0:
+        log.info("Step {step} done, {duration} passed".format(
+                step=st['step'], duration=datetime.timedelta(seconds=time.time() - st['t'])))
+        st['t'] = time.time()
+        
+    action = np.random.randint(0, infra.n_actions, 1)[0]
+
+    # perform feature encoding and decoding back
+    check(state)
+    for n_s in next_states:
+        check(n_s)
+
+    return action
+
+
+def start_double():
+    infra.bbox_checkpoints_loop({'step': 0, 't': time.time()}, bbox_action_hook_double)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--test", action="store_true", help="Use test levels")
-    parser.add_argument("--mode", required=True, choices=['detect', 'pairs'], help="Mode of operation")
+    parser.add_argument("--mode", required=True, choices=['detect', 'pairs', 'double'], help="Mode of operation")
     args = parser.parse_args()
 
     infra.setup_logging()
@@ -308,3 +343,5 @@ if __name__ == "__main__":
         start_detect()
     elif args.mode == "pairs":
         start_pairs()
+    elif args.mode == "double":
+        start_double()

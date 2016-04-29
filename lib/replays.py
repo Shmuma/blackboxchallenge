@@ -51,7 +51,8 @@ class ReplayBuffer:
         :return: array of batch with entries
         """
         if self.index is None or self.index_ofs >= pregen_batches:
-            self.index = np.random.choice(len(self.buffer), size=self.batch*pregen_batches, replace=False, p=self.probabs)
+            self.index = np.random.choice(len(self.buffer), size=min(len(self.buffer), self.batch*pregen_batches),
+                                          replace=False, p=self.probabs)
             self.index_ofs = 0
         res = self.index[self.index_ofs*self.batch:(self.index_ofs+1)*self.batch]
         self.index_ofs += 1

@@ -3,6 +3,7 @@ import numpy as np
 
 import features
 
+
 class TestFeatures(unittest.TestCase):
     def test_final_size(self):
         self.assertEqual(4510, features.transformed_size())
@@ -36,14 +37,19 @@ class TestFeatures(unittest.TestCase):
         self.assertRaises(AssertionError, lambda: features._transform_35(1.2))
         self.assertRaises(AssertionError, lambda: features._transform_35(-20))
 
+        v = 0.69999999
+        r = features._transform_35(v)
+        self.assertEqual(r[0], 18)
+        self.assertAlmostEqual(v, features._reverse_35(r))
+
     def test_feature_00(self):
         v = -0.7275277972002714
-        idx, val = features._transform_00(v)
+        idx, val = features._transform_stripes_func(0)(v)
         self.assertEqual(idx, 17)
         self.assertAlmostEqual(val, 1.0)
         self.assertAlmostEqual(v, features._reverse_00((idx, val)), places=5)
         v = -1.5
-        idx, val = features._transform_00(v)
+        idx, val = features._transform_stripes_func(0)(v)
         self.assertAlmostEqual(val, -1.5)
         self.assertAlmostEqual(v, features._reverse_00((idx, val)), places=5)
 
@@ -59,35 +65,35 @@ class TestFeatures(unittest.TestCase):
 
     def test_feature_05(self):
         v = -0.65676
-        r = features._transform_05(v)
+        r = features._transform_stripes_func(5)(v)
         self.assertEqual(r[0], 0)
         self.assertAlmostEqual(r[1], 1.0)
-        self.assertAlmostEqual(v, features._reverse_05(r), places=5)
+        self.assertAlmostEqual(v, features._reverse_stripe_func(5)(r), places=5)
 
         v = 0.5661479235
-        r = features._transform_05(v)  # 5'th entry
+        r = features._transform_stripes_func(5)(v)  # 5'th entry
         self.assertEqual(r[0], 5)
         self.assertAlmostEqual(r[1], 1.0)
-        self.assertAlmostEqual(v, features._reverse_05(r), places=5)
+        self.assertAlmostEqual(v, features._reverse_stripe_func(5)(r), places=5)
 
     def test_feature_09(self):
-        v = -.7955922120711471674 # 7'th entry in first stripe
-        r = features._transform_09(v)
+        v = -.7955922120711471674   # 7'th entry in first stripe
+        r = features._transform_stripes_func(9)(v)
         self.assertEqual(r[0], 7)
         self.assertAlmostEqual(r[1], 1.0)
-        self.assertAlmostEqual(v, features._reverse_09(r), places=5)
+        self.assertAlmostEqual(v, features._reverse_stripe_func(9)(r), places=5)
 
-        v = -.7140044569994015538 # 60'th entry in first stripe
-        r = features._transform_09(v)
+        v = -.7140044569994015538   # 60'th entry in first stripe
+        r = features._transform_stripes_func(9)(v)
         self.assertEqual(r[0], 59)
         self.assertAlmostEqual(r[1], 1.0)
-        self.assertAlmostEqual(v, features._reverse_09(r), places=5)
+        self.assertAlmostEqual(v, features._reverse_stripe_func(9)(r), places=5)
 
-        v = 1.293757915496888 # single stripe value
-        r = features._transform_09(v)
+        v = 1.293757915496888       # single stripe value
+        r = features._transform_stripes_func(9)(v)
         self.assertEqual(r[0], 60)
         self.assertAlmostEqual(r[1], 1.0)
-        self.assertAlmostEqual(v, features._reverse_09(r), places=5)
+        self.assertAlmostEqual(v, features._reverse_stripe_func(9)(r), places=5)
 
     def test_result(self):
         idx, vals = features.transform(np.zeros((features.ORIGIN_N_FEATURES, )))
