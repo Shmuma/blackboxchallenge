@@ -4,6 +4,7 @@ sys.path.append("..")
 from time import time
 from datetime import timedelta
 from lib import infra, net, replays, features
+from lib.reload_opt import OptionLoader
 import numpy as np
 import tensorflow as tf
 
@@ -53,11 +54,37 @@ def alpha_from_iter(iter_no):
         return 0.1
 
 
+def check_options(loader, replay_generator):
+    if loader.check():
+        for name, val in loader.values:
+            if not name in globals():
+                log.warn("Unknown variable {name}, value {value}, ignored".format(name=name, value=val))
+                continue
+            old_val = globals()[name]
+            if old_val == val:
+                continue
+
+            msg = "  {name}: {old_val} => {new_val}".format(name=name, old_val=old_val, new_val=val)
+
+            if name in {"EPOCHES_BETWEEN_POLL", "SYNC_MODELS_ITERS",
+                        "SYNC_LOSS_THRESHOLD"}:
+                globals()[name] = val
+                log.info(msg)
+            if name == "REPLAY_RESET_AFTER_STEPS":
+                globals()[name] = val
+                replay_generator.set_reset_after_steps(val)
+                log.info(msg)
+            else:
+                log.info("Variable {name} cannot be modified using config, value {value} ignored".format(
+                    name=name, value=val
+                ))
+
+
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t37r2"
-    TEST_DESCRIPTION = "Fixed stripes"
-    RESTORE_MODEL = "models/model_t37r1-135000"
+    TEST_NAME = "t37r3"
+    TEST_DESCRIPTION = "Almost converged"
+    RESTORE_MODEL = "models/model_t37r2-130000"
     GAMMA = 0.99
     L2_REG = 0.1
 
@@ -68,6 +95,7 @@ if __name__ == "__main__":
     infra.prepare_bbox()
 
     n_features = features.RESULT_N_FEATURES
+    opts_loader = OptionLoader("options.cfg")
 
     with tf.Session() as session:
         batches_queue = tf.FIFOQueue(BATCHES_QUEUE_CAPACITY, (
@@ -176,6 +204,7 @@ if __name__ == "__main__":
                             batchq_perc=100.0 * batches_qsize / BATCHES_QUEUE_CAPACITY)
                     )
                     write_summaries(session, summ, summary_writer, iter, {}, loss=avg_loss, speed=speed)
+                    check_options(opts_loader, replay_generator)
 
                 if TEST_CUSTOM_BBOX_ITERS > 0 and iter % TEST_CUSTOM_BBOX_ITERS == 0 and iter > 0:
                     log.info("{iter} Do custom model states:".format(iter=iter))

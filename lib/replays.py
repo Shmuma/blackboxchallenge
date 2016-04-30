@@ -285,3 +285,6 @@ class ReplayGenerator:
 
     def set_alpha(self, alpha):
         self.alpha = alpha
+
+    def set_reset_after_steps(self, reset):
+        self.reset_after_steps = reset
