@@ -11,8 +11,8 @@ class OptionLoader:
     """
     def __init__(self, file_name):
         self.file_name = file_name
-        self.mtime = self.get_mtime()
-        self.values = self.read_content()
+        self.mtime = None
+        self.values = {}
 
     def get_mtime(self):
         """
@@ -34,7 +34,7 @@ class OptionLoader:
         if mtime is None:
             log.info("Option file disappeared")
         elif self.mtime is None:
-            log.info("Option file has been created")
+            log.info("Option file loaded for first time")
         else:
             log.info("Option file was modified {age} ago, passed time={passed}".format(
                 age=timedelta(seconds=time() - mtime),
@@ -42,6 +42,7 @@ class OptionLoader:
             ))
         self.mtime = mtime
         self.values = self.read_content()
+        return True
 
     def read_content(self):
         res = {}

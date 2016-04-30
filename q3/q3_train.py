@@ -56,7 +56,7 @@ def alpha_from_iter(iter_no):
 
 def check_options(loader, replay_generator):
     if loader.check():
-        for name, val in loader.values:
+        for name, val in loader.values.iteritems():
             if not name in globals():
                 log.warn("Unknown variable {name}, value {value}, ignored".format(name=name, value=val))
                 continue
@@ -70,7 +70,7 @@ def check_options(loader, replay_generator):
                         "SYNC_LOSS_THRESHOLD"}:
                 globals()[name] = val
                 log.info(msg)
-            if name == "REPLAY_RESET_AFTER_STEPS":
+            elif name == "REPLAY_RESET_AFTER_STEPS":
                 globals()[name] = val
                 replay_generator.set_reset_after_steps(val)
                 log.info(msg)
