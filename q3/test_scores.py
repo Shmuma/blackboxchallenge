@@ -150,7 +150,7 @@ if __name__ == "__main__":
     parser.add_argument("--start", type=int, default=0, help="Global step to start processing")
     parser.add_argument("--once", action="store_true", default=False, help="Loop over model files once and exit")
     parser.add_argument("--suffix", default="score", help="Summary suffix to run name")
-    parser.add_argument("--parallel", type=int, default=4, help="Max count of child processes to start")
+    parser.add_argument("--parallel", type=int, default=2, help="Max count of child processes to start")
     parser.add_argument("--slave", default=None, help="Used to start slave processes, do not use")
     parser.add_argument("--test", default=False, action="store_true", help="Used in slave mode")
     args = parser.parse_args()
