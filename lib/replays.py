@@ -161,6 +161,9 @@ class ReplayBuffer:
         if any_changes:
             self.calc_probabs()
 
+    def set_epoches_between_poll(self, new_epoches):
+        self.epoches_between_pull = new_epoches
+
 
 class ReplayBatchProducer(threading.Thread):
     def __init__(self, session, capacity, replay_buffer, qsize_t, enqueue_op, vars):

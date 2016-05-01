@@ -79,6 +79,7 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", type=float, default=0.05, help="Alpha value for testing")
     parser.add_argument("--start", type=int, default=0, help="Global step to start processing")
     parser.add_argument("--once", action="store_true", default=False, help="Loop over model files once and exit")
+    parser.add_argument("--suffix", default="score", help="Summary suffix to run name")
     args = parser.parse_args()
 
     log = infra.setup_logging()

@@ -54,7 +54,7 @@ def alpha_from_iter(iter_no):
         return 0.1
 
 
-def check_options(loader, replay_generator):
+def check_options(loader, replay_generator, replay_buffer):
     if loader.check():
         for name, val in loader.values.iteritems():
             if not name in globals():
@@ -66,13 +66,17 @@ def check_options(loader, replay_generator):
 
             msg = "  {name}: {old_val} => {new_val}".format(name=name, old_val=old_val, new_val=val)
 
-            if name in {"EPOCHES_BETWEEN_POLL", "SYNC_MODELS_ITERS",
+            if name in {"SYNC_MODELS_ITERS",
                         "SYNC_LOSS_THRESHOLD"}:
                 globals()[name] = val
                 log.info(msg)
             elif name == "REPLAY_RESET_AFTER_STEPS":
                 globals()[name] = val
                 replay_generator.set_reset_after_steps(val)
+                log.info(msg)
+            elif name == "EPOCHES_BETWEEN_POLL":
+                globals()[name] = val
+                replay_buffer.set_epoches_between_poll(val)
                 log.info(msg)
             else:
                 log.info("Variable {name} cannot be modified using config, value {value} ignored".format(
@@ -204,7 +208,7 @@ if __name__ == "__main__":
                             batchq_perc=100.0 * batches_qsize / BATCHES_QUEUE_CAPACITY)
                     )
                     write_summaries(session, summ, summary_writer, iter, {}, loss=avg_loss, speed=speed)
-                    check_options(opts_loader, replay_generator)
+                    check_options(opts_loader, replay_generator, replay_buffer)
 
                 if TEST_CUSTOM_BBOX_ITERS > 0 and iter % TEST_CUSTOM_BBOX_ITERS == 0 and iter > 0:
                     log.info("{iter} Do custom model states:".format(iter=iter))
