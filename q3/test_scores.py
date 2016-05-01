@@ -96,7 +96,7 @@ if __name__ == "__main__":
         session.run([tf.initialize_all_variables()])
 
         log.info("Initialisation done, looking for new model files")
-        summary_writer = tf.train.SummaryWriter("logs/" + args.name + "-score")
+        summary_writer = tf.train.SummaryWriter("logs/" + args.name + "-" + args.suffix)
         summs = make_summaries()
 
         while True:
