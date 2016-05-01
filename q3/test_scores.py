@@ -210,3 +210,5 @@ if __name__ == "__main__":
                         slaves.append(p)
 
                 sleep(10)
+                if args.once and len(slaves) == 0:
+                    break
