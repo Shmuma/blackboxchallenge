@@ -169,6 +169,7 @@ if __name__ == "__main__":
             summary_writer = tf.train.SummaryWriter("logs/" + args.name + "-" + args.suffix)
             models_to_process = []
             slaves = []
+            done_slaves = []
 
             while True:
                 for step in discover_new_steps(start, args.name):
@@ -186,18 +187,26 @@ if __name__ == "__main__":
                         for l in stdout.split("\n"):
                             if l.startswith("Result="):
                                 res = json.loads(l.split("=")[1])
-                                log.info("Slave for model %s, test=%s done", res['model'], res['test'])
-                                write_summaries(summary_writer, res['step'], session, summs, res['test'], res['scores'])
+                                log.info("Slave for model %s, test=%s done in %s",
+                                         res['model'], res['test'], timedelta(seconds=res['time']))
+                                done_slaves.append(res)
                     else:
                         running_slaves.append(p)
                 slaves = running_slaves
 
-                # enqueue more slaves
-                while len(slaves) < args.parallel and len(models_to_process) > 0:
-                    model_file, step, test_mode = models_to_process.pop(0)
-                    log.info("Started subprocesses to handle model file %s, test=%s", model_file, test_mode)
-                    p = subprocess.Popen(make_slave_args(args, step, model_file, test=test_mode),
-                                         stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-                    slaves.append(p)
+                if len(slaves) == 0:
+                    # save results sorted by step
+                    done_slaves.sort(key=lambda r: r['step'])
+                    for res in done_slaves:
+                        write_summaries(summary_writer, res['step'], session, summs, res['test'], res['scores'])
+                    done_slaves = []
+
+                    # enqueue more slaves
+                    while len(slaves) < args.parallel and len(models_to_process) > 0:
+                        model_file, step, test_mode = models_to_process.pop(0)
+                        log.info("Started subprocesses to handle model file %s, test=%s", model_file, test_mode)
+                        p = subprocess.Popen(make_slave_args(args, step, model_file, test=test_mode),
+                                             stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+                        slaves.append(p)
 
                 sleep(10)
