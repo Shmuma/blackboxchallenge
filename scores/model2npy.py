@@ -5,7 +5,6 @@ sys.path.append("..")
 os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 
 import os
-import numpy as np
 import tensorflow as tf
 
 from lib import net, net_light, features, infra
