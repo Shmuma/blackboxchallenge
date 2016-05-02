@@ -130,13 +130,9 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
         'alpha': alpha,
         'states_t': states_t,
         'qvals_t': qvals_t,
-        'state': [],
     }
 
-    def action_reward_hook(our_state, bbox_state, rewards, next_states):
-        # save state, keep only fixed amount of states
-        our_state['state'] = bbox_state
-
+    def action_hook(our_state, bbox_state):
         # make decision about action
         if np.random.random() < our_state['alpha']:
             action = np.random.randint(0, infra.n_actions, 1)[0]
@@ -146,7 +142,7 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
             states_t = our_state['states_t']
 
             # do a features transformation
-            state = features.to_dense(features.transform(our_state['state']))
+            state = features.to_dense(features.transform(bbox_state))
             if feats_tr_post is not None:
                 state = feats_tr_post(state)
             qvals, = sess.run([qvals_t], feed_dict={states_t: [state]})
@@ -154,7 +150,10 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
 
         return action
 
-    infra.bbox_checkpoints_loop(state, action_reward_hook, verbose=verbose, max_steps=max_steps)
+    def reward_hook(our_state, reward, last_round):
+        pass
+
+    infra.bbox_loop(state, action_hook, reward_hook, verbose=verbose, max_steps=max_steps)
     score = infra.bbox.get_score()
     avg_score = score / infra.bbox.get_time()
     return score, avg_score
