@@ -2,7 +2,7 @@ import infra, replays, features
 
 import numpy as np
 
-from lib import net
+from lib import net_light
 
 
 def test_net(session, states_history, states_t, qvals_t, alpha=0.0, verbose=0, save_prefix=None):
@@ -189,7 +189,7 @@ def test_performance_no_tf(network, alpha=0.0, verbose=0, max_steps=None, test_l
             if feats_tr_post is not None:
                 state = feats_tr_post(state)
 
-            qvals = net.calc_qvals(network, state)
+            qvals = net_light.calc_qvals(network, state)
             action = np.argmax(qvals)
 
         return action

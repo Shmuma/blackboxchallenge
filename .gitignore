@@ -6,5 +6,6 @@ levels
 replays
 logs
 models
+npy
 models-copy
 *.log
