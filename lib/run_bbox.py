@@ -117,12 +117,13 @@ def populate_replay_buffer(replay_buffer, session, states_t, qvals_t, alpha=0.0,
 
 
 def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps=None, test_level=False,
-                     feats_tr_post=None):
+                     feats_tr_post=None, step_hook=None):
     """
     Perform test of neural network using bbox interpreter
 
     args:
     - feats_tr_post: features transformation applied after main transformation
+    - step_hook: optional function without arguments to be called every step
     """
     infra.prepare_bbox(test_level=test_level)
     state = {
@@ -133,6 +134,9 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
     }
 
     def action_hook(our_state, bbox_state):
+        if step_hook is not None:
+            step_hook()
+
         # make decision about action
         if np.random.random() < our_state['alpha']:
             action = np.random.randint(0, infra.n_actions, 1)[0]

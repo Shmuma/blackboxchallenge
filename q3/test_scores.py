@@ -106,13 +106,23 @@ def process_slave(args):
         model_file = args.slave
         saver.restore(session, model_file)
 
-        scores = []
+        scores = {}
+
+        def step_hook():
+            step = infra.bbox.get_time()
+            if step > 0 and step % args.ticks == 0:
+                if not step in scores:
+                    scores[step] = []
+                scores[step].append(infra.bbox.get_score())
+
         t = time()
         for round in xrange(args.rounds):
             score, _ = run_bbox.test_performance(session, state_t, qvals_t,
                                                  alpha=args.alpha, max_steps=args.steps,
-                                                 test_level=False)
-            scores.append(score)
+                                                 test_level=False, step_hook=step_hook)
+            if not args.steps in scores:
+                scores[args.steps] = []
+            scores[args.steps].append(score)
 
         res = {
             'model': args.slave,
@@ -133,6 +143,7 @@ def make_slave_args(args, step, model_file, test):
         "--rounds", str(args.rounds),
         "--alpha", str(args.alpha),
         "--steps", str(args.steps),
+        "--ticks", str(args.ticks),
         "--start", str(step),
     ]
 
@@ -144,12 +155,12 @@ def make_slave_args(args, step, model_file, test):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", required=True, help="Name of the run to watch")
-    parser.add_argument("--steps", type=int, default=20000, help="Limit amount of steps")
-    parser.add_argument("--rounds", type=int, default=10, help="Amount of rounds to perform")
-    parser.add_argument("--alpha", type=float, default=0.05, help="Alpha value for testing")
+    parser.add_argument("--steps", type=int, default=100000, help="Limit amount of steps, default=100k")
+    parser.add_argument("--ticks", type=int, default=50000, help="Measure scores every ticks steps, default=50k")
+    parser.add_argument("--rounds", type=int, default=10, help="Amount of rounds to perform, default=10")
+    parser.add_argument("--alpha", type=float, default=0.05, help="Alpha value for testing, default=0.05")
     parser.add_argument("--start", type=int, default=0, help="Global step to start processing")
     parser.add_argument("--once", action="store_true", default=False, help="Loop over model files once and exit")
-    parser.add_argument("--suffix", default="score", help="Summary suffix to run name")
     parser.add_argument("--parallel", type=int, default=2, help="Max count of child processes to start")
     parser.add_argument("--slave", default=None, help="Used to start slave processes, do not use")
     parser.add_argument("--test", default=False, action="store_true", help="Used in slave mode")
@@ -166,7 +177,10 @@ if __name__ == "__main__":
             session.run([tf.initialize_all_variables()])
 
             log.info("Initialisation done, looking for new model files")
-            summary_writer = tf.train.SummaryWriter("logs/" + args.name + "-" + args.suffix)
+            summary_writers = {}
+            for step in set(range(args.ticks, args.steps+1, args.ticks) + [args.steps]):
+                summary_writers[step] = tf.train.SummaryWriter("logs/" + args.name + "-scores-%04dK" % (int(step/1000)))
+
             models_to_process = []
             slaves = []
             done_slaves = []
@@ -198,7 +212,9 @@ if __name__ == "__main__":
                     # save results sorted by step
                     done_slaves.sort(key=lambda r: r['step'])
                     for res in done_slaves:
-                        write_summaries(summary_writer, res['step'], session, summs, res['test'], res['scores'])
+                        for score_str in res['scores'].keys():
+                            write_summaries(summary_writers[int(score_str)], res['step'],
+                                            session, summs, res['test'], res['scores'][score_str])
                     done_slaves = []
 
                     # enqueue more slaves
