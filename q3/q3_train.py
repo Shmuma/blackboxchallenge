@@ -78,6 +78,10 @@ def check_options(loader, replay_generator, replay_buffer):
                 globals()[name] = val
                 replay_buffer.set_epoches_between_poll(val)
                 log.info(msg)
+            elif name == "REPLAY_STEPS_PER_POLL":
+                globals()[name] = val
+                log.info(msg)
+                replay_generator.set_batch_size(val)
             else:
                 log.info("Variable {name} cannot be modified using config, value {value} ignored".format(
                     name=name, value=val

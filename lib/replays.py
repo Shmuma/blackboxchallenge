@@ -291,3 +291,6 @@ class ReplayGenerator:
 
     def set_reset_after_steps(self, reset):
         self.reset_after_steps = reset
+
+    def set_batch_size(self, batch_size):
+        self.batch_size = batch_size
