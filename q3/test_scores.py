@@ -95,39 +95,43 @@ def process_slave(args):
     infra.prepare_bbox(args.test)
     n_features = features.transformed_size()
 
-    # we need this stuff to be able to load model
     state_t = tf.placeholder(tf.float32, (None, n_features))
     qvals_t = net.make_forward_net(state_t, True, n_features, dropout_keep_prob=1.0)
 
+    saver = tf.train.Saver(var_list=dict(net.get_vars(trainable=True)).values())
+
     with tf.Session() as session:
+        session.run([tf.initialize_all_variables()])
+
         model_file = args.slave
-        network_weights = net.extract_network(session, model_file)
+        saver.restore(session, model_file)
 
-    scores = {}
+        scores = {}
 
-    def step_hook():
-        step = infra.bbox.get_time()
-        if step > 0 and step % args.ticks == 0:
-            if not step in scores:
-                scores[step] = []
-            scores[step].append(infra.bbox.get_score())
+        def step_hook():
+            step = infra.bbox.get_time()
+            if step > 0 and step % args.ticks == 0:
+                if not step in scores:
+                    scores[step] = []
+                scores[step].append(infra.bbox.get_score())
 
-    t = time()
-    for round in xrange(args.rounds):
-        score, _ = run_bbox.test_performance_no_tf(network_weights, alpha=args.alpha, max_steps=args.steps,
-                                                   test_level=False, step_hook=step_hook)
-        if not args.steps in scores:
-            scores[args.steps] = []
-        scores[args.steps].append(score)
+        t = time()
+        for round in xrange(args.rounds):
+            score, _ = run_bbox.test_performance(session, state_t, qvals_t,
+                                                 alpha=args.alpha, max_steps=args.steps,
+                                                 test_level=False, step_hook=step_hook)
+            if not args.steps in scores:
+                scores[args.steps] = []
+            scores[args.steps].append(score)
 
-    res = {
-        'model': args.slave,
-        'test': args.test,
-        'scores': scores,
-        'step': args.start,
-        'time': time() - t
-    }
-    print "Result={res}".format(res=json.dumps(res))
+        res = {
+            'model': args.slave,
+            'test': args.test,
+            'scores': scores,
+            'step': args.start,
+            'time': time() - t
+        }
+        print "Result={res}".format(res=json.dumps(res))
 
 
 def make_slave_args(args, step, model_file, test):

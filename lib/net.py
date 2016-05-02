@@ -1,5 +1,4 @@
 import tensorflow as tf
-import numpy as np
 
 import infra
 
@@ -203,41 +202,3 @@ def make_loss(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=4, 
     tf.contrib.layers.summarize_tensors([l2_error, error])
 
     return error + l2_error, loss_vec
-
-
-def extract_network(session, model_file):
-    """
-    Load network weight from model and save them as numpy array.
-    Minimal graph must be created already.
-
-    :param session:
-    :return: dict with var names to numpy arrays
-    """
-    net_vars = get_vars(trainable=True)
-    saver = tf.train.Saver(var_list=dict(net_vars).values())
-
-    saver.restore(session, model_file)
-
-    return {name: session.run([val_t])[0] for name, val_t in net_vars}
-
-
-def calc_qvals(network, state):
-    """
-    Calculate qvalues from extracted network and given bbox state (feature-transformed and converted to dense format)
-
-    :param network:
-    :return: qvalues array
-    """
-    # NB: we don't need to compensate dropout
-    LRELU_ALPHA = 0.01
-    l0_out = state.dot(network['L0_T/w:0']) + network['L0_T/b:0']
-    l0_out = np.maximum(LRELU_ALPHA * l0_out, l0_out)
-
-    l1_out = l0_out.dot(network['L1_T/w:0']) + network['L1_T/b:0']
-    l1_out = np.maximum(l1_out, 0.0)
-
-    l2_out = l1_out.dot(network['L2_T/w:0']) + network['L2_T/b:0']
-    l2_out = np.maximum(l2_out, 0.0)
-
-    l3_out = l2_out.dot(network['L3_T/w:0']) + network['L3_T/b:0']
-    return l3_out

@@ -2,8 +2,6 @@ import infra, replays, features
 
 import numpy as np
 
-from lib import net
-
 
 def test_net(session, states_history, states_t, qvals_t, alpha=0.0, verbose=0, save_prefix=None):
     """
@@ -160,44 +158,6 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
         pass
 
     infra.bbox_loop(state, action_hook, reward_hook, verbose=verbose, max_steps=max_steps)
-    score = infra.bbox.get_score()
-    avg_score = score / infra.bbox.get_time()
-    return score, avg_score
-
-
-def test_performance_no_tf(network, alpha=0.0, verbose=0, max_steps=None, test_level=False,
-                     feats_tr_post=None, step_hook=None):
-    """
-    Perform test of neural network using bbox interpreter
-
-    args:
-    - feats_tr_post: features transformation applied after main transformation
-    - step_hook: optional function without arguments to be called every step
-    """
-    infra.prepare_bbox(test_level=test_level)
-
-    def action_hook(our_state, bbox_state):
-        if step_hook is not None:
-            step_hook()
-
-        # make decision about action
-        if np.random.random() < alpha:
-            action = np.random.randint(0, infra.n_actions, 1)[0]
-        else:
-            # do a features transformation
-            state = features.to_dense(features.transform(bbox_state))
-            if feats_tr_post is not None:
-                state = feats_tr_post(state)
-
-            qvals = net.calc_qvals(network, state)
-            action = np.argmax(qvals)
-
-        return action
-
-    def reward_hook(our_state, reward, last_round):
-        pass
-
-    infra.bbox_loop(None, action_hook, reward_hook, verbose=verbose, max_steps=max_steps)
     score = infra.bbox.get_score()
     avg_score = score / infra.bbox.get_time()
     return score, avg_score
