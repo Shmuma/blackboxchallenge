@@ -49,7 +49,7 @@ def alpha_from_iter(iter_no):
     if iter < 100000:
         return 1.0
     elif iter <= 200000:
-        return 1.0 - (float(iter_no) / 200000) + 0.1
+        return 1.0 - (float(iter_no) / 100000) + 0.1
     else:
         return 0.1
 
