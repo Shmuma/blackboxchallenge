@@ -26,6 +26,8 @@ REPLAY_STEPS_INITIAL = 1000000
 REPLAY_STEPS_PER_POLL = 50000
 REPLAY_RESET_AFTER_STEPS = 50000
 
+FIXED_ALPHA = None
+
 # how many epoches we should show data between fresh replay data requests
 EPOCHES_BETWEEN_POLL = 10
 
@@ -46,6 +48,8 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
 
 
 def alpha_from_iter(iter_no):
+    if FIXED_ALPHA is not None:
+        return FIXED_ALPHA
     if iter < 100000:
         return 1.0
     elif iter <= 200000:
@@ -67,7 +71,7 @@ def check_options(loader, replay_generator, replay_buffer):
             msg = "  {name}: {old_val} => {new_val}".format(name=name, old_val=old_val, new_val=val)
 
             if name in {"SYNC_MODELS_ITERS",
-                        "SYNC_LOSS_THRESHOLD"}:
+                        "SYNC_LOSS_THRESHOLD", "FIXED_ALPHA"}:
                 globals()[name] = val
                 log.info(msg)
             elif name == "REPLAY_RESET_AFTER_STEPS":

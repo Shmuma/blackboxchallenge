@@ -56,7 +56,15 @@ class OptionLoader:
                 if len(l) == 0:
                     continue
                 v = map(lambda s: s.strip(), l.split("="))
-                name, val = v[0], long(v[1])
+
+                name, val = v[0], v[1]
+
+                if val.lower() == "none":
+                    val = None
+                elif val.find(".") >= 0:
+                    val = float(val)
+                else:
+                    val = long(val)
                 res[name] = val
 
         return res
