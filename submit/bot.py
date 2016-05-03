@@ -3,22 +3,26 @@ import interface as bbox
 import time
 import datetime
 import numpy as np
-from net_light import calc_qvals, load_weights
-from features import transform, to_dense
+import tensorflow as tf
+from net_light import make_forward_net
+import features
 
-VERBOSE = True
+VERBOSE = False
 REPORT_INTERVAL = 10000
 start_t = time.time()
 last_t = None
-MODEL_FILE = "model_t38r1-400000.npy"
+MODEL_FILE = "model_t38r1-400000"
 
 network_weights = {}
 n_features = n_actions = max_time = -1
 
 features_t = 0.0
-dense_t = 0.0
 net_t = 0.0
 
+state_t = tf.placeholder(tf.float32, (1, features.RESULT_N_FEATURES))
+qvals_t = make_forward_net(state_t, features.RESULT_N_FEATURES)
+
+global_session = None
 
 def get_action_by_state(state):
     global last_t, start_t, features_t, dense_t, net_t
@@ -28,25 +32,25 @@ def get_action_by_state(state):
             if last_t is not None:
                 d = time.time() - last_t
                 speed = REPORT_INTERVAL / d
-                msg += ", time=%s, speed=%.3f steps/s, feats=%s, dense=%s, net=%s" % (
+                msg += ", time=%s, speed=%.3f steps/s, feats=%s, net=%s" % (
                     datetime.timedelta(seconds=d), speed,
                     datetime.timedelta(seconds=features_t),
-                    datetime.timedelta(seconds=dense_t),
                     datetime.timedelta(seconds=net_t)
                 )
                 features_t = 0.0
-                dense_t = 0.0
                 net_t = 0.0
             print "Step=%d, score=%.2f, %s" % (bbox.get_time(), bbox.get_score(), msg)
             last_t = time.time()
+
     t = time.time()
-    sparse_state = transform(state)
+    sparse_state = features.transform(state)
+    dense_state = features.to_dense(sparse_state)
     features_t += time.time() - t
+
     t = time.time()
-    dense_state = to_dense(sparse_state)
-    dense_t += time.time() - t
-    t = time.time()
-    qvals = calc_qvals(network_weights, dense_state)
+    qvals, = global_session.run([qvals_t], feed_dict={
+        state_t: [dense_state]
+    })
     net_t += time.time() - t
     return np.argmax(qvals)
 
@@ -89,5 +93,9 @@ def run_bbox(verbose=False):
 
 
 if __name__ == "__main__":
-    network_weights = load_weights(MODEL_FILE)
-    run_bbox(verbose=False)
+    with tf.Session() as session:
+        global_session = session
+        saver = tf.train.Saver()
+        saver.restore(session, MODEL_FILE)
+
+        run_bbox(verbose=False)

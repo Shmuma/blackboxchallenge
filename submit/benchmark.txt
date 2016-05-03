@@ -20,3 +20,16 @@ Step=20000, score=404.75, total=0:01:03.182174, time=0:00:31.068309, speed=321.8
 Step=30000, score=613.69, total=0:01:34.843934, time=0:00:31.661737, speed=315.839 steps/s
 Step=40000, score=803.68, total=0:02:05.990078, time=0:00:31.146066, speed=321.068 steps/s
 Step=50000, score=788.63, total=0:02:37.757607, time=0:00:31.767504, speed=314.787 steps/s
+
+Home, TF, dense feed:
+Step=10000, score=339.78, total=0:00:14.832091, time=0:00:14.716762, speed=679.497 steps/s, feats=0:00:02.926542, dense=0:00:00.242805, net=0:00:11.306787
+Step=20000, score=404.75, total=0:00:29.562701, time=0:00:14.730591, speed=678.859 steps/s, feats=0:00:02.881968, dense=0:00:00.238894, net=0:00:11.374182
+Step=30000, score=613.69, total=0:00:44.463779, time=0:00:14.900984, speed=671.097 steps/s, feats=0:00:02.953885, dense=0:00:00.244931, net=0:00:11.448601
+Step=40000, score=803.68, total=0:00:59.643862, time=0:00:15.180027, speed=658.760 steps/s, feats=0:00:02.964242, dense=0:00:00.250439, net=0:00:11.709609
+Step=50000, score=788.63, total=0:01:14.818622, time=0:00:15.174719, speed=658.991 steps/s, feats=0:00:02.987436, dense=0:00:00.262576, net=0:00:11.666808
+
+Home, TF, sparse feed:
+Step=10000, score=339.78, total=0:00:15.775951, time=0:00:15.659350, speed=638.596 steps/s, feats=0:00:02.970636, dense=0:00:00, net=0:00:12.442667
+Step=20000, score=404.75, total=0:00:31.453938, time=0:00:15.677919, speed=637.840 steps/s, feats=0:00:02.982892, dense=0:00:00, net=0:00:12.446492
+Step=30000, score=613.69, total=0:00:47.426768, time=0:00:15.972789, speed=626.065 steps/s, feats=0:00:03.058041, dense=0:00:00, net=0:00:12.677213
+Step=40000, score=803.68, total=0:01:03.267189, time=0:00:15.840355, speed=631.299 steps/s, feats=0:00:02.977527, dense=0:00:00, net=0:00:12.623911

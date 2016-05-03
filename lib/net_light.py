@@ -1,4 +1,45 @@
 import numpy as np
+import tensorflow as tf
+
+N_ACTIONS = 4
+
+L1_SIZE = 256
+L2_SIZE = 256
+L3_SIZE = 128
+
+
+def leaky_relu(x_t, name, alpha=0.01):
+    return tf.maximum(x_t * alpha, x_t)
+
+
+def make_forward_net(states_t, n_features):
+    init = tf.contrib.layers.xavier_initializer()
+
+    with tf.name_scope("L0_T"):
+        w = tf.Variable(init((n_features, L1_SIZE)), name="w")
+        b = tf.Variable(tf.zeros((L1_SIZE,)), name="b")
+        v = tf.matmul(states_t, w, a_is_sparse=True) + b
+        l0_out = leaky_relu(v, name="L0")
+
+    with tf.name_scope("L1_T"):
+        w = tf.Variable(init((L1_SIZE, L2_SIZE)), name="w")
+        b = tf.Variable(tf.zeros((L2_SIZE,)), name="b")
+        v = tf.matmul(l0_out, w) + b
+        l1_out = tf.nn.relu(v)
+
+    with tf.name_scope("L2_T"):
+        w = tf.Variable(init((L2_SIZE, L3_SIZE)), name="w")
+        b = tf.Variable(tf.zeros((L3_SIZE,)), name="b")
+        v = tf.matmul(l1_out, w) + b
+        l2_out = tf.nn.relu(v)
+
+    with tf.name_scope("L3_T"):
+        w = tf.Variable(init((L3_SIZE, N_ACTIONS)), name="w")
+        b = tf.Variable(tf.zeros((N_ACTIONS,)), name="b")
+        output = tf.add(tf.matmul(l2_out, w), b, name="qvals")
+
+    return output
+
 
 
 def calc_qvals(network, state):
