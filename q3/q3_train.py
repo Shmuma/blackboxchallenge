@@ -153,7 +153,8 @@ if __name__ == "__main__":
 
         replay_generator = replays.ReplayGenerator(REPLAY_STEPS_PER_POLL, session, state_t,
                                                    qvals_t, initial=REPLAY_STEPS_INITIAL,
-                                                   reset_after_steps=REPLAY_RESET_AFTER_STEPS)
+                                                   reset_after_steps=REPLAY_RESET_AFTER_STEPS,
+                                                   alpha=alpha_from_iter(0))
         replay_buffer = replays.ReplayBuffer(session, REPLAY_BUFFER_CAPACITY, BATCH_SIZE, replay_generator, EPOCHES_BETWEEN_POLL)
         batches_producer_thread = replays.make_batches_thread(session, batches_queue, BATCHES_QUEUE_CAPACITY, replay_buffer)
 
