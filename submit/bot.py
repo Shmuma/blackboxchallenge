@@ -1,9 +1,15 @@
 import interface as bbox
 
+import time
+import datetime
 import numpy as np
 from net_light import calc_qvals, load_weights
 from features import transform, to_dense
 
+VERBOSE = False
+REPORT_INTERVAL = 10000
+start_t = time.time()
+last_t = None
 MODEL_FILE = "model_t37r4-100000.npy"
 
 network_weights = {}
@@ -11,6 +17,16 @@ n_features = n_actions = max_time = -1
 
 
 def get_action_by_state(state):
+    global last_t, start_t
+    if VERBOSE:
+        if bbox.get_time() % REPORT_INTERVAL == 0:
+            msg = "total=%s" % (datetime.timedelta(seconds=time.time() - start_t))
+            if last_t is not None:
+                d = time.time() - last_t
+                speed = REPORT_INTERVAL / d
+                msg += ", time=%s, speed=%.3f steps/s" % (datetime.timedelta(seconds=d), speed)
+            print "Step=%d, score=%.2f, %s" % (bbox.get_time(), bbox.get_score(), msg)
+            last_t = time.time()
     dense_state = to_dense(transform(state))
     qvals = calc_qvals(network_weights, dense_state)
     return np.argmax(qvals)
