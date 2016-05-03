@@ -13,3 +13,10 @@ Step=90000, score=920.07, total=0:02:27.713773, time=0:00:16.424315, speed=608.8
 Step=100000, score=1083.39, total=0:02:44.377178, time=0:00:16.663364, speed=600.119 steps/s
 Step=110000, score=1235.03, total=0:03:01.465180, time=0:00:17.087963, speed=585.207 steps/s
 Step=120000, score=1073.87, total=0:03:17.419098, time=0:00:15.953880, speed=626.807 steps/s
+
+Home, original:
+Step=10000, score=339.78, total=0:00:32.113724, time=0:00:32.096766, speed=311.558 steps/s
+Step=20000, score=404.75, total=0:01:03.182174, time=0:00:31.068309, speed=321.871 steps/s
+Step=30000, score=613.69, total=0:01:34.843934, time=0:00:31.661737, speed=315.839 steps/s
+Step=40000, score=803.68, total=0:02:05.990078, time=0:00:31.146066, speed=321.068 steps/s
+Step=50000, score=788.63, total=0:02:37.757607, time=0:00:31.767504, speed=314.787 steps/s

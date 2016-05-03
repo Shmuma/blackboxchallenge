@@ -15,20 +15,39 @@ MODEL_FILE = "model_t38r1-400000.npy"
 network_weights = {}
 n_features = n_actions = max_time = -1
 
+features_t = 0.0
+dense_t = 0.0
+net_t = 0.0
+
 
 def get_action_by_state(state):
-    global last_t, start_t
+    global last_t, start_t, features_t, dense_t, net_t
     if VERBOSE:
         if bbox.get_time() % REPORT_INTERVAL == 0:
             msg = "total=%s" % (datetime.timedelta(seconds=time.time() - start_t))
             if last_t is not None:
                 d = time.time() - last_t
                 speed = REPORT_INTERVAL / d
-                msg += ", time=%s, speed=%.3f steps/s" % (datetime.timedelta(seconds=d), speed)
+                msg += ", time=%s, speed=%.3f steps/s, feats=%s, dense=%s, net=%s" % (
+                    datetime.timedelta(seconds=d), speed,
+                    datetime.timedelta(seconds=features_t),
+                    datetime.timedelta(seconds=dense_t),
+                    datetime.timedelta(seconds=net_t)
+                )
+                features_t = 0.0
+                dense_t = 0.0
+                net_t = 0.0
             print "Step=%d, score=%.2f, %s" % (bbox.get_time(), bbox.get_score(), msg)
             last_t = time.time()
-    dense_state = to_dense(transform(state))
+    t = time.time()
+    sparse_state = transform(state)
+    features_t += time.time() - t
+    t = time.time()
+    dense_state = to_dense(sparse_state)
+    dense_t += time.time() - t
+    t = time.time()
     qvals = calc_qvals(network_weights, dense_state)
+    net_t += time.time() - t
     return np.argmax(qvals)
 
 

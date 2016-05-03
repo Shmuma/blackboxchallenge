@@ -205,17 +205,14 @@ def _transform_bound_and_stripes(value, stripes, eps=1e-6):
 
         # if delta is none, encode value as single stripe
         if delta is None:
-            if start - eps <= value <= start + eps:
-                filled_index = 0
-            else:
-                filled_index = None
+            if abs(start - value) < eps:
+                return (output_index, 1.0)
+            output_index += 1
         else:
             filled_index = _transform_striped(value, delta=delta, start=start, stop=stop)
-
-        if filled_index is not None:
-            return (filled_index + output_index, 1.0)
-
-        output_index += _stripe_lines(stripe)
+            if filled_index is not None:
+                return (filled_index + output_index, 1.0)
+            output_index += 60
 
     return output_index, value
 
@@ -288,14 +285,7 @@ def _transform_striped(value, delta, start, stop):
         return None
     if value > stop + h_d:
         return None
-    ofs = 0
-    bound = start + h_d
-    while bound < stop + delta:
-        if value < bound:
-            return ofs
-        ofs += 1
-        bound += delta
-    return None
+    return np.round((value - start) / delta)
 
 
 # below code exists only for debugging and testing purposes -- reverse transformation of features back to values
