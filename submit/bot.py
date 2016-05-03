@@ -71,4 +71,4 @@ def run_bbox(verbose=False):
 
 if __name__ == "__main__":
     network_weights = load_weights(MODEL_FILE)
-    run_bbox(verbose=True)
+    run_bbox(verbose=False)
