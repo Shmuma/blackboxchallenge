@@ -26,7 +26,7 @@ REPLAY_STEPS_INITIAL = 1000000
 REPLAY_STEPS_PER_POLL = 50000
 REPLAY_RESET_AFTER_STEPS = 100000
 
-FIXED_ALPHA = None
+FIXED_ALPHA = 0.3
 
 # how many epoches we should show data between fresh replay data requests
 EPOCHES_BETWEEN_POLL = 10
@@ -94,7 +94,7 @@ def check_options(loader, replay_generator, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t39r1"
+    TEST_NAME = "t39r2"
     TEST_DESCRIPTION = "200k"
     RESTORE_MODEL = "models/model_t38r1-400000"
     GAMMA = 0.99
