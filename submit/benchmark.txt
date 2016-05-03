@@ -1,0 +1,15 @@
+Original implementation:
+
+Step=0, score=0.00, total=0:00:00.014189
+Step=10000, score=339.78, total=0:00:16.637291, time=0:00:16.623081, speed=601.573 steps/s
+Step=20000, score=404.75, total=0:00:32.646557, time=0:00:16.009226, speed=624.640 steps/s
+Step=30000, score=613.69, total=0:00:49.332709, time=0:00:16.686110, speed=599.301 steps/s
+Step=40000, score=803.68, total=0:01:05.522827, time=0:00:16.190080, speed=617.662 steps/s
+Step=50000, score=788.63, total=0:01:21.980598, time=0:00:16.457729, speed=607.617 steps/s
+Step=60000, score=878.31, total=0:01:38.396986, time=0:00:16.416349, speed=609.149 steps/s
+Step=70000, score=989.83, total=0:01:54.876037, time=0:00:16.479011, speed=606.833 steps/s
+Step=80000, score=1051.32, total=0:02:11.289416, time=0:00:16.413341, speed=609.260 steps/s
+Step=90000, score=920.07, total=0:02:27.713773, time=0:00:16.424315, speed=608.853 steps/s
+Step=100000, score=1083.39, total=0:02:44.377178, time=0:00:16.663364, speed=600.119 steps/s
+Step=110000, score=1235.03, total=0:03:01.465180, time=0:00:17.087963, speed=585.207 steps/s
+Step=120000, score=1073.87, total=0:03:17.419098, time=0:00:15.953880, speed=626.807 steps/s

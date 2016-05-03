@@ -6,11 +6,11 @@ import numpy as np
 from net_light import calc_qvals, load_weights
 from features import transform, to_dense
 
-VERBOSE = False
+VERBOSE = True
 REPORT_INTERVAL = 10000
 start_t = time.time()
 last_t = None
-MODEL_FILE = "model_t37r4-100000.npy"
+MODEL_FILE = "model_t38r1-400000.npy"
 
 network_weights = {}
 n_features = n_actions = max_time = -1
