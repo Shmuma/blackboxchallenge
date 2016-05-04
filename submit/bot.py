@@ -7,7 +7,8 @@ import tensorflow as tf
 from net_light import make_forward_net
 import features
 
-VERBOSE = False
+CACHE_STEPS = 4
+VERBOSE = not False
 REPORT_INTERVAL = 10000
 start_t = time.time()
 last_t = None
@@ -23,9 +24,14 @@ state_t = tf.placeholder(tf.float32, (1, features.RESULT_N_FEATURES))
 qvals_t = make_forward_net(state_t, features.RESULT_N_FEATURES)
 
 global_session = None
+cached_step = None
+cached_counter = 0
+
 
 def get_action_by_state(state):
     global last_t, start_t, features_t, dense_t, net_t
+    global cached_step, cached_counter
+
     if VERBOSE:
         if bbox.get_time() % REPORT_INTERVAL == 0:
             msg = "total=%s" % (datetime.timedelta(seconds=time.time() - start_t))
@@ -42,6 +48,10 @@ def get_action_by_state(state):
             print "Step=%d, score=%.2f, %s" % (bbox.get_time(), bbox.get_score(), msg)
             last_t = time.time()
 
+    cached_counter -= 1
+    if cached_counter > 0:
+        return cached_step
+
     t = time.time()
     sparse_state = features.transform(state)
     dense_state = features.to_dense(sparse_state)
@@ -52,7 +62,9 @@ def get_action_by_state(state):
         state_t: [dense_state]
     })
     net_t += time.time() - t
-    return np.argmax(qvals)
+    cached_step = np.argmax(qvals)
+    cached_counter = CACHE_STEPS
+    return cached_step
 
 
 # Participants do not have to modify code below, but it could be useful to understand what this code does.
