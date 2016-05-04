@@ -50,7 +50,7 @@ class ReplayBuffer:
         :arg pregen_batches: how many batches to generate
         :return: array of batch with entries
         """
-        if self.index is None or self.index_ofs >= pregen_batches:
+        if self.index is None or self.index_ofs >= min(pregen_batches, len(self.buffer) / self.batch):
             self.index = np.random.choice(len(self.buffer), size=min(len(self.buffer), self.batch*pregen_batches),
                                           replace=False, p=self.probabs)
             self.index_ofs = 0
