@@ -1,0 +1,13 @@
+Test was performed by this code version: 2faf1b462a0b40e2c5be4715e135a3ab3b480f47
+Replay buffer was 10000 samples.
+
+Batch=1000: speed=11614.95 s/sec
+Batch=2000: speed=12454.82 s/sec
+*Batch=5000: speed=13776.53 s/sec
+Batch=10000: speed=14407.12 s/sec
+Batch=20000: run out of GPU memory
+
+Replay buffer was 50000 samples:
+Batch=15000: speed=14684.84 s/sec
+
+As increase is minor, let's use batch=5000

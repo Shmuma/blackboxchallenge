@@ -8,13 +8,13 @@ from lib.reload_opt import OptionLoader
 import numpy as np
 import tensorflow as tf
 
-BATCH_SIZE = 2000
+BATCH_SIZE = 5000
 REPORT_ITERS = 100
 SAVE_MODEL_ITERS = 5000
 
 # If we did at least 10000 iterations since last sync or average loss fall below threshold we do sync.
 # To avoid unneeded sync after new replay buffer pull, we wait for 1000 iterations after fresh pull
-SYNC_MODELS_ITERS = 10000
+SYNC_MODELS_ITERS = 5000
 
 SYNC_LOSS_THRESHOLD = 300.0
 BATCHES_AFTER_PULL_TO_SYNC = 500
@@ -24,7 +24,7 @@ TEST_CUSTOM_BBOX_ITERS = 0
 REPLAY_BUFFER_CAPACITY = 1000000
 REPLAY_STEPS_INITIAL = 1000000
 REPLAY_STEPS_PER_POLL = 50000
-REPLAY_RESET_AFTER_STEPS = 100000
+REPLAY_RESET_AFTER_STEPS = 200000
 
 FIXED_ALPHA = 0.3
 
@@ -94,9 +94,9 @@ def check_options(loader, replay_generator, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t39r2"
+    TEST_NAME = "t39r3"
     TEST_DESCRIPTION = "200k"
-    RESTORE_MODEL = "models/model_t38r1-400000"
+    RESTORE_MODEL = "models/model_t39r2-315000"
     GAMMA = 0.99
     L2_REG = 0.1
 
