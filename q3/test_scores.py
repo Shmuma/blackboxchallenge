@@ -115,11 +115,16 @@ def process_slave(args):
                     scores[step] = []
                 scores[step].append(infra.bbox.get_score())
 
+        cache = None
+        if args.cache > 1:
+            cache = args.cache
+
         t = time()
         for round in xrange(args.rounds):
             score, _ = run_bbox.test_performance(session, state_t, qvals_t,
                                                  alpha=args.alpha, max_steps=args.steps,
-                                                 test_level=False, step_hook=step_hook)
+                                                 test_level=False, step_hook=step_hook,
+                                                 cache_steps=cache)
             if not args.steps in scores:
                 scores[args.steps] = []
             scores[args.steps].append(score)
@@ -144,6 +149,7 @@ def make_slave_args(args, step, model_file, test):
         "--alpha", str(args.alpha),
         "--steps", str(args.steps),
         "--ticks", str(args.ticks),
+        "--cache", str(args.cache),
         "--start", str(step),
     ]
 
@@ -159,6 +165,7 @@ if __name__ == "__main__":
     parser.add_argument("--steps", type=int, default=100000, help="Limit amount of steps, default=100k")
     parser.add_argument("--ticks", type=int, default=50000, help="Measure scores every ticks steps, default=50k")
     parser.add_argument("--rounds", type=int, default=10, help="Amount of rounds to perform, default=10")
+    parser.add_argument("--cache", type=int, default=4, help="Cache decision for given amount of steps, default=4")
     parser.add_argument("--alpha", type=float, default=0.05, help="Alpha value for testing, default=0.05")
     parser.add_argument("--start", type=int, default=0, help="Global step to start processing")
     parser.add_argument("--once", action="store_true", default=False, help="Loop over model files once and exit")

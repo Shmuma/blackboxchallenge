@@ -119,13 +119,14 @@ def populate_replay_buffer(replay_buffer, session, states_t, qvals_t, alpha=0.0,
 
 
 def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps=None, test_level=False,
-                     feats_tr_post=None, step_hook=None):
+                     feats_tr_post=None, step_hook=None, cache_steps=None):
     """
     Perform test of neural network using bbox interpreter
 
     args:
     - feats_tr_post: features transformation applied after main transformation
     - step_hook: optional function without arguments to be called every step
+    - cache_steps: cache steps for a given amount of steps
     """
     infra.prepare_bbox(test_level=test_level)
     state = {
@@ -133,16 +134,26 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
         'alpha': alpha,
         'states_t': states_t,
         'qvals_t': qvals_t,
+        'cached_action': None,
+        'cached_counter': 0,
     }
 
     def action_hook(our_state, bbox_state):
         if step_hook is not None:
             step_hook()
 
+        if cache_steps is not None:
+            our_state['cached_counter'] -= 1
+
         # make decision about action
         if np.random.random() < our_state['alpha']:
             action = np.random.randint(0, infra.n_actions, 1)[0]
         else:
+            if cache_steps is not None:
+                if our_state['cached_counter'] > 0:
+                    return our_state['cached_action']
+                our_state['cached_counter'] = cache_steps
+
             sess = our_state['session']
             qvals_t = our_state['qvals_t']
             states_t = our_state['states_t']
@@ -153,6 +164,9 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
                 state = feats_tr_post(state)
             qvals, = sess.run([qvals_t], feed_dict={states_t: [state]})
             action = np.argmax(qvals)
+
+            if cache_steps is not None:
+                our_state['cached_action'] = action
 
         return action
 
