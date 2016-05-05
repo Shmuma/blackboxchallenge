@@ -275,7 +275,8 @@ class ReplayGenerator:
             self.score = infra.bbox.get_score()
             if self.time_to_reset():
                 self.reset_bbox()
-        log.info("ReplayGenerator: generated in %s", timedelta(seconds=time.time() - t))
+        log.info("ReplayGenerator: generated in %s, bbox_time=%d",
+                 timedelta(seconds=time.time() - t), infra.bbox.get_time())
         return batch
 
     def time_to_reset(self):
