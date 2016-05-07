@@ -29,7 +29,7 @@ REPLAY_RESET_AFTER_STEPS = 300000
 FIXED_ALPHA = 0.3
 
 # how many epoches we should show data between fresh replay data requests
-EPOCHES_BETWEEN_POLL = 5
+EPOCHES_BETWEEN_POLL = 10
 
 DECAY_STEPS = None #200000
 
