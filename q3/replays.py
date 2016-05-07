@@ -12,7 +12,6 @@ import glob
 import time
 import argparse
 import logging as log
-import numpy as np
 import tensorflow as tf
 
 
@@ -94,7 +93,7 @@ if __name__ == "__main__":
 
             batch = replay_generator.next_batch()
             file_name = get_filename(index, start_time)
-            np.save(file_name, batch)
+            replays.save_replay_batch(file_name, batch)
             log.info("Generated, score={score}, data saved in {file}".format(
                     score=infra.bbox.get_score(), file=file_name))
             index += 1

@@ -7,6 +7,7 @@ import logging as log
 from humanize import naturalsize
 
 from datetime import timedelta
+import cPickle as pickle
 
 import features
 import infra
@@ -27,6 +28,16 @@ def find_replays(dir):
         v = int(f.split("-")[1])
         index_files.append((v, f))
     return index_files
+
+
+def save_replay_batch(file_name, batch):
+    with open(file_name, "w+") as fd:
+        pickle.dump(batch, fd)
+
+
+def load_replay_batch(file_name):
+    with open(file_name, "r") as fd:
+        return pickle.load(fd)
 
 
 class ReplayBuffer:
@@ -75,7 +86,6 @@ class ReplayBuffer:
         self.index_ofs += 1
         return res
 
-
     def next_batch(self):
         """
         Return next batch of data
@@ -115,11 +125,12 @@ class ReplayBuffer:
         Populate more data from replay_generator and append it to our buffer. Remove expired entries if neccessary
         :return:
         """
-        next_batch = self.load_replay_batches(replay_batches)
-        self.buffer += next_batch
-        # new entries populated with max_loss to ensure they'll be shown at least once
-        new_losses = np.full((len(next_batch),), fill_value=self.max_loss, dtype=np.float32)
-        self.losses = np.concatenate([self.losses, new_losses])
+        for _ in range(replay_batches):
+            next_batch = self.load_replay_batch()
+            self.buffer += next_batch
+            # new entries populated with max_loss to ensure they'll be shown at least once
+            new_losses = np.full((len(next_batch),), fill_value=self.max_loss, dtype=np.float32)
+            self.losses = np.concatenate([self.losses, new_losses])
 
         if self.losses.shape[0] > self.capacity:
             self.losses = self.losses[-self.capacity:]
@@ -127,10 +138,7 @@ class ReplayBuffer:
 
         self.calc_probabs()
         self.buffer_bytes = None
-
-    def load_replay_batches(self, count):
-        for _ in range(count):
-            self.load_replay_batch()
+        log.info("Data pulled: {self}".format(self=str(self)))
 
     def wait_for_replay_file(self):
         """
@@ -152,8 +160,9 @@ class ReplayBuffer:
         """
         index, file_name = self.wait_for_replay_file()
         log.info("Loading replay batch {file_name}".format(file_name=file_name))
-        data = np.load(file_name)
-        os.unlink(file_name)
+        data = load_replay_batch(file_name)
+        os.rename(file_name, os.path.join(self.replays_dir, "done", os.path.basename(file_name)))
+        #os.unlink(file_name)
         return data
 
     def calc_probabs(self):
