@@ -49,6 +49,7 @@ if __name__ == "__main__":
     parser.add_argument("--files", type=int, default=10, help="Count of files to maintain in replays dir, default=10")
     parser.add_argument("--name", required=True, help="Run name to track models")
     parser.add_argument("--alpha", type=float, default=0.3, help="Alpha for generator, default=0.3")
+    parser.add_argument("--cache", type=int, default=None, help="Cache game actions for given amout of steps, default=None")
     args = parser.parse_args()
 
     infra.setup_logging()

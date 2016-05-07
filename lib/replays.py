@@ -7,7 +7,6 @@ import logging as log
 from humanize import naturalsize
 
 from datetime import timedelta
-import cPickle as pickle
 
 import features
 import infra
@@ -31,13 +30,11 @@ def find_replays(dir):
 
 
 def save_replay_batch(file_name, batch):
-    with open(file_name, "w+") as fd:
-        pickle.dump(batch, fd)
+    np.save(file_name, batch)
 
 
 def load_replay_batch(file_name):
-    with open(file_name, "r") as fd:
-        return pickle.load(fd)
+    return [tuple(row) for row in np.load(file_name)]
 
 
 class ReplayBuffer:
@@ -282,13 +279,14 @@ class ReplayGenerator:
     """
     Class generates batches of replay data.
     """
-    def __init__(self, batch_size, session, states_t, qvals_t, alpha=1.0, reset_after_steps=None):
+    def __init__(self, batch_size, session, states_t, qvals_t, alpha=1.0, reset_after_steps=None, cache_actions=None):
         self.batch_size = batch_size
         self.session = session
         self.states_t = states_t
         self.qvals_t = qvals_t
         self.alpha = alpha
         self.reset_after_steps = reset_after_steps
+        self.cache_actions = cache_actions
         self.reset_bbox()
 
     def reset_bbox(self):
@@ -306,6 +304,9 @@ class ReplayGenerator:
         log.info("ReplayGenerator: generate next batch of %d with alpha=%.3f", self.batch_size, self.alpha)
         t = time.time()
         batch = []
+        cache_counter = self.cache_actions
+        cached_action = None
+
         while len(batch) < self.batch_size:
             state = features.transform(infra.bbox.get_state())
             rewards_states = infra.dig_all_actions(self.score)
@@ -313,12 +314,20 @@ class ReplayGenerator:
             next_states = map(features.transform, next_states)
             batch.append((state, np.copy(rewards), next_states))
 
+            if cache_counter is not None:
+                cache_counter -= 1
+
             # find an action to take
             if np.random.random() < self.alpha:
                 action = np.random.randint(0, infra.n_actions, 1)[0]
             else:
-                qvals, = self.session.run([self.qvals_t], feed_dict={self.states_t: [features.to_dense(state)]})
-                action = np.argmax(qvals)
+                if cache_counter is not None and cache_counter > 0:
+                    action = cached_action
+                else:
+                    qvals, = self.session.run([self.qvals_t], feed_dict={self.states_t: [features.to_dense(state)]})
+                    action = np.argmax(qvals)
+                    cached_action = action
+                    cache_counter = self.cache_actions
 
             self.has_next = infra.bbox.do_action(action)
             self.score = infra.bbox.get_score()
