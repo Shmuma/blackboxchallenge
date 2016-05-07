@@ -57,7 +57,7 @@ def check_options(loader, replay_buffer):
             msg = "  {name}: {old_val} => {new_val}".format(name=name, old_val=old_val, new_val=val)
 
             if name in {"SYNC_MODELS_ITERS",
-                        "SYNC_LOSS_THRESHOLD", "FIXED_ALPHA"}:
+                        "SYNC_LOSS_THRESHOLD"}:
                 globals()[name] = val
                 log.info(msg)
             elif name == "EPOCHES_BETWEEN_POLL":
