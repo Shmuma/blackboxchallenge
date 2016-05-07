@@ -14,7 +14,7 @@ SAVE_MODEL_ITERS = 5000
 
 # If we did at least 10000 iterations since last sync or average loss fall below threshold we do sync.
 # To avoid unneeded sync after new replay buffer pull, we wait for 1000 iterations after fresh pull
-SYNC_MODELS_ITERS = 5000
+SYNC_MODELS_ITERS = 15000
 
 SYNC_LOSS_THRESHOLD = 300.0
 BATCHES_AFTER_PULL_TO_SYNC = 500
@@ -22,14 +22,14 @@ BATCHES_AFTER_PULL_TO_SYNC = 500
 TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 1500000
-REPLAY_STEPS_INITIAL = 400000
+REPLAY_STEPS_INITIAL = 500000
 REPLAY_STEPS_PER_POLL = 50000
-REPLAY_RESET_AFTER_STEPS = 200000
+REPLAY_RESET_AFTER_STEPS = 300000
 
 FIXED_ALPHA = 0.3
 
 # how many epoches we should show data between fresh replay data requests
-EPOCHES_BETWEEN_POLL = 10
+EPOCHES_BETWEEN_POLL = 5
 
 DECAY_STEPS = None #200000
 
@@ -94,9 +94,9 @@ def check_options(loader, replay_generator, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t39r4"
-    TEST_DESCRIPTION = "200k, large batch - waste of time"
-    RESTORE_MODEL = "models/model_t39r2-315000"
+    TEST_NAME = "t40r1"
+    TEST_DESCRIPTION = "400k"
+    RESTORE_MODEL = "models/model_t39r4-630000"
     GAMMA = 0.99
     L2_REG = 0.1
 
@@ -165,6 +165,7 @@ if __name__ == "__main__":
         batches_producer_thread.start()
 
         if RESTORE_MODEL is not None:
+            log.info("Loaded model from {file}".format(file=RESTORE_MODEL))
             saver.restore(session, RESTORE_MODEL)
             session.run([sync_nets_t])
             print "Global step: {step}".format(step=session.run([global_step]))
