@@ -313,8 +313,10 @@ class ReplayGenerator:
 
             self.has_next = infra.bbox.do_action(action)
             self.score = infra.bbox.get_score()
-            if self.time_to_reset():
+            if self.time_to_reset() or not self.has_next:
                 self.reset_bbox()
+            if not self.has_next:
+                break
         log.info("ReplayGenerator: generated in %s, bbox_time=%d",
                  timedelta(seconds=time.time() - t), infra.bbox.get_time())
         return batch
@@ -323,7 +325,7 @@ class ReplayGenerator:
         if not self.has_next:
             return True
         if self.reset_after_steps is not None:
-            if infra.bbox.get_time() > self.reset_after_steps:
+            if infra.bbox.get_time() >= self.reset_after_steps:
                 return True
         return False
 
