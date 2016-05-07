@@ -92,9 +92,6 @@ class ReplayBuffer:
         self.apply_loss_updates()
         if self.time_to_pull():
             self.pull_more_data()
-            self.batches_to_pull = self.epoches_between_pull * len(self.buffer) / self.batch
-            self.batches_since_pull = 0
-            self.index = None
 
         index = self.shuffle()
 
@@ -136,6 +133,11 @@ class ReplayBuffer:
         self.calc_probabs()
         self.buffer_bytes = None
         log.info("Data pulled: {self}".format(self=str(self)))
+
+        self.batches_to_pull = self.epoches_between_pull * len(self.buffer) / self.batch
+        self.batches_since_pull = 0
+        self.index = None
+
 
     def wait_for_replay_file(self):
         """
