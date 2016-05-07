@@ -21,14 +21,6 @@ REPLAYS_DIR = "replays"
 MODELS_DIR = "models"
 
 
-def replays_indexes(dir):
-    indexes = []
-    for f in glob.glob(os.path.join(dir, "replay-*")):
-        v = int(f.split("-")[1])
-        indexes.append(v)
-    return indexes
-
-
 def last_model_file(run_name):
     models = []
     for f in glob.glob(os.path.join(MODELS_DIR, "model_" + run_name + "-*")):
@@ -65,10 +57,10 @@ if __name__ == "__main__":
     infra.prepare_bbox()
 
     last_model = None
-    indexes = replays_indexes(REPLAYS_DIR)
-    index = 1 if len(indexes) == 0 else max(indexes)
+    index_files = replays.find_replays(REPLAYS_DIR)
+    index = 1 if len(index_files) == 0 else max(index_files)[0]+1
     log.info("Replay generator created, we have {files} files in replay dir, next index = {index}".format(
-            files=len(indexes), index=index))
+            files=len(index_files), index=index))
 
     state_t = tf.placeholder(tf.float32, (1, features.RESULT_N_FEATURES))
     qvals_t = net_light.make_forward_net(state_t, features.RESULT_N_FEATURES)
@@ -91,8 +83,8 @@ if __name__ == "__main__":
                 saver = tf.train.Saver()
                 saver.restore(session, last_model)
 
-            indexes = replays_indexes(REPLAYS_DIR)
-            if len(indexes) >= args.files:
+            index_files = replays.find_replays(REPLAYS_DIR)
+            if len(index_files) >= args.files:
                 time.sleep(60)
                 continue
 
@@ -105,3 +97,4 @@ if __name__ == "__main__":
             np.save(file_name, batch)
             log.info("Generated, score={score}, data saved in {file}".format(
                     score=infra.bbox.get_score(), file=file_name))
+            index += 1

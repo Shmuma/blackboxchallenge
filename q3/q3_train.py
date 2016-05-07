@@ -22,11 +22,8 @@ BATCHES_AFTER_PULL_TO_SYNC = 500
 TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 1500000
-REPLAY_STEPS_INITIAL = 500000
-REPLAY_STEPS_PER_POLL = 50000
-REPLAY_RESET_AFTER_STEPS = 300000
-
-FIXED_ALPHA = 0.3
+# every replay batch is 50k steps
+INITIAL_REPLAY_BATCHES = 10
 
 # how many epoches we should show data between fresh replay data requests
 EPOCHES_BETWEEN_POLL = 10
@@ -47,18 +44,7 @@ def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
     writer.flush()
 
 
-def alpha_from_iter(iter_no):
-    if FIXED_ALPHA is not None:
-        return FIXED_ALPHA
-    if iter < 100000:
-        return 1.0
-    elif iter <= 200000:
-        return 1.0 - (float(iter_no) / 100000) + 0.1
-    else:
-        return 0.1
-
-
-def check_options(loader, replay_generator, replay_buffer):
+def check_options(loader, replay_buffer):
     if loader.check():
         for name, val in loader.values.iteritems():
             if not name in globals():
@@ -74,18 +60,10 @@ def check_options(loader, replay_generator, replay_buffer):
                         "SYNC_LOSS_THRESHOLD", "FIXED_ALPHA"}:
                 globals()[name] = val
                 log.info(msg)
-            elif name == "REPLAY_RESET_AFTER_STEPS":
-                globals()[name] = val
-                replay_generator.set_reset_after_steps(val)
-                log.info(msg)
             elif name == "EPOCHES_BETWEEN_POLL":
                 globals()[name] = val
                 replay_buffer.set_epoches_between_poll(val)
                 log.info(msg)
-            elif name == "REPLAY_STEPS_PER_POLL":
-                globals()[name] = val
-                log.info(msg)
-                replay_generator.set_batch_size(val)
             else:
                 log.info("Variable {name} cannot be modified using config, value {value} ignored".format(
                     name=name, value=val
@@ -151,11 +129,8 @@ if __name__ == "__main__":
                 name=TEST_NAME, n_features=n_features, descr=TEST_DESCRIPTION))
         report_t = time()
 
-        replay_generator = replays.ReplayGenerator(REPLAY_STEPS_PER_POLL, session, state_t,
-                                                   qvals_t, initial=REPLAY_STEPS_INITIAL,
-                                                   reset_after_steps=REPLAY_RESET_AFTER_STEPS,
-                                                   alpha=alpha_from_iter(0))
-        replay_buffer = replays.ReplayBuffer(session, REPLAY_BUFFER_CAPACITY, BATCH_SIZE, replay_generator, EPOCHES_BETWEEN_POLL)
+        replay_buffer = replays.ReplayBuffer(session, REPLAY_BUFFER_CAPACITY, BATCH_SIZE,
+                                             EPOCHES_BETWEEN_POLL, INITIAL_REPLAY_BATCHES)
         batches_producer_thread = replays.make_batches_thread(session, batches_queue, BATCHES_QUEUE_CAPACITY, replay_buffer)
 
         loss_enqueue_t = replay_buffer.losses_updates_queue.enqueue([index_batch_t, loss_vec_t])
@@ -196,7 +171,6 @@ if __name__ == "__main__":
                 if iter % REPORT_ITERS == 0 and iter > 0:
                     report_d = time() - report_t
                     speed = (BATCH_SIZE * REPORT_ITERS) / report_d
-                    replay_generator.set_alpha(alpha_from_iter(iter))
 
                 loss, _, _ = session.run([loss_t, loss_enqueue_t, opt_t])
                 loss_batch.append(loss)
@@ -218,7 +192,7 @@ if __name__ == "__main__":
                             batchq_perc=100.0 * batches_qsize / BATCHES_QUEUE_CAPACITY)
                     )
                     write_summaries(session, summ, summary_writer, iter, {}, loss=avg_loss, speed=speed)
-                    check_options(opts_loader, replay_generator, replay_buffer)
+                    check_options(opts_loader, replay_buffer)
 
                 if TEST_CUSTOM_BBOX_ITERS > 0 and iter % TEST_CUSTOM_BBOX_ITERS == 0 and iter > 0:
                     log.info("{iter} Do custom model states:".format(iter=iter))

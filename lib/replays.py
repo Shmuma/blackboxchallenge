@@ -10,19 +10,32 @@ from datetime import timedelta
 
 import features
 import infra
-
+import glob
+import os
 
 LOSSES_QUEUE_CAPACITY = 1000
 
 
+def find_replays(dir):
+    """
+    Return tuples with file index and file name
+    :param dir:
+    :return:
+    """
+    index_files = []
+    for f in glob.glob(os.path.join(dir, "replay-*")):
+        v = int(f.split("-")[1])
+        index_files.append((v, f))
+    return index_files
+
+
 class ReplayBuffer:
-    def __init__(self, session, capacity, batch, replay_generator, epoches_between_pull):
+    def __init__(self, session, capacity, batch, epoches_between_pull, initial_batches, replays_dir="replays"):
         self.session = session
         self.capacity = capacity
         self.batch = batch
         self.buffer = []
         self.buffer_bytes = None
-        self.replay_generator = replay_generator
         self.epoches_between_pull = epoches_between_pull
         # how many batches need to be generated before pull
         self.batches_to_pull = 0
@@ -40,6 +53,10 @@ class ReplayBuffer:
 
         self.index = None
         self.index_ofs = 0
+        self.replays_dir = replays_dir
+
+        # load initial batches
+        self.pull_more_data(initial_batches)
 
     def time_to_pull(self):
         return len(self.buffer) == 0 or self.batches_to_pull <= 0
@@ -93,12 +110,12 @@ class ReplayBuffer:
         self.batches_since_pull += 1
         return index, states_idx, states_val, rewards, next_states_idx, next_states_val
 
-    def pull_more_data(self):
+    def pull_more_data(self, replay_batches=1):
         """
         Populate more data from replay_generator and append it to our buffer. Remove expired entries if neccessary
         :return:
         """
-        next_batch = self.replay_generator.next_batch()
+        next_batch = self.load_replay_batches(replay_batches)
         self.buffer += next_batch
         # new entries populated with max_loss to ensure they'll be shown at least once
         new_losses = np.full((len(next_batch),), fill_value=self.max_loss, dtype=np.float32)
@@ -110,6 +127,34 @@ class ReplayBuffer:
 
         self.calc_probabs()
         self.buffer_bytes = None
+
+    def load_replay_batches(self, count):
+        for _ in range(count):
+            self.load_replay_batch()
+
+    def wait_for_replay_file(self):
+        """
+        Wait for next replay file
+        :return: tuple with index and file name
+        """
+        while True:
+            index_files = find_replays(self.replays_dir)
+            if len(index_files) == 0:
+                log.info("No replay files found, sleep for minute and retry")
+                time.sleep(60)
+                continue
+            index_files.sort()
+            return index_files.pop(0)
+
+    def load_replay_batch(self):
+        """
+        Discover and load batch from external dir. If no batches found, wait for it
+        """
+        index, file_name = self.wait_for_replay_file()
+        log.info("Loading replay batch {file_name}".format(file_name=file_name))
+        data = np.load(file_name)
+        os.unlink(file_name)
+        return data
 
     def calc_probabs(self):
         # calculate priorities array
@@ -185,7 +230,7 @@ class ReplayBatchProducer(threading.Thread):
                 time.sleep(1)
                 continue
 
-            # TODO: prevent memory leak
+            # TODO: prevent memory leak (is it still there?)
             if self.replay_buffer.time_to_pull() and qsize > 0:
                 time.sleep(1)
                 continue
@@ -228,9 +273,8 @@ class ReplayGenerator:
     """
     Class generates batches of replay data.
     """
-    def __init__(self, batch_size, session, states_t, qvals_t, alpha=1.0, initial=None, reset_after_steps=None):
+    def __init__(self, batch_size, session, states_t, qvals_t, alpha=1.0, reset_after_steps=None):
         self.batch_size = batch_size
-        self.initial = initial
         self.session = session
         self.states_t = states_t
         self.qvals_t = qvals_t
@@ -250,14 +294,10 @@ class ReplayGenerator:
         :param alpha:
         :return: tuple of lists (states, rewards, next_states)
         """
-        size = self.batch_size
-        if self.initial is not None:
-            size = self.initial
-            self.initial = None
-        log.info("ReplayGenerator: generate next batch of %d with alpha=%.3f", size, self.alpha)
+        log.info("ReplayGenerator: generate next batch of %d with alpha=%.3f", self.batch_size, self.alpha)
         t = time.time()
         batch = []
-        while len(batch) < size:
+        while len(batch) < self.batch_size:
             state = features.transform(infra.bbox.get_state())
             rewards_states = infra.dig_all_actions(self.score)
             rewards, next_states = zip(*rewards_states)
