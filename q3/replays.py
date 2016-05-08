@@ -92,7 +92,7 @@ if __name__ == "__main__":
                 continue
 
             start_time = infra.bbox.get_time()
-            log.info("Will create next batch from bbox_time={bbox_time}, score={score}".format(
+            log.info("Will create next batch from bbox_time={bbox_time}, score={score:.3f}".format(
                     bbox_time=start_time, score=infra.bbox.get_score()))
 
             batch = replay_generator.next_batch()
