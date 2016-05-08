@@ -46,8 +46,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--max", type=int, default=400000, help="Maximim amount of steps to replay, default=400k")
     parser.add_argument("--batch", type=int, default=50000, help="Steps in every file, default=50k")
-    parser.add_argument("--files", type=int, default=10, help="Count of files to maintain in replays dir, default=10")
+    parser.add_argument("--files", type=int, default=2, help="Count of files to maintain in replays dir, default=2")
     parser.add_argument("--name", required=True, help="Run name to track models")
+    parser.add_argument("--oldname", help="Run name to use as fallback models source")
     parser.add_argument("--alpha", type=float, default=0.3, help="Alpha for generator, default=0.3")
     parser.add_argument("--cache", type=int, default=None, help="Cache game actions for given amout of steps, default=None")
     args = parser.parse_args()
@@ -73,6 +74,8 @@ if __name__ == "__main__":
         while True:
             # discover and load latest model file
             model = last_model_file(args.name)
+            if model is None and args.oldname is not None:
+                model = last_model_file(args.oldname)
             if model is None:
                 log.info("No model file exists, sleep")
                 time.sleep(60)

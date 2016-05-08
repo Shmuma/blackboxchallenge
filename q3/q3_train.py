@@ -72,8 +72,8 @@ def check_options(loader, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t41r1"
-    TEST_DESCRIPTION = "400k"
+    TEST_NAME = "t41r2"
+    TEST_DESCRIPTION = "400k, correct replay models"
     RESTORE_MODEL = "models/model_t39r4-630000"
     GAMMA = 0.99
     L2_REG = 0.1
