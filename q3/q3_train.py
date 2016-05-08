@@ -10,7 +10,7 @@ import tensorflow as tf
 
 BATCH_SIZE = 2000
 REPORT_ITERS = 100
-SAVE_MODEL_ITERS = 5000
+SAVE_MODEL_ITERS = 1000
 
 # If we did at least 10000 iterations since last sync or average loss fall below threshold we do sync.
 # To avoid unneeded sync after new replay buffer pull, we wait for 1000 iterations after fresh pull

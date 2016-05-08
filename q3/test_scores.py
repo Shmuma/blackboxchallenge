@@ -161,7 +161,7 @@ def make_slave_args(args, step, model_file, test):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--name", required=True, help="Name of the run to watch")
-    parser.add_argument("--every", type=int, default=1, help="Process every given model, default=1")
+    parser.add_argument("--every", type=int, default=25, help="Process every given model, default=25")
     parser.add_argument("--steps", type=int, default=100000, help="Limit amount of steps, default=100k")
     parser.add_argument("--ticks", type=int, default=50000, help="Measure scores every ticks steps, default=50k")
     parser.add_argument("--rounds", type=int, default=10, help="Amount of rounds to perform, default=10")
