@@ -292,7 +292,8 @@ class ReplayGenerator:
         self.reset_bbox()
 
     def reset_bbox(self):
-        log.info("ReplayGenerator: bbox resetted at time step %d" % infra.bbox.get_time())
+        log.info("ReplayGenerator: bbox resetted at time step {step}, score {score:.3}".format(
+                step=infra.bbox.get_time(), score=infra.bbox.get_score()))
         infra.prepare_bbox()
         self.has_next = True
         self.score = 0.0
