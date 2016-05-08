@@ -21,7 +21,7 @@ BATCHES_AFTER_PULL_TO_SYNC = 500
 
 TEST_CUSTOM_BBOX_ITERS = 0
 
-REPLAY_BUFFER_CAPACITY = 1500000
+REPLAY_BUFFER_CAPACITY = 1000000
 # every replay batch is 50k steps
 INITIAL_REPLAY_BATCHES = 10
 
@@ -72,9 +72,9 @@ def check_options(loader, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t40r2"
+    TEST_NAME = "t41r1"
     TEST_DESCRIPTION = "400k"
-    RESTORE_MODEL = "models/model_t40r1-165000"
+    RESTORE_MODEL = "models/model_t39r4-630000"
     GAMMA = 0.99
     L2_REG = 0.1
 
