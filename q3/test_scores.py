@@ -205,7 +205,8 @@ if __name__ == "__main__":
                     every_counter = args.every
                     log.info("Found new model for step %d, enqueued" % step)
                     model_file = get_model_path(args.name, str(step))
-                    models_to_process += [(model_file, step, False), (model_file, step, True)]
+                    # enqueue only test mode request, as train scores written by replay generator
+                    models_to_process += [(model_file, step, True)]
 
                 # check for terminated slave processes
                 running_slaves = []
