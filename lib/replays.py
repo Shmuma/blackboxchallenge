@@ -13,7 +13,7 @@ import infra
 import glob
 import os
 
-LOSSES_QUEUE_CAPACITY = 1000
+LOSSES_QUEUE_CAPACITY = 100
 
 
 def find_replays(dir):
