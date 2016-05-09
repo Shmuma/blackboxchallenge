@@ -1,0 +1,44 @@
+         [[Node: add_2/_87 = _Recv[client_terminated=false, recv_device="/job:localhost/replica:0/task:0/cpu:0", send_device="/job:localhost/replica:0/task:0/gpu:0", send_device_incarnation=1, tensor_name="edge_1826_add_2", tensor_type=DT_FLOAT, _device="/job:localhost/replica:0/task:0/cpu:0"]()]]
+W tensorflow/core/common_runtime/executor.cc:1102] 0xd32b620 Compute status: Invalid argument: Indices are not valid: not lexicographically sorted or containing repeats.
+         [[Node: SparseToDense_1 = SparseToDense[T=DT_FLOAT, Tindices=DT_INT32, validate_indices=true, _device="/job:localhost/replica:0/task:0/cpu:0"](Reshape_2/_37, SparseToDense_1/output_shape/_39, Reshape_3/_41, SparseToDense_1/default_value/_43)]]
+         [[Node: Sum/_85 = _Recv[client_terminated=false, recv_device="/job:localhost/replica:0/task:0/cpu:0", send_device="/job:localhost/replica:0/task:0/gpu:0", send_device_incarnation=1, tensor_name="edge_1510_Sum", tensor_type=DT_FLOAT, _device="/job:localhost/replica:0/task:0/cpu:0"]()]]
+W tensorflow/core/common_runtime/executor.cc:1102] 0xb5b5470 Compute status: Invalid argument: Indices are not valid: not lexicographically sorted or containing repeats.
+         [[Node: SparseToDense_1 = SparseToDense[T=DT_FLOAT, Tindices=DT_INT32, validate_indices=true, _device="/job:localhost/replica:0/task:0/cpu:0"](Reshape_2/_37, SparseToDense_1/output_shape/_39, Reshape_3/_41, SparseToDense_1/default_value/_43)]]
+         [[Node: gradients/L0_T/MatMul_grad/MatMul_1/_78 = _Recv[client_terminated=false, recv_device="/job:localhost/replica:0/task:0/gpu:0", send_device="/job:localhost/replica:0/task:0/cpu:0", send_device_incarnation=1, tensor_name="edge_1447_gradients/L0_T/MatMul_grad/MatMul_1", tensor_type=DT_FLOAT, _device="/job:localhost/replica:0/task:0/gpu:0"]()]]
+W tensorflow/core/common_runtime/executor.cc:1102] 0xb5b5470 Compute status: Invalid argument: Indices are not valid: not lexicographically sorted or containing repeats.
+         [[Node: SparseToDense_1 = SparseToDense[T=DT_FLOAT, Tindices=DT_INT32, validate_indices=true, _device="/job:localhost/replica:0/task:0/cpu:0"](Reshape_2/_37, SparseToDense_1/output_shape/_39, Reshape_3/_41, SparseToDense_1/default_value/_43)]]
+         [[Node: SparseToDense/_67 = _Recv[client_terminated=false, recv_device="/job:localhost/replica:0/task:0/gpu:0", send_device="/job:localhost/replica:0/task:0/cpu:0", send_device_incarnation=1, tensor_name="edge_499_SparseToDense", tensor_type=DT_FLOAT, _device="/job:localhost/replica:0/task:0/gpu:0"]()]]
+W tensorflow/core/common_runtime/executor.cc:1102] 0xd32b620 Compute status: Invalid argument: Indices are not valid: not lexicographically sorted or containing repeats.
+         [[Node: SparseToDense_1 = SparseToDense[T=DT_FLOAT, Tindices=DT_INT32, validate_indices=true, _device="/job:localhost/replica:0/task:0/cpu:0"](Reshape_2/_37, SparseToDense_1/output_shape/_39, Reshape_3/_41, SparseToDense_1/default_value/_43)]]
+
+
+         [[Node: SparseToDense/_66 = _Send[T=DT_FLOAT, client_terminated=false, recv_device="/job:localhost/replica:0/task:0/gpu:0", send_device="/job:localhost/replica:0/task:0/cpu:0", send_device_incarnation=1, tensor_name="edge_499_SparseToDense", _device="/job:localhost/replica:0/task:0/cpu:0"](SparseToDense)]]
+Traceback (most recent call last):
+  File "q3_train.py", line 175, in <module>
+    loss, _, _ = session.run([loss_t, loss_enqueue_t, opt_t])
+  File "/home/shmuma/sfw/anaconda/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 315, in run
+    return self._run(None, fetches, feed_dict)
+  File "/home/shmuma/sfw/anaconda/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 511, in _run
+    feed_dict_string)
+  File "/home/shmuma/sfw/anaconda/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 564, in _do_run
+    target_list)
+  File "/home/shmuma/sfw/anaconda/lib/python2.7/site-packages/tensorflow/python/client/session.py", line 586, in _do_call
+    e.code)
+tensorflow.python.framework.errors.InvalidArgumentError: Indices are not valid: not lexicographically sorted or containing repeats.
+         [[Node: SparseToDense_1 = SparseToDense[T=DT_FLOAT, Tindices=DT_INT32, validate_indices=true, _device="/job:localhost/replica:0/task:0/cpu:0"](Reshape_2/_37, SparseToDense_1/output_shape/_39, Reshape_3/_41, SparseToDense_1/default_value/_43)]]
+         [[Node: L0_R/MatMul/_51 = _Recv[client_terminated=false, recv_device="/job:localhost/replica:0/task:0/gpu:0", send_device="/job:localhost/replica:0/task:0/cpu:0", send_device_incarnation=1, tensor_name="edge_449_L0_R/MatMul", tensor_type=DT_FLOAT, _device="/job:localhost/replica:0/task:0/gpu:0"]()]]
+Caused by op u'SparseToDense_1', defined at:
+  File "q3_train.py", line 112, in <module>
+    features.RESULT_N_FEATURES, name="next")
+  File "../lib/net.py", line 107, in sparse_batch_to_dense
+    flat_dense_t = tf.sparse_to_dense(flat_idx_t, (dense_size * batch_size, ), flat_val_t)
+  File "/home/shmuma/sfw/anaconda/lib/python2.7/site-packages/tensorflow/python/ops/sparse_ops.py", line 361, in sparse_to_dense
+    name=name)
+  File "/home/shmuma/sfw/anaconda/lib/python2.7/site-packages/tensorflow/python/ops/gen_sparse_ops.py", line 362, in _sparse_to_dense
+    validate_indices=validate_indices, name=name)
+  File "/home/shmuma/sfw/anaconda/lib/python2.7/site-packages/tensorflow/python/ops/op_def_library.py", line 655, in apply_op
+    op_def=op_def)
+  File "/home/shmuma/sfw/anaconda/lib/python2.7/site-packages/tensorflow/python/framework/ops.py", line 2040, in create_op
+    original_op=self._default_original_op, op_def=op_def)
+  File "/home/shmuma/sfw/anaconda/lib/python2.7/site-packages/tensorflow/python/framework/ops.py", line 1087, in __init__
+    self._traceback = _extract_stack()

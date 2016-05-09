@@ -109,6 +109,10 @@ class ReplayBuffer:
             states_val.append(state[1])
             rewards.append(reward)
             for next_idx, next_val in next_4_state:
+                if np.any(np.less(next_idx, 0)):
+                    log.error("Negative index in next")
+                    log.error(str(next_idx))
+                    log.error(str(next_val))
                 next_states_idx.append(next_idx)
                 next_states_val.append(next_val)
 
