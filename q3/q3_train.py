@@ -76,11 +76,11 @@ def check_options(loader, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t41r6"
-    TEST_DESCRIPTION = "300k, experiment with batch queue size"
+    TEST_NAME = "t41r7"
+    TEST_DESCRIPTION = "300k, experiment with higher L2 reg"
     RESTORE_MODEL = "models/model_t41r2-268000"
     GAMMA = 0.99
-    L2_REG = 0.1
+    L2_REG = 0.5
 
     log = infra.setup_logging(logfile="q3_" + TEST_NAME + ".log")
     np.random.seed(42)
