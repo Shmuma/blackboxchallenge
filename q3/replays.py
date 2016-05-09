@@ -70,6 +70,7 @@ if __name__ == "__main__":
     parser.add_argument("--oldname", help="Run name to use as fallback models source")
     parser.add_argument("--alpha", type=float, default=0.1, help="Alpha for generator, default=0.3")
     parser.add_argument("--cache", type=int, default=None, help="Cache game actions for given amout of steps, default=None")
+    parser.add_argument("--double", type=int, default=None, help="From this step, produce two times more files, default=None")
     args = parser.parse_args()
 
     infra.setup_logging()
@@ -97,6 +98,9 @@ if __name__ == "__main__":
         summary_writer = tf.train.SummaryWriter("logs/" + args.name + "-replays")
         step_vars, step_summs = make_summaries(score_steps)
 
+        # true when we skip batches up to --double step
+        double_pass = False
+
         while True:
             # discover and load latest model file
             model, model_step = last_model_file(args.name)
@@ -111,20 +115,32 @@ if __name__ == "__main__":
                 last_model = model
                 saver.restore(session, last_model)
 
+            start_time = infra.bbox.get_time()
             index_files = replays.find_replays(REPLAYS_DIR)
             if len(index_files) >= args.files:
-                time.sleep(60)
-                continue
+                if args.double is None or not double_pass or start_time < args.double:
+                    time.sleep(60)
+                    continue
 
-            start_time = infra.bbox.get_time()
             log.info("Will create next batch from bbox_time={bbox_time}, score={score:.3f}".format(
                     bbox_time=start_time, score=infra.bbox.get_score()))
+            if double_pass and start_time < args.double:
+                log.info("Next batch won't be saved, as we skip it")
 
             batch, score = replay_generator.next_batch()
-            file_name = get_filename(index, start_time)
-            replays.save_replay_batch(file_name, batch)
-            log.info("Generated, score={score}, data saved in {file}".format(
-                    score=infra.bbox.get_score(), file=file_name))
+
+            if double_pass and start_time < args.double:
+                log.info("Generated, score={score}, data ignored".format(
+                        score=infra.bbox.get_score()))
+            else:
+                file_name = get_filename(index, start_time)
+                replays.save_replay_batch(file_name, batch)
+                index += 1
+                log.info("Generated, score={score}, data saved in {file}".format(
+                        score=infra.bbox.get_score(), file=file_name))
+
             score_step = start_time + args.batch
             write_summary(session, summary_writer, score, step_vars[score_step], step_summs[score_step], model_step)
-            index += 1
+
+            if args.double is not None and score_step == args.max:
+                double_pass = not double_pass
