@@ -144,3 +144,7 @@ if __name__ == "__main__":
 
             if args.double is not None and score_step == args.max:
                 double_pass = not double_pass
+                if double_pass:
+                    log.info("Double pass started")
+                else:
+                    log.info("Double pass ended")
