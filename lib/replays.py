@@ -72,6 +72,8 @@ class ReplayBuffer:
     def shuffle(self, pregen_batches=10):
         """
         Generate index of next batch
+
+        WARNING: pregen_batches shouldn't be too large, as we want fresh ordering of samples
         :arg pregen_batches: how many batches to generate
         :return: array of batch with entries
         """

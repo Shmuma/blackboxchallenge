@@ -73,7 +73,7 @@ def check_options(loader, replay_buffer):
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
     TEST_NAME = "t41r4"
-    TEST_DESCRIPTION = "300k, strange spikes"
+    TEST_DESCRIPTION = "300k, spikes fixed"
     RESTORE_MODEL = "models/model_t41r2-268000"
     GAMMA = 0.99
     L2_REG = 0.1
@@ -86,7 +86,6 @@ if __name__ == "__main__":
 
     n_features = features.RESULT_N_FEATURES
     opts_loader = OptionLoader("options.cfg")
-    err_fd = open("error.log", "w+")
 
     with tf.Session() as session:
         batches_queue = tf.FIFOQueue(BATCHES_QUEUE_CAPACITY, (
@@ -120,7 +119,7 @@ if __name__ == "__main__":
         tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(qvals_t, 1), name="qbest"))
         tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(next_qvals_t, 1), name="qbest_next"))
 
-        loss_t, loss_vec_t, err_t = net.make_loss(BATCH_SIZE, GAMMA, qvals_t, rewards_batch_t, next_qvals_t, l2_reg=L2_REG)
+        loss_t, loss_vec_t= net.make_loss(BATCH_SIZE, GAMMA, qvals_t, rewards_batch_t, next_qvals_t, l2_reg=L2_REG)
         opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=DECAY_STEPS)
 
         sync_nets_t = net.make_sync_nets()
@@ -173,11 +172,8 @@ if __name__ == "__main__":
                     report_d = time() - report_t
                     speed = (BATCH_SIZE * REPORT_ITERS) / report_d
 
-                err_val, loss, _, _ = session.run([err_t, loss_t, loss_enqueue_t, opt_t])
+                loss, _, _ = session.run([loss_t, loss_enqueue_t, opt_t])
                 loss_batch.append(loss)
-
-                err_fd.write("%s: %d: %.4f\n" % (datetime.now(), iter, err_val))
-                err_fd.flush()
 
                 if iter % REPORT_ITERS == 0 and iter > 0:
                     batches_qsize, = session.run([batches_qsize_t])
