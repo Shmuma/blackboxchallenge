@@ -202,7 +202,7 @@ def make_loss(batch_size, gamma, qvals_t, rewards_t, next_qvals_t, n_actions=4, 
 
     tf.contrib.layers.summarize_tensors([l2_error, error])
 
-    return error + l2_error, loss_vec
+    return error + l2_error, loss_vec, error
 
 
 def extract_network(session, model_file):

@@ -93,11 +93,11 @@ if __name__ == "__main__":
                                                    alpha=args.alpha, reset_after_steps=args.max)
         saver = tf.train.Saver()
 
-        summary_writers = {}
-        for step in set(range(args.batch, args.max, args.batch) + [args.max]):
-            summary_writers[step] = tf.train.SummaryWriter("logs/" + args.name + "-scores-%04dK" % (int(step/1000)))
-
-        summ_vars, summary_t = make_summaries()
+        # summary_writers = {}
+        # for step in set(range(args.batch, args.max, args.batch) + [args.max]):
+        #     summary_writers[step] = tf.train.SummaryWriter("logs/" + args.name + "-scores-%04dK" % (int(step/1000)))
+        #
+        # summ_vars, summary_t = make_summaries()
 
         while True:
             # discover and load latest model file
@@ -128,5 +128,5 @@ if __name__ == "__main__":
             log.info("Generated, score={score}, data saved in {file}".format(
                     score=infra.bbox.get_score(), file=file_name))
             score = max(replay_generator.score, replay_generator.last_score)
-            write_summary(session, summary_writers.get(start_time + args.batch), score, summ_vars, summary_t, model_step)
+            # write_summary(session, summary_writers.get(start_time + args.batch), score, summ_vars, summary_t, model_step)
             index += 1
