@@ -119,7 +119,7 @@ if __name__ == "__main__":
         tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(qvals_t, 1), name="qbest"))
         tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(next_qvals_t, 1), name="qbest_next"))
 
-        loss_t, loss_vec_t= net.make_loss(BATCH_SIZE, GAMMA, qvals_t, rewards_batch_t, next_qvals_t, l2_reg=L2_REG)
+        loss_t, loss_vec_t = net.make_loss(BATCH_SIZE, GAMMA, qvals_t, rewards_batch_t, next_qvals_t, l2_reg=L2_REG)
         opt_t, optimiser, global_step = net.make_opt(loss_t, LEARNING_RATE, decay_every_steps=DECAY_STEPS)
 
         sync_nets_t = net.make_sync_nets()
