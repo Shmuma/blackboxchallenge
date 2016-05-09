@@ -4,7 +4,6 @@ import tensorflow as tf
 import numpy as np
 import time
 import logging as log
-from humanize import naturalsize
 
 from datetime import timedelta
 
@@ -195,9 +194,10 @@ class ReplayBuffer:
         return size
 
     def __str__(self):
-        return "ReplayBuffer[size={size}({bytes}), to_pull={to_pull}, max_loss={max_loss:.4e}]".format(
+        return "ReplayBuffer[size={size}, to_pull={to_pull}, " \
+               "max={max_loss:.2e}, mean={mean_loss:.2e}, min={min_loss:.2e}]".format(
                 size=len(self.buffer), to_pull=self.batches_to_pull,
-                max_loss=self.max_loss, bytes=naturalsize(self.buffer_size(), format="%.3f")
+                max_loss=self.max_loss, mean_loss=self.losses.mean(), min_loss=self.losses.min()
         )
 
     def apply_loss_updates(self):
