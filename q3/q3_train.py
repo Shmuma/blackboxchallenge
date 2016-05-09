@@ -10,7 +10,8 @@ import tensorflow as tf
 
 BATCH_SIZE = 2000
 REPORT_ITERS = 100
-SAVE_MODEL_ITERS = 1000
+SAVE_MODEL_ITERS = 5000
+SAVE_MODEL_FOR_REPLAYS = 1000
 
 # If we did at least 10000 iterations since last sync or average loss fall below threshold we do sync.
 # To avoid unneeded sync after new replay buffer pull, we wait for 1000 iterations after fresh pull
@@ -136,6 +137,8 @@ if __name__ == "__main__":
         loss_enqueue_t = replay_buffer.losses_updates_queue.enqueue([index_batch_t, loss_vec_t])
 
         saver = tf.train.Saver(var_list=dict(net.get_vars(trainable=True)).values(), max_to_keep=200)
+        # we have a special saver for replays generator
+        saver_replays = tf.train.Saver(var_list=dict(net.get_vars(trainable=True)).values(), max_to_keep=3)
         session.run(tf.initialize_all_variables())
         batches_producer_thread.start()
 
@@ -207,6 +210,9 @@ if __name__ == "__main__":
 
                 if iter % SAVE_MODEL_ITERS == 0 and iter > 0:
                     saver.save(session, "models/model_" + TEST_NAME, global_step=iter)
+
+                if iter % SAVE_MODEL_FOR_REPLAYS == 0 and iter > 0:
+                    saver_replays.save(session, "replays/models/model_" + TEST_NAME, global_step=iter)
 
                 iter += 1
         finally:

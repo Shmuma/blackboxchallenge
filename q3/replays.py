@@ -17,7 +17,7 @@ import tensorflow as tf
 
 REPLAYS_BATCH = 50000
 REPLAYS_DIR = "replays"
-MODELS_DIR = "models"
+MODELS_DIR = os.path.join(REPLAYS_DIR, "models")
 
 
 def last_model_file(run_name):
