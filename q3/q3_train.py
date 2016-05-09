@@ -218,7 +218,7 @@ if __name__ == "__main__":
                     saver.save(session, "models/model_" + TEST_NAME, global_step=iter)
 
                 if iter % SAVE_MODEL_FOR_REPLAYS == 0 and iter > 0:
-                    saver_replays.save(session, os.path.join(REPLAY_MODELS_DIR, "/model_" + TEST_NAME), global_step=iter)
+                    saver_replays.save(session, os.path.join(REPLAY_MODELS_DIR, "model_" + TEST_NAME), global_step=iter)
 
                 iter += 1
         finally:
