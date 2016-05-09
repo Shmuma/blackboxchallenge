@@ -51,7 +51,7 @@ def make_summaries(score_steps):
 
 def write_summary(session, writer, score, var, summary_t, model_step):
     res, = session.run([summary_t], feed_dict={
-        vars: score
+        var: score
     })
 
     writer.add_summary(res, model_step)
