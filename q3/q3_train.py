@@ -72,7 +72,7 @@ def check_options(loader, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t41r6"
+    TEST_NAME = "t41r7"
     TEST_DESCRIPTION = "300k, strange spikes"
     RESTORE_MODEL = "models/model_t41r2-268000"
     GAMMA = 0.99

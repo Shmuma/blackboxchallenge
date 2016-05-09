@@ -69,7 +69,7 @@ class ReplayBuffer:
     def time_to_pull(self):
         return len(self.buffer) == 0 or self.batches_to_pull <= 0
 
-    def shuffle(self, pregen_batches=160):
+    def shuffle(self, pregen_batches=50):
         """
         Generate index of next batch
         :arg pregen_batches: how many batches to generate
