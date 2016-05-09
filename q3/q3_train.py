@@ -31,7 +31,7 @@ EPOCHES_BETWEEN_POLL = 10
 DECAY_STEPS = None #200000
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
-BATCHES_QUEUE_CAPACITY = 100
+BATCHES_QUEUE_CAPACITY = 150
 
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
@@ -72,7 +72,7 @@ def check_options(loader, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 1e-4
-    TEST_NAME = "t41r4"
+    TEST_NAME = "t41r5"
     TEST_DESCRIPTION = "300k, strange spikes"
     RESTORE_MODEL = "models/model_t41r2-268000"
     GAMMA = 0.99
