@@ -295,6 +295,7 @@ class ReplayGenerator:
         self.alpha = alpha
         self.reset_after_steps = reset_after_steps
         self.cache_actions = cache_actions
+        self.score = 0.0
         self.reset_bbox()
 
     def reset_bbox(self):
@@ -302,6 +303,7 @@ class ReplayGenerator:
                 step=infra.bbox.get_time()))
         infra.prepare_bbox()
         self.has_next = True
+        self.score = 0.0
 
     def next_batch(self):
         """
@@ -340,6 +342,7 @@ class ReplayGenerator:
                     cache_counter = self.cache_actions
 
             self.has_next = infra.bbox.do_action(action)
+            self.score = infra.bbox.get_score()
             if self.time_to_reset() or not self.has_next:
                 score = infra.bbox.get_score() - score
                 resetted = True
