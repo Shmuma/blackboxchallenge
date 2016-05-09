@@ -1,3 +1,4 @@
+import os
 import sys
 sys.path.append("..")
 
@@ -33,6 +34,8 @@ DECAY_STEPS = None #200000
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
 BATCHES_QUEUE_CAPACITY = 10
+
+REPLAY_MODELS_DIR = "replays/models"
 
 
 def write_summaries(session, summ, writer, iter_no, feed_batches, **vals):
@@ -87,6 +90,9 @@ if __name__ == "__main__":
 
     n_features = features.RESULT_N_FEATURES
     opts_loader = OptionLoader("options.cfg")
+
+    if not os.path.exists(REPLAY_MODELS_DIR):
+        os.makedirs(REPLAY_MODELS_DIR)
 
     with tf.Session() as session:
         batches_queue = tf.FIFOQueue(BATCHES_QUEUE_CAPACITY, (
@@ -212,7 +218,7 @@ if __name__ == "__main__":
                     saver.save(session, "models/model_" + TEST_NAME, global_step=iter)
 
                 if iter % SAVE_MODEL_FOR_REPLAYS == 0 and iter > 0:
-                    saver_replays.save(session, "replays/models/model_" + TEST_NAME, global_step=iter)
+                    saver_replays.save(session, os.path.join(REPLAY_MODELS_DIR, "/model_" + TEST_NAME), global_step=iter)
 
                 iter += 1
         finally:
