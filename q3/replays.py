@@ -39,21 +39,19 @@ def get_filename(index, start_time):
     ))
 
 
-def make_summaries():
+def make_summaries(score_steps):
     vars = {
-        'replay_score': tf.Variable(0.0, trainable=False, name="replay_score")
+        step: tf.Variable(0.0) for step in score_steps
     }
-    for name, var in vars.iteritems():
-        tf.scalar_summary(name, var)
-    return vars, tf.merge_all_summaries()
+    summaries = {
+        step: tf.scalar_summary("rscore_%04dk" % (int(step/ 1000)), var) for step, var in vars.iteritems()
+    }
+    return vars, summaries
 
 
-def write_summary(session, writer, score, vars, summary_t, model_step):
-    if writer is None:
-        return
-
+def write_summary(session, writer, score, var, summary_t, model_step):
     res, = session.run([summary_t], feed_dict={
-        vars['replay_score']: score
+        vars: score
     })
 
     writer.add_summary(res, model_step)
@@ -87,17 +85,17 @@ if __name__ == "__main__":
     state_t = tf.placeholder(tf.float32, (1, features.RESULT_N_FEATURES))
     qvals_t = net_light.make_forward_net(state_t, features.RESULT_N_FEATURES)
 
+    score_steps = list(set(range(args.batch, args.max+1, args.batch) + [args.max]))
+    score_steps.sort()
+    log.info("Score steps: %s", score_steps)
+
     with tf.Session() as session:
         # create replay generator
         replay_generator = replays.ReplayGenerator(args.batch, session, state_t, qvals_t,
                                                    alpha=args.alpha, reset_after_steps=args.max)
         saver = tf.train.Saver()
-
-        # summary_writers = {}
-        # for step in set(range(args.batch, args.max, args.batch) + [args.max]):
-        #     summary_writers[step] = tf.train.SummaryWriter("logs/" + args.name + "-scores-%04dK" % (int(step/1000)))
-        #
-        # summ_vars, summary_t = make_summaries()
+        summary_writer = tf.train.SummaryWriter("logs/" + args.name + "-replays")
+        step_vars, step_summs = make_summaries(score_steps)
 
         while True:
             # discover and load latest model file
@@ -122,11 +120,11 @@ if __name__ == "__main__":
             log.info("Will create next batch from bbox_time={bbox_time}, score={score:.3f}".format(
                     bbox_time=start_time, score=infra.bbox.get_score()))
 
-            batch = replay_generator.next_batch()
+            batch, score = replay_generator.next_batch()
             file_name = get_filename(index, start_time)
             replays.save_replay_batch(file_name, batch)
             log.info("Generated, score={score}, data saved in {file}".format(
                     score=infra.bbox.get_score(), file=file_name))
-            score = max(replay_generator.score, replay_generator.last_score)
-            # write_summary(session, summary_writers.get(start_time + args.batch), score, summ_vars, summary_t, model_step)
+            score_step = start_time + args.batch
+            write_summary(session, summary_writer, score, step_vars[score_step], step_summs[score_step], model_step)
             index += 1
