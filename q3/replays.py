@@ -68,7 +68,7 @@ if __name__ == "__main__":
     parser.add_argument("--files", type=int, default=2, help="Count of files to maintain in replays dir, default=2")
     parser.add_argument("--name", required=True, help="Run name to track models")
     parser.add_argument("--oldname", help="Run name to use as fallback models source")
-    parser.add_argument("--alpha", type=float, default=0.1, help="Alpha for generator, default=0.3")
+    parser.add_argument("--alpha", type=float, default=0.3, help="Alpha for generator, default=0.3")
     parser.add_argument("--cache", type=int, default=None, help="Cache game actions for given amout of steps, default=None")
     parser.add_argument("--double", type=int, default=None, help="From this step, produce two times more files, default=None")
     args = parser.parse_args()
