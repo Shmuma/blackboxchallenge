@@ -29,7 +29,9 @@ def find_replays(dir):
 
 
 def save_replay_batch(file_name, batch):
-    np.save(file_name, batch)
+    tmp_name = file_name + ".tmp"
+    np.save(tmp_name, batch)
+    os.rename(tmp_name, file_name)
 
 
 def load_replay_batch(file_name):
