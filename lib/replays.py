@@ -153,11 +153,14 @@ class ReplayBuffer:
         Wait for next replay file
         :return: tuple with index and file name
         """
+        shown = False
         while True:
             index_files = find_replays(self.replays_dir)
             if len(index_files) == 0:
-                log.info("No replay files found, sleep for minute and retry")
-                time.sleep(60)
+                if not shown:
+                    log.info("No replay files found, sleep and retry")
+                    shown = True
+                time.sleep(5)
                 continue
             index_files.sort()
             return index_files.pop(0)

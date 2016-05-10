@@ -122,7 +122,7 @@ if __name__ == "__main__":
             index_files = replays.find_replays(REPLAYS_DIR)
             if len(index_files) >= args.files:
                 if args.double is None or not double_pass or start_time >= args.double:
-                    time.sleep(60)
+                    time.sleep(5)
                     continue
 
             log.info("Will create next batch from bbox_time={bbox_time}, score={score:.3f}".format(
