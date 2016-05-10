@@ -30,7 +30,7 @@ INITIAL_REPLAY_BATCHES = 10
 # how many epoches we should show data between fresh replay data requests
 EPOCHES_BETWEEN_POLL = 10
 
-DECAY_STEPS = None #200000
+DECAY_STEPS = None #50000
 
 # size of queue with fully-prepared train batches. Warning: they eat up a lot of memory!
 BATCHES_QUEUE_CAPACITY = 10
@@ -75,12 +75,12 @@ def check_options(loader, replay_buffer):
 
 
 if __name__ == "__main__":
-    LEARNING_RATE = 1e-4
-    TEST_NAME = "t42r1"
-    TEST_DESCRIPTION = "300k, back to L2reg=0.1"
-    RESTORE_MODEL = "models/model_t41r2-268000"
+    LEARNING_RATE = 5e-5
+    TEST_NAME = "t42r2"
+    TEST_DESCRIPTION = "400k"
+    RESTORE_MODEL = "models/model_t42r1-70000"
     GAMMA = 0.99
-    L2_REG = 0.1
+    L2_REG = 0.2
 
     log = infra.setup_logging(logfile="q3_" + TEST_NAME + ".log")
     np.random.seed(42)
