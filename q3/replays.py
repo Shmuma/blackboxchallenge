@@ -106,6 +106,9 @@ if __name__ == "__main__":
             model, model_step = last_model_file(args.name)
             if model is None and args.oldname is not None:
                 model, model_step = last_model_file(args.oldname)
+                oldmodel = True
+            else:
+                oldmodel = False
             if model is None:
                 log.info("No model file exists, sleep")
                 time.sleep(60)
@@ -140,7 +143,8 @@ if __name__ == "__main__":
                         score=infra.bbox.get_score(), file=file_name))
 
             score_step = start_time + args.batch
-            write_summary(session, summary_writer, score, step_vars[score_step], step_summs[score_step], model_step)
+            if not oldmodel:
+                write_summary(session, summary_writer, score, step_vars[score_step], step_summs[score_step], model_step)
 
             if args.double is not None and score_step == args.max:
                 double_pass = not double_pass
