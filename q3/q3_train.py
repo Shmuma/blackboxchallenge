@@ -78,7 +78,7 @@ if __name__ == "__main__":
     LEARNING_RATE = 5e-5
     TEST_NAME = "t43r1"
     TEST_DESCRIPTION = "300k, looking for params"
-    RESTORE_MODEL = "models/model_t39r1-600000"
+    RESTORE_MODEL = "models/model_t39r4-600000"
     GAMMA = 0.99
     L2_REG = 0.2
 
