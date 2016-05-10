@@ -121,7 +121,7 @@ if __name__ == "__main__":
             start_time = infra.bbox.get_time()
             index_files = replays.find_replays(REPLAYS_DIR)
             if len(index_files) >= args.files:
-                if args.double is None or not double_pass or start_time < args.double:
+                if args.double is None or not double_pass or start_time >= args.double:
                     time.sleep(60)
                     continue
 
