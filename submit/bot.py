@@ -7,12 +7,12 @@ import tensorflow as tf
 from net_light import make_forward_net
 import features
 
-CACHE_STEPS = 1
+CACHE_STEPS = 2
 VERBOSE = not False
 REPORT_INTERVAL = 10000
 start_t = time.time()
 last_t = None
-MODEL_FILE = "model_t39r2-225000"
+MODEL_FILE = "model_t43r1-160000"
 
 network_weights = {}
 n_features = n_actions = max_time = -1
