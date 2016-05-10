@@ -23,13 +23,15 @@ def find_replays(dir):
     """
     index_files = []
     for f in glob.glob(os.path.join(dir, "replay-*")):
+        if f.endswith(".tmp.npy"):
+            continue
         v = int(f.split("-")[1])
         index_files.append((v, f))
     return index_files
 
 
 def save_replay_batch(file_name, batch):
-    tmp_name = file_name + ".tmp"
+    tmp_name = file_name + ".tmp.npy"
     np.save(tmp_name, batch)
     os.rename(tmp_name, file_name)
 
