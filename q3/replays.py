@@ -120,10 +120,11 @@ if __name__ == "__main__":
                 model_step = new_model_step
                 is_oldmodel = False
 
+            # use old model as a fallback in case of new model is missing
             if model_file is None:
-                model_file = new_model
-                model_step = new_model_step
-                is_oldmodel = False
+                model_file = old_model
+                model_step = old_model_step
+                is_oldmodel = True
 
             if model_file is None:
                 log.info("No model file exists, sleep")
