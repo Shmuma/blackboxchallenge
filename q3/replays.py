@@ -109,22 +109,16 @@ if __name__ == "__main__":
 
             # discover and load latest model files, taking in account options
             new_model, new_model_step = last_model_file(args.name)
-            old_model, old_model_step = last_model_file(args.oldname)
+            old_model, _              = last_model_file(args.oldname)
 
             if args.old is not None and start_time < args.old:
                 model_file = old_model
-                model_step = old_model_step
-                is_oldmodel = True
             else:
                 model_file = new_model
-                model_step = new_model_step
-                is_oldmodel = False
 
             # use old model as a fallback in case of new model is missing
             if model_file is None:
                 model_file = old_model
-                model_step = old_model_step
-                is_oldmodel = True
 
             if model_file is None:
                 log.info("No model file exists, sleep")
@@ -161,8 +155,8 @@ if __name__ == "__main__":
                         score=score, file=file_name))
 
             score_step = start_time + args.batch
-            if not is_oldmodel:
-                write_summary(session, summary_writer, score, step_vars[score_step], step_summs[score_step], model_step)
+            if new_model_step is not None:
+                write_summary(session, summary_writer, score, step_vars[score_step], step_summs[score_step], new_model_step)
 
             if args.double is not None and score_step == args.max:
                 double_pass = not double_pass
