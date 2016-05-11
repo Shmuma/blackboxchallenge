@@ -76,11 +76,11 @@ def check_options(loader, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t43r1"
-    TEST_DESCRIPTION = "300k, looking for params"
-    RESTORE_MODEL = "models/model_t39r4-600000"
+    TEST_NAME = "t43r2"
+    TEST_DESCRIPTION = "400k, works, but need more l2"
+    RESTORE_MODEL = "models/model_t43r1-160000"
     GAMMA = 0.99
-    L2_REG = 0.2
+    L2_REG = 0.3
 
     log = infra.setup_logging(logfile="q3_" + TEST_NAME + ".log")
     np.random.seed(42)

@@ -134,13 +134,13 @@ if __name__ == "__main__":
 
             if double_pass and start_time < args.double:
                 log.info("Generated, score={score}, data ignored".format(
-                        score=infra.bbox.get_score()))
+                        score=score))
             else:
                 file_name = get_filename(index, start_time)
                 replays.save_replay_batch(file_name, batch)
                 index += 1
                 log.info("Generated, score={score}, data saved in {file}".format(
-                        score=infra.bbox.get_score(), file=file_name))
+                        score=score, file=file_name))
 
             score_step = start_time + args.batch
             if not oldmodel:
