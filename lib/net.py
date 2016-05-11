@@ -3,9 +3,9 @@ import numpy as np
 
 import infra
 
-L1_SIZE = 256
-L2_SIZE = 256
-L3_SIZE = 128
+L1_SIZE = 512
+L2_SIZE = 512
+L3_SIZE = 256
 
 
 def make_opt(loss_t, learning_rate, decay_every_steps=10000):

@@ -76,8 +76,8 @@ def check_options(loader, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t44r1"
-    TEST_DESCRIPTION = "Starting from scratch"
+    TEST_NAME = "t45r1"
+    TEST_DESCRIPTION = "Starting from scratch, more stripes, larger net"
     RESTORE_MODEL = None #"models/model_t43r1-160000"
     GAMMA = 0.99
     L2_REG = 0.3

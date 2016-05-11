@@ -3,9 +3,9 @@ import tensorflow as tf
 
 N_ACTIONS = 4
 
-L1_SIZE = 256
-L2_SIZE = 256
-L3_SIZE = 128
+L1_SIZE = 512
+L2_SIZE = 512
+L3_SIZE = 256
 
 
 def leaky_relu(x_t, name, alpha=0.01):
