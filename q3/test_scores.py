@@ -123,7 +123,7 @@ def process_slave(args):
         for round in xrange(args.rounds):
             score, _ = run_bbox.test_performance(session, state_t, qvals_t,
                                                  alpha=args.alpha, max_steps=args.steps,
-                                                 test_level=False, step_hook=step_hook,
+                                                 test_level=args.test, step_hook=step_hook,
                                                  cache_steps=cache)
             if not args.steps in scores:
                 scores[args.steps] = []
