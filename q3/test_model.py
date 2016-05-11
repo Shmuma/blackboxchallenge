@@ -46,6 +46,7 @@ def get_action_by_state(state):
                     datetime.timedelta(seconds=d), speed
                 )
             print "Step=%d, score=%.2f, %s" % (bbox.get_time(), bbox.get_score(), msg)
+            sys.stdout.flush()
             last_t = time.time()
 
     cached_counter -= 1
