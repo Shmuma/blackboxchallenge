@@ -1,52 +1,121 @@
+"""
+The same logic as submit/bot.py, but with more options
+"""
+import os
 import sys
 sys.path.append("..")
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+
+from lib import interface as bbox
+
+import time
 import argparse
-
-from lib import infra, net, run_bbox, features
-
-import tensorflow as tf
+import datetime
 import numpy as np
+import tensorflow as tf
+from lib import features, net_light
+
+VERBOSE = True
+TEST_LEVEL = True
+REPORT_INTERVAL = 10000
+start_t = time.time()
+last_t = None
+
+n_features = n_actions = max_time = -1
+
+state_t = tf.placeholder(tf.float32, (1, features.RESULT_N_FEATURES))
+qvals_t = net_light.make_forward_net(state_t, features.RESULT_N_FEATURES)
+
+global_session = None
+args = None
+cached_step = None
+cached_counter = 0
+
+
+def get_action_by_state(state):
+    global last_t, start_t
+    global cached_step, cached_counter
+
+    if VERBOSE:
+        if bbox.get_time() % REPORT_INTERVAL == 0:
+            msg = "total=%s" % (datetime.timedelta(seconds=time.time() - start_t))
+            if last_t is not None:
+                d = time.time() - last_t
+                speed = REPORT_INTERVAL / d
+                msg += ", time=%s, speed=%.3f steps/s" % (
+                    datetime.timedelta(seconds=d), speed
+                )
+            print "Step=%d, score=%.2f, %s" % (bbox.get_time(), bbox.get_score(), msg)
+            last_t = time.time()
+
+    cached_counter -= 1
+    if cached_counter > 0:
+        return cached_step
+
+    sparse_state = features.transform(state)
+    dense_state = features.to_dense(sparse_state)
+
+    qvals, = global_session.run([qvals_t], feed_dict={
+        state_t: [dense_state]
+    })
+    cached_step = np.argmax(qvals)
+    cached_counter = args.cache
+    return cached_step
+
+
+# Participants do not have to modify code below, but it could be useful to understand what this code does.
+def prepare_bbox():
+    global n_features, n_actions, max_time
+
+    # Reset environment to the initial state, just in case
+    if bbox.is_level_loaded():
+        bbox.reset_level()
+    else:
+        # Load the game level
+        if args.test:
+            level_file = "../levels/test_level.data"
+        else:
+            level_file = "../levels/train_level.data"
+        bbox.load_level(level_file, verbose=1)
+        n_features = bbox.get_num_of_features()
+        n_actions = bbox.get_num_of_actions()
+        max_time = bbox.get_max_time()
+
+
+def run_bbox(verbose=False):
+    has_next = 1
+
+    # Prepare environment - load the game level
+    prepare_bbox()
+
+    while has_next:
+        # Get current environment state
+        state = bbox.get_state()
+
+        # Choose an action to perform at current step
+        action = get_action_by_state(state)
+
+        # Perform chosen action
+        # Function do_action(action) returns False if level is finished, otherwise returns True.
+        has_next = bbox.do_action(action)
+
+    # Finish the game simulation, print earned reward
+    # While submitting solutions, make sure that you do call finish()
+    bbox.finish(verbose=1)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", required=True, help="File with model to restore")
-    parser.add_argument("--alpha", type=float, default=0.05, help="Alpha value for testing, default=0.05")
-    parser.add_argument("--steps", type=int, default=None, help="Limit amount of steps, default=no limit")
-    parser.add_argument("--rounds", type=int, default=1, help="Count of rounds to perform, default=1")
-    parser.add_argument("--quiet", action="store_true", default=False, help="Do not show intermediate rounds")
-    parser.add_argument("--verbose", type=int, default=None, help="Show progress of testing every N steps")
-    parser.add_argument("--test", action="store_true", default=False, help="Use test levelfile")
+    parser.add_argument("--cache", type=int, default=1, help="How many steps to cache")
+    parser.add_argument("--test", action="store_true", default=False, help="Use test levels")
+    parser.add_argument("model", help="Model file to load")
     args = parser.parse_args()
 
-    log = infra.setup_logging()
-    infra.prepare_bbox()
-
-    n_features = features.transformed_size()
-    state_t = tf.placeholder(tf.float32, (None, n_features), name="state")
-    qvals_t = net.make_forward_net(state_t, True, n_features, dropout_keep_prob=1.0)
-
-    saver = tf.train.Saver(var_list=dict(net.get_vars(trainable=True)).values())
+    print "Arguments: %s" % args
 
     with tf.Session() as session:
-        session.run([tf.initialize_all_variables()])
+        global_session = session
+        saver = tf.train.Saver()
         saver.restore(session, args.model)
 
-        log.info("Start testing of model {model} with alpha={alpha} for {steps} steps for {rounds} rounds".format(
-            model=args.model, alpha=args.alpha, rounds=args.rounds,
-            steps="all" if args.steps is None else args.steps
-        ))
-        scores = []
-
-        for round in xrange(args.rounds):
-            score, _ = run_bbox.test_performance(session, state_t, qvals_t,
-                                                 alpha=args.alpha, max_steps=args.steps,
-                                                 verbose=args.verbose, test_level=args.test)
-            if not args.quiet:
-                log.info("Round {round}: score={score}".format(round=round+1, score=score))
-
-            scores.append(score)
-
-        if args.rounds > 1:
-            log.info("Test done, averaged score={score}, min={min_score}, max={max_score}, std={std}".format(
-                score=np.mean(scores), min_score=min(scores), max_score=max(scores), std=np.std(scores)
-            ))
+        run_bbox(verbose=False)

@@ -1,24 +1,14 @@
 import interface as bbox
 
-import time
-import datetime
 import numpy as np
 import tensorflow as tf
 from net_light import make_forward_net
 import features
 
-CACHE_STEPS = 2
-VERBOSE = not False
-REPORT_INTERVAL = 10000
-start_t = time.time()
-last_t = None
+CACHE_STEPS = 3
 MODEL_FILE = "model_t43r1-160000"
 
-network_weights = {}
 n_features = n_actions = max_time = -1
-
-features_t = 0.0
-net_t = 0.0
 
 state_t = tf.placeholder(tf.float32, (1, features.RESULT_N_FEATURES))
 qvals_t = make_forward_net(state_t, features.RESULT_N_FEATURES)
@@ -29,39 +19,18 @@ cached_counter = 0
 
 
 def get_action_by_state(state):
-    global last_t, start_t, features_t, dense_t, net_t
     global cached_step, cached_counter
-
-    if VERBOSE:
-        if bbox.get_time() % REPORT_INTERVAL == 0:
-            msg = "total=%s" % (datetime.timedelta(seconds=time.time() - start_t))
-            if last_t is not None:
-                d = time.time() - last_t
-                speed = REPORT_INTERVAL / d
-                msg += ", time=%s, speed=%.3f steps/s, feats=%s, net=%s" % (
-                    datetime.timedelta(seconds=d), speed,
-                    datetime.timedelta(seconds=features_t),
-                    datetime.timedelta(seconds=net_t)
-                )
-                features_t = 0.0
-                net_t = 0.0
-            print "Step=%d, score=%.2f, %s" % (bbox.get_time(), bbox.get_score(), msg)
-            last_t = time.time()
 
     cached_counter -= 1
     if cached_counter > 0:
         return cached_step
 
-    t = time.time()
     sparse_state = features.transform(state)
     dense_state = features.to_dense(sparse_state)
-    features_t += time.time() - t
 
-    t = time.time()
     qvals, = global_session.run([qvals_t], feed_dict={
         state_t: [dense_state]
     })
-    net_t += time.time() - t
     cached_step = np.argmax(qvals)
     cached_counter = CACHE_STEPS
     return cached_step
