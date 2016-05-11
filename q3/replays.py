@@ -67,18 +67,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--max", type=int, default=400000, help="Maximim amount of steps to replay, default=400k")
     parser.add_argument("--batch", type=int, default=50000, help="Steps in every file, default=50k")
-    parser.add_argument("--files", type=int, default=2, help="Count of files to maintain in replays dir, default=2")
+    parser.add_argument("--files", type=int, default=1, help="Count of files to maintain in replays dir, default=2")
     parser.add_argument("--name", required=True, help="Run name to track models")
     parser.add_argument("--oldname", help="Run name to use as fallback models source")
     parser.add_argument("--alpha", type=float, default=0.3, help="Alpha for generator, default=0.3")
     parser.add_argument("--cache", type=int, default=None, help="Cache game actions for given amout of steps, default=None")
     parser.add_argument("--double", type=int, default=None, help="From this step, produce two times more files, default=None")
     parser.add_argument("--old", type=int, default=None, help="Use oldname models to generate steps before that")
+    parser.add_argument("--fresh", action="store_true", help="Start from scratch")
     args = parser.parse_args()
 
     infra.setup_logging(logfile="r3_" + args.name + ".log")
     infra.init()
     infra.prepare_bbox()
+
+    if args.fresh:
+        args.alpha = 1.0
 
     last_model = None
     index_files = replays.find_replays(REPLAYS_DIR)
@@ -120,7 +124,7 @@ if __name__ == "__main__":
             if model_file is None:
                 model_file = old_model
 
-            if model_file is None:
+            if model_file is None and not args.fresh:
                 log.info("No model file exists, sleep")
                 time.sleep(60)
                 continue
