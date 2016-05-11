@@ -76,8 +76,8 @@ def check_options(loader, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t43r2"
-    TEST_DESCRIPTION = "400k, works, but need more l2"
+    TEST_NAME = "t43r3"
+    TEST_DESCRIPTION = "350k, try net fixation"
     RESTORE_MODEL = "models/model_t43r1-160000"
     GAMMA = 0.99
     L2_REG = 0.3
