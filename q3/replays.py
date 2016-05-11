@@ -76,7 +76,7 @@ if __name__ == "__main__":
     parser.add_argument("--old", type=int, default=None, help="Use oldname models to generate steps before that")
     args = parser.parse_args()
 
-    infra.setup_logging()
+    infra.setup_logging(logfile="r3_" + args.name + ".log")
     infra.init()
     infra.prepare_bbox()
 
