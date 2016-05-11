@@ -21,6 +21,8 @@ MODELS_DIR = os.path.join(REPLAYS_DIR, "models")
 
 
 def last_model_file(run_name):
+    if run_name is None:
+        return None, None
     models = []
     for f in glob.glob(os.path.join(MODELS_DIR, "model_" + run_name + "-*")):
         if f.endswith(".meta"):
@@ -71,6 +73,7 @@ if __name__ == "__main__":
     parser.add_argument("--alpha", type=float, default=0.3, help="Alpha for generator, default=0.3")
     parser.add_argument("--cache", type=int, default=None, help="Cache game actions for given amout of steps, default=None")
     parser.add_argument("--double", type=int, default=None, help="From this step, produce two times more files, default=None")
+    parser.add_argument("--old", type=int, default=None, help="Use oldname models to generate steps before that")
     args = parser.parse_args()
 
     infra.setup_logging()
@@ -102,23 +105,37 @@ if __name__ == "__main__":
         double_pass = False
 
         while True:
-            # discover and load latest model file
-            model, model_step = last_model_file(args.name)
-            if model is None and args.oldname is not None:
-                model, model_step = last_model_file(args.oldname)
-                oldmodel = True
+            start_time = infra.bbox.get_time()
+
+            # discover and load latest model files, taking in account options
+            new_model, new_model_step = last_model_file(args.name)
+            old_model, old_model_step = last_model_file(args.oldname)
+
+            if args.old is not None and start_time < args.old:
+                model_file = old_model
+                model_step = old_model_step
+                is_oldmodel = True
             else:
-                oldmodel = False
-            if model is None:
+                model_file = new_model
+                model_step = new_model_step
+                is_oldmodel = False
+
+            if model_file is None:
+                model_file = new_model
+                model_step = new_model_step
+                is_oldmodel = False
+
+            if model_file is None:
                 log.info("No model file exists, sleep")
                 time.sleep(60)
                 continue
-            if model != last_model:
-                log.info("New model file discovered, loading {model}".format(model=model))
-                last_model = model
+
+            if model_file != last_model:
+                log.info("New model file discovered or switching old-new, loading {model}".format(model=model_file))
+                last_model = model_file
                 saver.restore(session, last_model)
 
-            start_time = infra.bbox.get_time()
+            # check replays
             index_files = replays.find_replays(REPLAYS_DIR)
             if len(index_files) >= args.files:
                 if args.double is None or not double_pass or start_time >= args.double:
@@ -143,7 +160,7 @@ if __name__ == "__main__":
                         score=score, file=file_name))
 
             score_step = start_time + args.batch
-            if not oldmodel:
+            if not is_oldmodel:
                 write_summary(session, summary_writer, score, step_vars[score_step], step_summs[score_step], model_step)
 
             if args.double is not None and score_step == args.max:
