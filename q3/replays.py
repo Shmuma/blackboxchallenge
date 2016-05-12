@@ -75,6 +75,7 @@ if __name__ == "__main__":
     parser.add_argument("--double", type=int, default=None, help="From this step, produce two times more files, default=None")
     parser.add_argument("--old", type=int, default=None, help="Use oldname models to generate steps before that")
     parser.add_argument("--fresh", action="store_true", help="Start from scratch")
+    parser.add_argument("--index", type=int, default=1, help="Starting index of replay if no others exists, default=1")
     args = parser.parse_args()
 
     infra.setup_logging(logfile="r3_" + args.name + ".log")
@@ -86,7 +87,7 @@ if __name__ == "__main__":
 
     last_model = None
     index_files = replays.find_replays(REPLAYS_DIR)
-    index = 1 if len(index_files) == 0 else max(index_files)[0]+1
+    index = args.index if len(index_files) == 0 else max(index_files)[0]+1
     log.info("Replay generator created, we have {files} files in replay dir, next index = {index}".format(
             files=len(index_files), index=index))
 
@@ -100,7 +101,8 @@ if __name__ == "__main__":
     with tf.Session() as session:
         # create replay generator
         replay_generator = replays.ReplayGenerator(args.batch, session, state_t, qvals_t,
-                                                   alpha=args.alpha, reset_after_steps=args.max)
+                                                   alpha=args.alpha, reset_after_steps=args.max,
+                                                   cache_actions=args.cache)
         saver = tf.train.Saver()
         summary_writer = tf.train.SummaryWriter("logs/" + args.name + "-replays")
         step_vars, step_summs = make_summaries(score_steps)
