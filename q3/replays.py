@@ -88,6 +88,7 @@ if __name__ == "__main__":
     last_model = None
     index_files = replays.find_replays(REPLAYS_DIR)
     index = args.index if len(index_files) == 0 else max(index_files)[0]+1
+    log.info("Args: %s", str(args))
     log.info("Replay generator created, we have {files} files in replay dir, next index = {index}".format(
             files=len(index_files), index=index))
 
