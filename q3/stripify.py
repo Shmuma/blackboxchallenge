@@ -196,12 +196,11 @@ def features_index_to_stripes(index):
     ofs = 0
     for feat_idx, idx in enumerate(index):
         if feat_idx not in features.sizes:
-            res.append(-1)
             ofs += 1
             continue
 
         if feat_idx not in features.stripes:
-            res.append(idx - ofs)
+            pass
         else:
             s_ofs = ofs
             added = False
@@ -209,19 +208,19 @@ def features_index_to_stripes(index):
                 delta, start, stop = stripe
                 if delta is None:
                     if s_ofs == idx:
-                        res.append(s_idx)
+                        res.append((feat_idx, s_idx, 0))
                         added = True
                         break
                     s_ofs += 1
                 else:
                     count = int(round((stop-start) / delta + 1))
                     if s_ofs + count > idx:
-                        res.append(s_idx)
+                        res.append((feat_idx, s_idx, idx-s_ofs))
                         added = True
                         break
                     s_ofs += count
             if not added:
-                res.append(-1)
+                res.append((feat_idx, -1, -1))
 
         ofs += features.sizes[feat_idx]
 
@@ -240,51 +239,41 @@ def bbox_action_hook_pairs(st, state, rewards, next_states):
     action = np.random.randint(0, infra.n_actions, 1)[0]
 
     # decode features
+    reward = max(rewards)
     index, _ = features.transform(state)
-    new_idx = {features_index_to_stripes(index)}
-    for n_st in next_states:
-        index, _ = features.transform(n_st)
-        new_idx.add(features_index_to_stripes(index))
+    for k in features_index_to_stripes(index):
+        l = st['rw'].get(k, [])
+        l.append(reward)
+        st['rw'][k] = l
 
-    st['index'] = np.concatenate([st['index'], list(new_idx)])
+#    st['index'] = np.concatenate([st['index'], list(new_idx)])
 
     st['step'] += 1
     if st['step'] % 1000 == 0:
         log.info("{step}: states={states}".format(
                 step=st['step'], states=st['index'].shape[0]))
 
-        # show stats about all pairs of striped features
-        for feat1 in sorted(features.sizes.keys()):
-            for feat2 in sorted(features.sizes.keys()):
-                if feat1 >= feat2:
-                    continue
-
-                k = (feat1, feat2)
-                if k in st['counts']:
-                    d = st['counts'][k]
-                else:
-                    d = {}
-                    st['counts'][k] = d
-
-                total = 0
-                for r in st['index'][:,[feat1, feat2]]:
-                    t = tuple(r)
-                    d[t] = d.get(t, 0) + 1
-                    total += 1
-
-                st['totals'][k] = st['totals'].get(k, 0) + total
-
-        st['index'] = np.zeros((0, infra.n_features), dtype=np.int32)
-
     if st['step'] % 10000 == 0:
-        for (feat1, feat2), counts in sorted(st['counts'].iteritems()):
-            log.info("Features {feat1} + {feat2} combinations:".format(feat1=feat1, feat2=feat2))
-            for f1 in range(feat_stripes_count(feat1)):
-                for f2 in range(feat_stripes_count(feat2)):
-                    if (f1, f2) not in counts:
-                        counts[(f1, f2)] = 0
-            for p, count in sorted(counts.iteritems()):
-                log.info("  * {pair}: {count}".format(pair=p, count=count))
+        log.info("Mean rewards for stripe entries")
+        v = []
+        for k in sorted(st['rw'].keys()):
+            feat, stripe, idx = k
+            rws = st['rw'][k]
+            v.append((np.mean(rws), k, rws))
+#            log.info("{feat:3d}, {stripe:3d}, {ofs:3d}: mean={mean:8.3f}, min={min:8.3f}, max={max:8.3f}, count={count}".format(
+#                feat=feat, stripe=stripe, ofs=idx,
+#                mean=np.mean(rws), min=np.min(rws), max=np.max(rws),
+#                count=len(rws)
+#            ))
+
+        v.sort(reverse=True)
+        for mean_rw, k, rws in v:
+            log.info("reward={reward:8.3f}: {k:15s}, count={count:6d}, min={min:8.3f}, max={max:8.3f}".format(
+                reward=mean_rw, k=str(k), count=len(rws),
+                min=np.min(rws), max=np.max(rws)
+            ))
+
+        st['rw'] = {}
 
     return action
 
@@ -292,6 +281,7 @@ def bbox_action_hook_pairs(st, state, rewards, next_states):
 def start_pairs():
     state = {
         'step': 0,
+        'rw': {},
         'index': np.zeros((0, infra.n_features), dtype=np.int32),
         'totals': {},
         'counts': {},
