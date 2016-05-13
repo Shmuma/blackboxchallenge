@@ -74,10 +74,11 @@ if __name__ == "__main__":
     parser.add_argument("--files", type=int, default=1, help="Count of files to maintain in replays dir, default=2")
     parser.add_argument("--name", required=True, help="Run name to track models")
     parser.add_argument("--oldname", help="Run name to use as fallback models source")
-    parser.add_argument("--alpha", type=float, default=0.3, help="Alpha for generator, default=0.3")
+    parser.add_argument("--alpha", type=float, default=1.0, help="Alpha for generator, default=0.3")
     parser.add_argument("--cache", type=int, default=None, help="Cache game actions for given amout of steps, default=None")
     parser.add_argument("--double", type=int, default=None, help="From this step, produce two times more files, default=None")
     parser.add_argument("--old", type=int, default=None, help="Use oldname models to generate steps before that")
+    parser.add_argument("--oldalpha", type=float, default=0.4, help="Alpha for old models")
     parser.add_argument("--fresh", action="store_true", help="Start from scratch")
     parser.add_argument("--index", type=int, default=1, help="Starting index of replay if no others exists, default=1")
     args = parser.parse_args()
@@ -124,8 +125,10 @@ if __name__ == "__main__":
 
             if args.old is not None and start_time < args.old:
                 model_file = old_model
+                replay_generator.set_alpha(args.oldalpha)
             else:
                 model_file = new_model
+                replay_generator.set_alpha(args.alpha)
 
             # use old model as a fallback in case of new model is missing
             if model_file is None:
