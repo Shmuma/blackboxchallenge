@@ -27,7 +27,11 @@ def last_model_file(run_name):
     for f in glob.glob(os.path.join(MODELS_DIR, "model_" + run_name + "-*")):
         if f.endswith(".meta"):
             continue
-        index = int(f.split("-")[1])
+        p = f.split("-")[1]
+        # sometimes, this can be a temporary file
+        if p.find(".") >= 0:
+            continue
+        index = int(p)
         models.append((index, f))
     if len(models) == 0:
         return None, None
