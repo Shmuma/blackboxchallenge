@@ -8,17 +8,19 @@ import xgboost as xgb
 from lib import features
 
 
-def load_replay(file_name):
+def load_replays(file_names):
     l_states = []
     l_rewards = []
 
-    print "Load file %s" % file_name
-    data = np.load(file_name)
+    for file_name in file_names:
+        print "Load file %s" % file_name
+        data = np.load(file_name)
 
-    for row in data:
-        orig_state = features.reverse(*row[0])
-        l_states.append(orig_state)
-        l_rewards.append(max(row[1]))
+        for row in data:
+            state = features.reverse(*row[0])
+#            state = features.to_dense(row[0])
+            l_states.append(state)
+            l_rewards.append(max(row[1]))
 
     states = np.array(l_states)
     rewards = np.array(l_rewards)
@@ -29,19 +31,18 @@ def load_replay(file_name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--test", required=True, help="Test replay file to load")
+    parser.add_argument("--rounds", type=int, default=100, help="Count of rounds to perform")
     parser.add_argument("files", nargs="+", help="Replay files to fit model")
     args = parser.parse_args()
 
-    print args.files
-
-    dtrain = load_replay(args.files[0])
-    dtest = load_replay(args.test)
+    dtrain = load_replays(args.files)
+    dtest = load_replays([args.test])
 
     params = {
-
+        'silent': 1,
     }
 
     evallist = [(dtrain, "train"), (dtest, "test")]
 
-    bst = xgb.train(params, dtrain, num_boost_round=100, evals=evallist)
+    bst = xgb.train(params, dtrain, num_boost_round=args.rounds, evals=evallist)
     bst.save_model("test.xgb")
