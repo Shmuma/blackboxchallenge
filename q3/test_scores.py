@@ -92,6 +92,7 @@ def process_slave(args):
     :param args:
     :return:
     """
+    sleep(10)
     infra.prepare_bbox(args.test)
     n_features = features.transformed_size()
 
