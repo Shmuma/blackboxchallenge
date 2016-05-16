@@ -1,115 +1,50 @@
-import unittest
+from unittest import TestCase
 import numpy as np
+import array
 
 import features
 
+class TestTransform(TestCase):
+    data = [-0.73334587, -0.93910491, -0.94270045, -1.36341822, -1.70008028, -0.65676075,
+            -0.66000223, -0.61031222, -0.61547941, -0.73753935, -0.74450946, -2.11130285,
+            -0.040695058, -1.24927127,  0.90754294, -0.21203995,  0.3009333 , -0.49948287,
+            -0.646667,   -0.31782657,  0.25072268,  1.20941901,  0.24673782, -0.2735582 ,
+            0.78459948,   0.47483093,  0.15551165, -0.09912075, -0.3076221 , -0.46290749,
+            0.112813171,  -0.4509145,  1.5137006,   -0.99996543,  0.87362069,  0.
+            ]
 
-class TestFeatures(unittest.TestCase):
-    def test_final_size(self):
-        self.assertEqual(2410, features.transformed_size())
+    def test_binary(self):
+        s = array.array('f', self.data).tostring()
+        a_ints = array.array('I')
+        a_ints.fromstring(s)
+        ints = a_ints.tolist()
 
-    def test_to_dense(self):
-        idx = np.array([0, 3])
-        val = np.array([1, 2])
-        v = features.to_dense((idx, val))
-        res = np.zeros((features.RESULT_N_FEATURES,))
-        res[0] = 1
-        res[3] = 2
-        d = np.subtract(v, res)
-        self.assertEqual(len(d), features.RESULT_N_FEATURES)
-        self.assertAlmostEqual(0.0, d.sum())
+        expect = [
+            0xBF3BBC8E, 0xBF70692E,
+            0xBF7154D1, 0xBFAE847D, 0xBFD99C3B, 0xBF282179,
+            0xBF28F5E8, 0xBF1C3D6C, 0xBF1D900F, 0xBF3CCF61,
+            0xBF3E982C, 0xC0071F96, 0xBD26AFDC, 0xBF9FE81F,
+            0x3F6854BC, 0xBE592100, 0x3E9A13EE, 0xBEFFBC38,
+            0xBF258BF8, 0xBEA2BA2A, 0x3E805EB9, 0x3F9ACE3E,
+            0x3E7CA8D7, 0xBE8C0FD2, 0x3F48DB83, 0x3EF31D0A,
+            0x3E1F3E72, 0xBDCAFFD2, 0xBE9D80A5, 0xBEED0236,
+            0x3DE70A98, 0xBEE6DE44, 0x3FC1C0F1, 0xBF7FFDBC,
+            0x3F5FA59B, 0x0
+        ]
 
-    def test_feature_35(self):
-        v = -1.1
-        sparse = features._transform_35(v)
-        self.assertEqual(sparse[0], 0)
-        self.assertAlmostEqual(sparse[1], 1.0)
-        self.assertAlmostEqual(v, features._reverse_35(sparse))
+        self.assertEqual(ints, expect)
 
-        v = 0.0
-        r = features._transform_35(v)
-        self.assertEqual(r[0], 11)
-        self.assertAlmostEqual(r[1], 1.0)
-        self.assertAlmostEqual(v, features._reverse_35(r))
+    def test_transform(self):
+        bins = features.transform(self.data)
 
-        # bad range is an exception
-        self.assertRaises(AssertionError, lambda: features._transform_35(-1.2))
-        self.assertRaises(AssertionError, lambda: features._transform_35(1.2))
-        self.assertRaises(AssertionError, lambda: features._transform_35(-20))
+        self.assertEqual(len(bins), features.RESULT_N_FEATURES)
 
-        v = 0.69999999
-        r = features._transform_35(v)
-        self.assertEqual(r[0], 18)
-        self.assertAlmostEqual(v, features._reverse_35(r))
+        first = bins[0:32]
+        # 0xBF3BBC8E
+        first_valid = [1., 0., 1., 1., 1., 1., 1., 1.,
+                       0., 0., 1., 1., 1., 0., 1., 1.,
+                       1., 0., 1., 1., 1., 1., 0., 0.,
+                       1., 0., 0., 0., 1., 1., 1., 0.]
+        self.assertTrue(np.allclose(first, first_valid))
 
-    def test_feature_00(self):
-        v = -0.7275277972002714
-        idx, val = features._transform_stripes_func(0)(v)
-        self.assertEqual(idx, 17)
-        self.assertAlmostEqual(val, 1.0)
-        self.assertAlmostEqual(v, features._reverse_00((idx, val)), places=5)
-        v = -1.5
-        idx, val = features._transform_stripes_func(0)(v)
-        self.assertAlmostEqual(val, -1.5)
-        self.assertAlmostEqual(v, features._reverse_00((idx, val)), places=5)
-
-    def test_feature_01(self):
-        r = features._split_bound_func(0.0)(-1.0)
-        self.assertEqual(r[0], 0)
-        self.assertAlmostEqual(r[1], -1.0)
-        self.assertAlmostEqual(-1.0, features._unsplit_bound(r))
-        r = features._split_bound_func(0.0)(1.0)
-        self.assertEqual(r[0], 1)
-        self.assertAlmostEqual(r[1], 1.0)
-        self.assertAlmostEqual(1.0, features._unsplit_bound(r))
-
-    def test_feature_05(self):
-        v = -0.65676
-        r = features._transform_stripes_func(5)(v)
-        self.assertEqual(r[0], 0)
-        self.assertAlmostEqual(r[1], 1.0)
-        self.assertAlmostEqual(v, features._reverse_stripe_func(5)(r), places=5)
-
-        v = 0.5661479235
-        r = features._transform_stripes_func(5)(v)  # 5'th entry
-        self.assertEqual(r[0], 5)
-        self.assertAlmostEqual(r[1], 1.0)
-        self.assertAlmostEqual(v, features._reverse_stripe_func(5)(r), places=5)
-
-    def test_feature_09(self):
-        v = -.7955922120711471674   # 7'th entry in first stripe
-        r = features._transform_stripes_func(9)(v)
-        self.assertEqual(r[0], 7)
-        self.assertAlmostEqual(r[1], 1.0)
-        self.assertAlmostEqual(v, features._reverse_stripe_func(9)(r), places=5)
-
-        v = -.7140044569994015538   # 60'th entry in first stripe
-        r = features._transform_stripes_func(9)(v)
-        self.assertEqual(r[0], 59)
-        self.assertAlmostEqual(r[1], 1.0)
-        self.assertAlmostEqual(v, features._reverse_stripe_func(9)(r), places=5)
-
-        v = 1.293757915496888       # single stripe value
-        r = features._transform_stripes_func(9)(v)
-        self.assertEqual(r[0], 60)
-        self.assertAlmostEqual(r[1], 1.0)
-        self.assertAlmostEqual(v, features._reverse_stripe_func(9)(r), places=5)
-
-    def test_result(self):
-        idx, vals = features.transform(np.zeros((features.ORIGIN_N_FEATURES, )))
-        self.assertEqual(features.ORIGIN_N_FEATURES, idx.shape[0])
-        self.assertEqual(features.ORIGIN_N_FEATURES, vals.shape[0])
-
-    def test_transform_striped(self):
-        opts = {
-            'delta': 0.1,
-            'start': -0.5,
-            'stop': 0.5
-        }
-
-        index = features._transform_striped(0.5, **opts)
-        self.assertIsNotNone(index)
-        self.assertEqual(index, 10)
-
-        index = features._transform_striped(-1, **opts)
-        self.assertIsNone(index)
+        self.assertAlmostEqual(bins[-1], 0.0)

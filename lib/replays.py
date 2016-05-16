@@ -192,9 +192,9 @@ class ReplayBuffer:
 
         size = 0
         for state, reward, next_states in self.buffer:
-            size += state[0].nbytes + state[1].nbytes
+            size += state.nbytes
             size += reward.nbytes
-            size += sum(map(lambda s: s[0].nbytes + s[1].nbytes, next_states))
+            size += sum(map(lambda s: s.nbytes, next_states))
         size += self.losses.nbytes
         size += self.probabs.nbytes
         self.buffer_bytes = size
@@ -256,8 +256,8 @@ class ReplayBatchProducer(threading.Thread):
                 time.sleep(1)
                 continue
 
-            index, states_idx, states_val, rewards, next_states_idx, next_states_val = self.replay_buffer.next_batch()
-            feed = dict(zip(self.vars, [index, states_idx, states_val, rewards, next_states_idx, next_states_val]))
+            batch = self.replay_buffer.next_batch()
+            feed = dict(zip(self.vars, batch))
             self.session.run([self.enqueue_op], feed_dict=feed)
 
     def stop(self):
@@ -277,12 +277,10 @@ def make_batches_thread(session, queue, capacity, replay_buffer):
 
     # make varibles for data to be placed in the queue
     index_var_t = tf.placeholder(tf.int32)
-    states_idx_t = tf.placeholder(tf.int32)
-    states_val_t = tf.placeholder(tf.float32)
+    states_t = tf.placeholder(tf.float32)
     rewards_var_t = tf.placeholder(tf.float32)
-    next_states_idx_t = tf.placeholder(tf.int32)
-    next_states_val_t = tf.placeholder(tf.float32)
-    vars = [index_var_t, states_idx_t, states_val_t, rewards_var_t, next_states_idx_t, next_states_val_t]
+    next_states_t = tf.placeholder(tf.float32)
+    vars = [index_var_t, states_t, rewards_var_t, next_states_t]
     enqueue_op = queue.enqueue(vars)
 
     producer_thread = ReplayBatchProducer(session, capacity, replay_buffer,
@@ -343,7 +341,7 @@ class ReplayGenerator:
                 if cache_counter is not None and cache_counter > 0:
                     action = cached_action
                 else:
-                    qvals, = self.session.run([self.qvals_t], feed_dict={self.states_t: [features.to_dense(state)]})
+                    qvals, = self.session.run([self.qvals_t], feed_dict={self.states_t: [state]})
                     action = np.argmax(qvals)
                     cached_action = action
                     cache_counter = self.cache_actions

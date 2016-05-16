@@ -109,20 +109,12 @@ def sparse_batch_to_dense(idx_t, val_t, batch_size, sparse_size, dense_size, nam
     return tf.reshape(flat_dense_t, (batch_size, dense_size), name=name)
 
 
-def make_vars(sparse_n_features, dense_n_features, batch_size):
-    state_idx_t = tf.placeholder(tf.int32, (None, sparse_n_features), name="state_idx")
-    state_val_t = tf.placeholder(tf.float32, (None, sparse_n_features), name="state_val")
-    state_t = sparse_batch_to_dense(state_idx_t, state_val_t, batch_size,
-                                    sparse_n_features, dense_n_features, name="state")
-
+def make_vars(n_features, batch_size):
+    state_t = tf.placeholder(tf.float32, (None, n_features), name="state")
     rewards_t = tf.placeholder(tf.float32, (None, infra.n_actions), name="rewards")
 
-    next_state_idx_t = tf.placeholder(tf.int32, (None, sparse_n_features), name="next_idx")
-    next_state_val_t = tf.placeholder(tf.float32, (None, sparse_n_features), name="next_val")
-    next_state_t = sparse_batch_to_dense(next_state_idx_t, next_state_val_t, batch_size * infra.n_actions,
-                                         sparse_n_features, dense_n_features, name="next")
-
-    return state_idx_t, state_val_t, state_t, rewards_t, next_state_idx_t, next_state_val_t, next_state_t
+    next_state_t = tf.placeholder(tf.int32, (None, n_features), name="next")
+    return state_t, rewards_t, next_state_t
 
 
 def leaky_relu(x_t, name, alpha=0.01, summary=True):

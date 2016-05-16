@@ -3,7 +3,7 @@ import sys
 sys.path.append("..")
 
 from time import time
-from datetime import timedelta, datetime
+from datetime import timedelta
 from lib import infra, net, replays, features
 from lib.reload_opt import OptionLoader
 import numpy as np
@@ -25,7 +25,7 @@ TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 1500000
 # every replay batch is 50k steps
-INITIAL_REPLAY_BATCHES = 20
+INITIAL_REPLAY_BATCHES = 1
 
 # how many epoches we should show data between fresh replay data requests
 EPOCHES_BETWEEN_POLL = 3
@@ -76,8 +76,8 @@ def check_options(loader, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t48r1"
-    TEST_DESCRIPTION = "All stripes"
+    TEST_NAME = "t50r1"
+    TEST_DESCRIPTION = "Binary stripes"
     RESTORE_MODEL = None #"models/model_t46r1-195000"
     GAMMA = 0.99
     L2_REG = 0.3
@@ -97,30 +97,17 @@ if __name__ == "__main__":
     with tf.Session() as session:
         batches_queue = tf.FIFOQueue(BATCHES_QUEUE_CAPACITY, (
             tf.int32,           # batch index -- offsets within replay buffer
-            tf.int32,           # state sparse index vector
-            tf.float32,         # state sparse values vector
+            tf.float32,         # state values vector
             tf.float32,         # rewards
-            tf.int32,           # next state sparse index vector
-            tf.float32))        # next state sparse values vector
+            tf.float32))        # next state values vector
         batches_qsize_t = batches_queue.size()
 
         # batch
-        (index_batch_t, states_idx_batch_t, states_val_batch_t, rewards_batch_t,
-            next_states_idx_batch_t, next_states_val_batch_t) = batches_queue.dequeue()
-
-        # create variables:
-        # - state_idx_t, state_val_t -- sparse representation of transformed state
-        # - state_t = tf.sparse_to_dense
-        # - rewards_t
-        state_t = net.sparse_batch_to_dense(states_idx_batch_t, states_val_batch_t, BATCH_SIZE,
-                                            features.ORIGIN_N_FEATURES, features.RESULT_N_FEATURES, name="state")
-        next_state_t = net.sparse_batch_to_dense(next_states_idx_batch_t, next_states_val_batch_t,
-                                                 BATCH_SIZE * infra.n_actions, features.ORIGIN_N_FEATURES,
-                                                 features.RESULT_N_FEATURES, name="next")
+        (index_batch_t, states_batch_t, rewards_batch_t, next_states_batch_t) = batches_queue.dequeue()
 
         # make two networks - one is to train, second is periodically cloned from first
-        qvals_t = net.make_forward_net(state_t, n_features=n_features, is_main_net=True)
-        next_qvals_t = net.make_forward_net(next_state_t, n_features=n_features, is_main_net=False)
+        qvals_t = net.make_forward_net(states_batch_t, n_features=n_features, is_main_net=True)
+        next_qvals_t = net.make_forward_net(next_states_batch_t, n_features=n_features, is_main_net=False)
 
         # describe qvalues
         tf.contrib.layers.summarize_tensor(tf.reduce_mean(tf.reduce_max(qvals_t, 1), name="qbest"))
@@ -207,7 +194,7 @@ if __name__ == "__main__":
                     log.info("{iter} Do custom model states:".format(iter=iter))
                     for state in infra.bbox._all_states():
                         qvals, = session.run([qvals_t], feed_dict={
-                            state_t: [state] * BATCH_SIZE
+                            states_batch_t: [state] * BATCH_SIZE
                         })
                         log.info("   {state}: {qvals}".format(
                                 state=infra.bbox._describe_state(state),
