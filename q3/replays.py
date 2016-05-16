@@ -97,7 +97,7 @@ if __name__ == "__main__":
     log.info("Replay generator created, we have {files} files in replay dir, next index = {index}".format(
             files=len(index_files), index=index))
 
-    state_t = tf.placeholder(tf.float32, (1, features.RESULT_N_FEATURES))
+    state_t = tf.placeholder(tf.int8, (1, features.RESULT_N_FEATURES))
     qvals_t = net_light.make_forward_net(state_t, features.RESULT_N_FEATURES)
 
     score_steps = list(set(range(args.batch, args.max+1, args.batch) + [args.max]))

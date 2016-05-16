@@ -25,7 +25,7 @@ TEST_CUSTOM_BBOX_ITERS = 0
 
 REPLAY_BUFFER_CAPACITY = 1500000
 # every replay batch is 50k steps
-INITIAL_REPLAY_BATCHES = 1
+INITIAL_REPLAY_BATCHES = 10
 
 # how many epoches we should show data between fresh replay data requests
 EPOCHES_BETWEEN_POLL = 3
@@ -97,9 +97,9 @@ if __name__ == "__main__":
     with tf.Session() as session:
         batches_queue = tf.FIFOQueue(BATCHES_QUEUE_CAPACITY, (
             tf.int32,           # batch index -- offsets within replay buffer
-            tf.float32,         # state values vector
+            tf.int8,            # state values vector
             tf.float32,         # rewards
-            tf.float32))        # next state values vector
+            tf.int8))           # next state values vector
         batches_qsize_t = batches_queue.size()
 
         # batch

@@ -88,33 +88,33 @@ def make_summaries(loss_t, optimiser):
     return res
 
 
-def sparse_batch_to_dense(idx_t, val_t, batch_size, sparse_size, dense_size, name=None):
-    """
-    Converts batch of sparse samples to dense. Every row in idx_t is a dense vector indices.
-    For better examples, see 100-sparse-batches.ipynb
-
-    :param idx_t: tensor with indices of shape (BATCH, sparse_size)
-    :param val_t: tensor with values of shape (BATCH, sparse_size)
-    :return: tensor with dense values of shape (BATCH, dense_size)
-    """
-    # tensor of deltas to convert local indexes to global flat index
-    idx_deltas_t = tf.range(0, batch_size * dense_size, dense_size)
-    # deltas will be broadcasted along dim=1, effectively convert local indices into global
-    flat_idx_t = tf.reshape(idx_t + tf.expand_dims(idx_deltas_t, -1), (sparse_size * batch_size, ))
-    # flat values vector
-    flat_val_t = tf.reshape(val_t, (sparse_size * batch_size, ))
-    # now we have bath index and values as one large vectors. We can densify them
-    flat_dense_t = tf.sparse_to_dense(flat_idx_t, (dense_size * batch_size, ), flat_val_t)
-    # convert it into proper shape
-    return tf.reshape(flat_dense_t, (batch_size, dense_size), name=name)
-
-
-def make_vars(n_features, batch_size):
-    state_t = tf.placeholder(tf.float32, (None, n_features), name="state")
-    rewards_t = tf.placeholder(tf.float32, (None, infra.n_actions), name="rewards")
-
-    next_state_t = tf.placeholder(tf.int32, (None, n_features), name="next")
-    return state_t, rewards_t, next_state_t
+# def sparse_batch_to_dense(idx_t, val_t, batch_size, sparse_size, dense_size, name=None):
+#     """
+#     Converts batch of sparse samples to dense. Every row in idx_t is a dense vector indices.
+#     For better examples, see 100-sparse-batches.ipynb
+#
+#     :param idx_t: tensor with indices of shape (BATCH, sparse_size)
+#     :param val_t: tensor with values of shape (BATCH, sparse_size)
+#     :return: tensor with dense values of shape (BATCH, dense_size)
+#     """
+#     # tensor of deltas to convert local indexes to global flat index
+#     idx_deltas_t = tf.range(0, batch_size * dense_size, dense_size)
+#     # deltas will be broadcasted along dim=1, effectively convert local indices into global
+#     flat_idx_t = tf.reshape(idx_t + tf.expand_dims(idx_deltas_t, -1), (sparse_size * batch_size, ))
+#     # flat values vector
+#     flat_val_t = tf.reshape(val_t, (sparse_size * batch_size, ))
+#     # now we have bath index and values as one large vectors. We can densify them
+#     flat_dense_t = tf.sparse_to_dense(flat_idx_t, (dense_size * batch_size, ), flat_val_t)
+#     # convert it into proper shape
+#     return tf.reshape(flat_dense_t, (batch_size, dense_size), name=name)
+#
+#
+# def make_vars(n_features, batch_size):
+#     state_t = tf.placeholder(tf.float32, (None, n_features), name="state")
+#     rewards_t = tf.placeholder(tf.float32, (None, infra.n_actions), name="rewards")
+#
+#     next_state_t = tf.placeholder(tf.int32, (None, n_features), name="next")
+#     return state_t, rewards_t, next_state_t
 
 
 def leaky_relu(x_t, name, alpha=0.01, summary=True):
@@ -146,6 +146,8 @@ def make_forward_net(states_t, is_main_net, n_features, dropout_keep_prob=0.5):
         init = tf.zeros
         suff = "_R"
         dropout = False
+
+    states_t = tf.cast(states_t, tf.float32)
 
     with tf.name_scope("L0" + suff):
         w = tf.Variable(init((n_features, L1_SIZE)), **w_attrs)

@@ -13,12 +13,13 @@ def leaky_relu(x_t, name, alpha=0.01):
 
 
 def make_forward_net(states_t, n_features):
+    states_t = tf.cast(states_t, tf.float32)
     init = tf.contrib.layers.xavier_initializer()
 
     with tf.name_scope("L0_T"):
         w = tf.Variable(init((n_features, L1_SIZE)), name="w")
         b = tf.Variable(tf.zeros((L1_SIZE,)), name="b")
-        v = tf.matmul(states_t, w, a_is_sparse=True) + b
+        v = tf.matmul(states_t, w) + b
         l0_out = leaky_relu(v, name="L0")
 
     with tf.name_scope("L1_T"):
