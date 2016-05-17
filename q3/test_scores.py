@@ -92,11 +92,11 @@ def process_slave(args):
     :param args:
     :return:
     """
-    sleep(10)
+    sleep(1)
     infra.prepare_bbox(args.test)
-    n_features = features.transformed_size()
+    n_features = features.RESULT_N_FEATURES
 
-    state_t = tf.placeholder(tf.float32, (None, n_features))
+    state_t = tf.placeholder(tf.int8, (None, n_features))
     qvals_t = net.make_forward_net(state_t, True, n_features, dropout_keep_prob=1.0)
 
     saver = tf.train.Saver(var_list=dict(net.get_vars(trainable=True)).values())

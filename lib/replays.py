@@ -65,6 +65,7 @@ class ReplayBuffer:
         self.index = None
         self.index_ofs = 0
         self.replays_dir = replays_dir
+        self.sync_request = False
 
         # load initial batches
         self.pull_more_data(initial_batches)
@@ -189,6 +190,9 @@ class ReplayBuffer:
         self.buffer_bytes = size
         return size
 
+    def sync_done(self):
+        self.sync_request = True
+
     def __str__(self):
         return "ReplayBuffer[size={size}, to_pull={to_pull}, " \
                "max={max_loss:.2e}, mean={mean_loss:.2e}, min={min_loss:.2e}]".format(
@@ -211,6 +215,13 @@ class ReplayBuffer:
                 index, losses = self.session.run(self.losses_updates_dequeue)
                 np.put(self.losses, index, losses)
                 qsize -= 1
+            any_changes = True
+
+        # every sync we reset all probabilities in our replay buffer
+        if self.sync_request:
+            max_loss = self.losses.max()
+            self.losses.fill(max_loss)
+            self.sync_request = False
             any_changes = True
 
         if any_changes:

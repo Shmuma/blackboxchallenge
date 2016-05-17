@@ -76,9 +76,9 @@ def check_options(loader, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t50r1"
+    TEST_NAME = "t50r2"
     TEST_DESCRIPTION = "Binary stripes"
-    RESTORE_MODEL = None #"models/model_t46r1-195000"
+    RESTORE_MODEL = "models/model_t50r1-180000"
     GAMMA = 0.99
     L2_REG = 0.3
 
@@ -160,6 +160,7 @@ if __name__ == "__main__":
                     syncs += 1
                     log.info("{iter}: sync nets #{sync}".format(iter=iter, sync=syncs))
                     session.run([sync_nets_t])
+                    replay_buffer.sync_done()
                     time_to_sync = False
                     iter_last_synced = iter
 
