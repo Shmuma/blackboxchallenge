@@ -341,7 +341,7 @@ class ReplayGenerator:
                 if cache_counter is not None and cache_counter > 0:
                     action = cached_action
                 else:
-                    qvals, = self.session.run([self.qvals_t], feed_dict={self.states_t: [tf.cast(state, tf.float32)]})
+                    qvals, = self.session.run([self.qvals_t], feed_dict={self.states_t: [state]})
                     action = np.argmax(qvals)
                     cached_action = action
                     cache_counter = self.cache_actions
