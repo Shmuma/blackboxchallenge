@@ -323,12 +323,13 @@ class ReplayGenerator:
         cached_action = None
         score = infra.bbox.get_score()
         resetted = False
+        rewards_history = []
 
         while len(batch) < self.batch_size:
-            state = features.transform(infra.bbox.get_state(), infra.bbox.get_time())
+            state = features.transform(infra.bbox.get_state(), rewards_history)
             rewards_states = infra.dig_all_actions(self.score)
             rewards, next_states = zip(*rewards_states)
-            next_states = map(lambda s: features.transform(s, infra.bbox.get_time()+1), next_states)
+            next_states = map(lambda (idx, state): features.transform(state, rewards_history + [rewards[idx]]), enumerate(next_states))
             batch.append((state, np.copy(rewards), next_states))
 
             if cache_counter is not None:
@@ -345,6 +346,8 @@ class ReplayGenerator:
                     action = np.argmax(qvals)
                     cached_action = action
                     cache_counter = self.cache_actions
+
+            rewards_history = features.push_reward(rewards_history, rewards[action])
 
             self.has_next = infra.bbox.do_action(action)
             self.score = infra.bbox.get_score()

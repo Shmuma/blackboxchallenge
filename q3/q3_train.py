@@ -76,8 +76,8 @@ def check_options(loader, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t51r1"
-    TEST_DESCRIPTION = "Orig features + time"
+    TEST_NAME = "t52r1"
+    TEST_DESCRIPTION = "Orig features + reward history"
     RESTORE_MODEL = None#"models/model_t50r1-180000"
     GAMMA = 0.99
     L2_REG = 0.3

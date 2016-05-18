@@ -1,17 +1,21 @@
 import numpy as np
 import array
 
+REWARD_HISTORY = 10
 ORIGIN_N_FEATURES = 36
-RESULT_N_FEATURES = 37
+RESULT_N_FEATURES = ORIGIN_N_FEATURES + REWARD_HISTORY
 
 
-def transform(state, time):
+def transform(state, reward_history):
     """
     All features except last transfomed into bits value, last left as is
     :param state:
     :return: transformed numpy vector
     """
-    return np.append(state, time)
+    if len(reward_history) < REWARD_HISTORY:
+        reward_history = [0.0] * (REWARD_HISTORY - len(reward_history)) + reward_history
+    res = np.append(state, reward_history[-REWARD_HISTORY:])
+    return res
     # arr = array.array('f', state[:-1])
     # last = int(state[-1] * 10.0) + 11
     #
@@ -21,6 +25,11 @@ def transform(state, time):
     # v = map(int, "".join(v))
     # v.append(last)
     # return np.array(v, dtype=np.int8)
+
+
+def push_reward(rewards, new_reward):
+    rewards.append(new_reward)
+    return rewards[-REWARD_HISTORY:]
 
 
 data = [-0.73334587, -0.93910491, -0.94270045, -1.36341822, -1.70008028, -0.65676075,
