@@ -136,6 +136,7 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
         'qvals_t': qvals_t,
         'cached_action': None,
         'cached_counter': 0,
+        'reward_history': [],
     }
 
     def action_hook(our_state, bbox_state):
@@ -159,7 +160,7 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
             states_t = our_state['states_t']
 
             # do a features transformation
-            state = features.transform(bbox_state, infra.bbox.get_time())
+            state = features.transform(bbox_state, our_state['reward_history'])
             if feats_tr_post is not None:
                 state = feats_tr_post(state)
             qvals, = sess.run([qvals_t], feed_dict={states_t: [state]})
@@ -171,7 +172,7 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
         return action
 
     def reward_hook(our_state, reward, last_round):
-        pass
+        our_state['reward_history'] = features.push_reward(our_state['reward_history'], reward)
 
     infra.bbox_loop(state, action_hook, reward_hook, verbose=verbose, max_steps=max_steps)
     score = infra.bbox.get_score()
