@@ -147,8 +147,6 @@ def make_forward_net(states_t, is_main_net, n_features, dropout_keep_prob=0.5):
         suff = "_R"
         dropout = False
 
-    states_t = tf.cast(states_t, tf.float32)
-
     with tf.name_scope("L0" + suff):
         w = tf.Variable(init((n_features, L1_SIZE)), **w_attrs)
         b = tf.Variable(tf.zeros((L1_SIZE,)), **b_attrs)

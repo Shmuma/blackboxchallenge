@@ -93,7 +93,7 @@ def populate_replay_buffer(replay_buffer, session, states_t, qvals_t, alpha=0.0,
             qvals_t = our_state['qvals_t']
             states_t = our_state['states_t']
 
-            state = features.to_dense(features.transform(our_state['state']))
+            state = features.transform(our_state['state'], infra.bbox.get_time())
             qvals, = sess.run([qvals_t], feed_dict={states_t: [state]})
             action = np.argmax(qvals)
 
@@ -159,7 +159,7 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
             states_t = our_state['states_t']
 
             # do a features transformation
-            state = features.transform(bbox_state)
+            state = features.transform(bbox_state, infra.bbox.get_time())
             if feats_tr_post is not None:
                 state = feats_tr_post(state)
             qvals, = sess.run([qvals_t], feed_dict={states_t: [state]})
@@ -199,7 +199,7 @@ def test_performance_no_tf(network, alpha=0.0, verbose=0, max_steps=None, test_l
             action = np.random.randint(0, infra.n_actions, 1)[0]
         else:
             # do a features transformation
-            state = features.transform(bbox_state)
+            state = features.transform(bbox_state, infra.bbox.get_time())
             if feats_tr_post is not None:
                 state = feats_tr_post(state)
 

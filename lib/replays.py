@@ -277,9 +277,9 @@ def make_batches_thread(session, queue, capacity, replay_buffer):
 
     # make varibles for data to be placed in the queue
     index_var_t = tf.placeholder(tf.int32)
-    states_t = tf.placeholder(tf.int8)
+    states_t = tf.placeholder(tf.float32)
     rewards_var_t = tf.placeholder(tf.float32)
-    next_states_t = tf.placeholder(tf.int8)
+    next_states_t = tf.placeholder(tf.float32)
     vars = [index_var_t, states_t, rewards_var_t, next_states_t]
     enqueue_op = queue.enqueue(vars)
 
@@ -325,10 +325,10 @@ class ReplayGenerator:
         resetted = False
 
         while len(batch) < self.batch_size:
-            state = features.transform(infra.bbox.get_state())
+            state = features.transform(infra.bbox.get_state(), infra.bbox.get_time())
             rewards_states = infra.dig_all_actions(self.score)
             rewards, next_states = zip(*rewards_states)
-            next_states = map(features.transform, next_states)
+            next_states = map(lambda s: features.transform(s, infra.bbox.get_time()+1), next_states)
             batch.append((state, np.copy(rewards), next_states))
 
             if cache_counter is not None:

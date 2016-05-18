@@ -2,24 +2,25 @@ import numpy as np
 import array
 
 ORIGIN_N_FEATURES = 36
-RESULT_N_FEATURES = 35*32 + 1
+RESULT_N_FEATURES = 37
 
 
-def transform(state):
+def transform(state, time):
     """
     All features except last transfomed into bits value, last left as is
     :param state:
     :return: transformed numpy vector
     """
-    arr = array.array('f', state[:-1])
-    last = int(state[-1] * 10.0) + 11
-
-    a_ints = array.array('I')
-    a_ints.fromstring(arr.tostring())
-    v = map(lambda v: np.binary_repr(v, width=32), a_ints)
-    v = map(int, "".join(v))
-    v.append(last)
-    return np.array(v, dtype=np.int8)
+    return np.append(state, time)
+    # arr = array.array('f', state[:-1])
+    # last = int(state[-1] * 10.0) + 11
+    #
+    # a_ints = array.array('I')
+    # a_ints.fromstring(arr.tostring())
+    # v = map(lambda v: np.binary_repr(v, width=32), a_ints)
+    # v = map(int, "".join(v))
+    # v.append(last)
+    # return np.array(v, dtype=np.int8)
 
 
 data = [-0.73334587, -0.93910491, -0.94270045, -1.36341822, -1.70008028, -0.65676075,

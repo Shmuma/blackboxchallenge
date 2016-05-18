@@ -13,7 +13,6 @@ def leaky_relu(x_t, name, alpha=0.01):
 
 
 def make_forward_net(states_t, n_features):
-    states_t = tf.cast(states_t, tf.float32)
     init = tf.contrib.layers.xavier_initializer()
 
     with tf.name_scope("L0_T"):

@@ -76,9 +76,9 @@ def check_options(loader, replay_buffer):
 
 if __name__ == "__main__":
     LEARNING_RATE = 5e-5
-    TEST_NAME = "t50r2"
-    TEST_DESCRIPTION = "Binary stripes"
-    RESTORE_MODEL = "models/model_t50r1-180000"
+    TEST_NAME = "t51r1"
+    TEST_DESCRIPTION = "Orig features + time"
+    RESTORE_MODEL = None#"models/model_t50r1-180000"
     GAMMA = 0.99
     L2_REG = 0.3
 
@@ -97,9 +97,9 @@ if __name__ == "__main__":
     with tf.Session() as session:
         batches_queue = tf.FIFOQueue(BATCHES_QUEUE_CAPACITY, (
             tf.int32,           # batch index -- offsets within replay buffer
-            tf.int8,            # state values vector
+            tf.float32,            # state values vector
             tf.float32,         # rewards
-            tf.int8))           # next state values vector
+            tf.float32))           # next state values vector
         batches_qsize_t = batches_queue.size()
 
         # batch
