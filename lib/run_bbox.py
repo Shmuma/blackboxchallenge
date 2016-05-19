@@ -137,6 +137,7 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
         'cached_action': None,
         'cached_counter': 0,
         'reward_history': [],
+        'action_history': [],
     }
 
     def action_hook(our_state, bbox_state):
@@ -152,10 +153,7 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
         else:
             if cache_steps is not None:
                 if our_state['cached_counter'] > 0:
-                    # print "%d: cached %d (counter %d), rewards %s" % (
-                    #     infra.bbox.get_time(), our_state['cached_action'], our_state['cached_counter'],
-                    #     our_state['reward_history']
-                    # )
+                    our_state['action_history'] = features.push_history(our_state['action_history'], our_state['cached_action'])
                     return our_state['cached_action']
                 our_state['cached_counter'] = cache_steps
 
@@ -164,7 +162,8 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
             states_t = our_state['states_t']
 
             # do a features transformation
-            state = features.transform(bbox_state, our_state['reward_history'])
+            state = features.transform(bbox_state, our_state['reward_history'], our_state['action_history'],
+                                       infra.bbox.get_time())
             if feats_tr_post is not None:
                 state = feats_tr_post(state)
             qvals, = sess.run([qvals_t], feed_dict={states_t: [state]})
@@ -172,12 +171,12 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
 
             if cache_steps is not None:
                 our_state['cached_action'] = action
-            # print "%d: action %d calculated, rewards %s" % (infra.bbox.get_time(), action, our_state['reward_history'])
 
+        our_state['action_history'] = features.push_history(our_state['action_history'], action)
         return action
 
     def reward_hook(our_state, reward, last_round):
-        our_state['reward_history'] = features.push_reward(our_state['reward_history'], reward)
+        our_state['reward_history'] = features.push_history(our_state['reward_history'], reward)
 
     infra.bbox_loop(state, action_hook, reward_hook, verbose=verbose, max_steps=max_steps)
     score = infra.bbox.get_score()
