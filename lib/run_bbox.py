@@ -152,6 +152,10 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
         else:
             if cache_steps is not None:
                 if our_state['cached_counter'] > 0:
+                    # print "%d: cached %d (counter %d), rewards %s" % (
+                    #     infra.bbox.get_time(), our_state['cached_action'], our_state['cached_counter'],
+                    #     our_state['reward_history']
+                    # )
                     return our_state['cached_action']
                 our_state['cached_counter'] = cache_steps
 
@@ -168,6 +172,7 @@ def test_performance(session, states_t, qvals_t, alpha=0.0, verbose=0, max_steps
 
             if cache_steps is not None:
                 our_state['cached_action'] = action
+            # print "%d: action %d calculated, rewards %s" % (infra.bbox.get_time(), action, our_state['reward_history'])
 
         return action
 
