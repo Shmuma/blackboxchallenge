@@ -9,7 +9,7 @@ from lib.reload_opt import OptionLoader
 import numpy as np
 import tensorflow as tf
 
-BATCH_SIZE = 2000
+BATCH_SIZE = 5000
 REPORT_ITERS = 100
 SAVE_MODEL_ITERS = 5000
 SAVE_MODEL_FOR_REPLAYS = 1000
@@ -23,9 +23,9 @@ BATCHES_AFTER_PULL_TO_SYNC = 500
 
 TEST_CUSTOM_BBOX_ITERS = 0
 
-REPLAY_BUFFER_CAPACITY = 1500000
+REPLAY_BUFFER_CAPACITY = 2500000
 # every replay batch is 50k steps
-INITIAL_REPLAY_BATCHES = 10
+INITIAL_REPLAY_BATCHES = 20
 
 # how many epoches we should show data between fresh replay data requests
 EPOCHES_BETWEEN_POLL = 3
@@ -75,10 +75,10 @@ def check_options(loader, replay_buffer):
 
 
 if __name__ == "__main__":
-    LEARNING_RATE = 5e-5
-    TEST_NAME = "t52r1"
+    LEARNING_RATE = 1e-4
+    TEST_NAME = "t52r3"
     TEST_DESCRIPTION = "Orig features + reward history"
-    RESTORE_MODEL = None#"models/model_t50r1-180000"
+    RESTORE_MODEL = "models/model_t52r2-70000"
     GAMMA = 0.99
     L2_REG = 0.3
 
