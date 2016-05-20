@@ -173,6 +173,7 @@ if __name__ == "__main__":
     parser.add_argument("--parallel", type=int, default=1, help="Max count of child processes to start")
     parser.add_argument("--slave", default=None, help="Used to start slave processes, do not use")
     parser.add_argument("--test", default=False, action="store_true", help="Used in slave mode")
+    parser.add_argument("--notrain", action="store_true", default=False, help="Do not run scoring for trains")
     args = parser.parse_args()
 
     if args.slave is not None:
@@ -206,7 +207,10 @@ if __name__ == "__main__":
                     every_counter = args.every
                     log.info("Found new model for step %d, enqueued" % step)
                     model_file = get_model_path(args.name, str(step))
-                    models_to_process += [(model_file, step, True), (model_file, step, False)]
+
+                    models_to_process += [(model_file, step, True)]
+                    if not args.notrain:
+                        models_to_process += [(model_file, step, False)]
 
                 # check for terminated slave processes
                 running_slaves = []
