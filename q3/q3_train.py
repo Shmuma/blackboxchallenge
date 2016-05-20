@@ -75,10 +75,10 @@ def check_options(loader, replay_buffer):
 
 
 if __name__ == "__main__":
-    LEARNING_RATE = 1e-3
-    TEST_NAME = "t53r1"
+    LEARNING_RATE = 1e-2
+    TEST_NAME = "t53r2"
     TEST_DESCRIPTION = "Reward history + actions history + less features"
-    RESTORE_MODEL = None#"models/model_t52r3-55000"
+    RESTORE_MODEL = "models/model_t53r1-215000"
     GAMMA = 0.99
     L2_REG = 0.3
 
